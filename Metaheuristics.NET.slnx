@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Metaheuristics.Algorithms/Metaheuristics.Algorithms.csproj" />
+    <Project Path="src/Metaheuristics.Core/Metaheuristics.Core.csproj" />
+    <Project Path="src/Metaheuristics.Experiments/Metaheuristics.Experiments.csproj" />
+  </Folder>
+</Solution>

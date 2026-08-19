@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Metaheuristic algorithm implementations for Metaheuristics.NET.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Metaheuristics.Core\Metaheuristics.Core.csproj" />
+  </ItemGroup>
+</Project>
