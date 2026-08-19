@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Performance benchmarks for Metaheuristics.NET.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Metaheuristics.Core\Metaheuristics.Core.csproj" />
+    <ProjectReference Include="..\..\src\Metaheuristics.Algorithms\Metaheuristics.Algorithms.csproj" />
+  </ItemGroup>
+</Project>

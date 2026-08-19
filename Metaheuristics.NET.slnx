@@ -1,7 +1,16 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Metaheuristics.Benchmarks/Metaheuristics.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/Metaheuristics.Examples/Metaheuristics.Examples.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Metaheuristics.Algorithms/Metaheuristics.Algorithms.csproj" />
     <Project Path="src/Metaheuristics.Core/Metaheuristics.Core.csproj" />
     <Project Path="src/Metaheuristics.Experiments/Metaheuristics.Experiments.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj" />
   </Folder>
 </Solution>

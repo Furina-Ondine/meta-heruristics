@@ -116,6 +116,19 @@ Core 负责运行循环、评估计数、停止条件、取消、约束比较和
 - 具有单元测试、统计验证和性能基准；
 - 参数默认值和来源有明确文档。
 
+## 开发
+
+环境要求：.NET SDK 10.0.400 或满足 `global.json` 滚动策略的兼容补丁版本。
+
+```powershell
+dotnet restore Metaheuristics.NET.slnx
+dotnet build Metaheuristics.NET.slnx --configuration Release --no-restore
+dotnet test Metaheuristics.NET.slnx --configuration Release --no-build
+dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.csproj --configuration Release --no-build
+```
+
+性能基准将在首个算法实现进入仓库时加入；基准宿主项目已预先建立，以固定依赖方向和构建入口。
+
 ## 项目来源
 
 本项目源自学位论文实验仓库 [task-schedule](https://github.com/Furina-Ondine/task-schedule)。旧仓库以完成论文实验为主要目标，保留为历史实现和实验归档；其中 [`fix` 分支](https://github.com/Furina-Ondine/task-schedule/tree/fix) 包含部分问题的快速修复。Metaheuristics.NET 将在相关实践经验基础上重新设计，而不是直接把研究原型包装成公共库。

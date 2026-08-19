@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Runnable examples for Metaheuristics.NET.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Metaheuristics.Core\Metaheuristics.Core.csproj" />
+    <ProjectReference Include="..\..\src\Metaheuristics.Algorithms\Metaheuristics.Algorithms.csproj" />
+    <ProjectReference Include="..\..\src\Metaheuristics.Experiments\Metaheuristics.Experiments.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Metaheuristics.Core\Metaheuristics.Core.csproj" />
+    <ProjectReference Include="..\..\src\Metaheuristics.Algorithms\Metaheuristics.Algorithms.csproj" />
+    <ProjectReference Include="..\..\src\Metaheuristics.Experiments\Metaheuristics.Experiments.csproj" />
+  </ItemGroup>
+</Project>
