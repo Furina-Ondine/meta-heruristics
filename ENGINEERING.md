@@ -3,7 +3,7 @@
 ## 文档权威性
 
 - 本文是持续有效的工程契约；`README.md` 只提供摘要。
-- 当前结构和依赖以[架构概览](docs/architecture/overview.md)为准，选择原因以[ADR 索引](docs/decisions/README.md)及其中 `Accepted` 的记录为准。
+- [架构概览](docs/architecture/overview.md)只报告实现现状；[ADR 索引](docs/decisions/README.md)及其中 `Accepted` 的记录解释选择原因。
 - 发现实现、架构概览和 ADR 不一致时，先报告冲突；由新 ADR 替代决策后同步更新本文和架构概览。
 
 ## 项目边界
@@ -31,6 +31,7 @@
 
 - `Optimizer` 保存算法定义和不可变参数，可安全复用；`Session` 独占单次运行的种群、随机流和临时缓冲区，二者隔离，`Session` 不保证线程安全。
 - 禁止全局随机流（包括 `Random.Shared`）、当前时间播种和跨运行共享可变状态；独立 run 的种子与随机序列必须不受并发度变化影响。
+- 相同库版本、运行时和执行设置下，相同种子必须产生相同结果。
 - 池化资源必须明确所有权、清理和释放规则。
 
 ## 数值正确性

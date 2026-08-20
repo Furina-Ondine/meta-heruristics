@@ -1,19 +1,21 @@
 # 当前架构概览
 
-本文只描述当前架构、职责和运行流程，不记录选择理由。工程契约见
+本文只报告实现现状，不记录选择理由。工程契约见
 [`ENGINEERING.md`](../../ENGINEERING.md)，决策理由和替代关系见
 [`docs/decisions/README.md`](../decisions/README.md)。
 
-## 项目职责
+## 当前状态
 
-| 项目 | 当前职责 |
+仓库已建立六个项目及其引用关系，但仍处于脚手架阶段：运行时公共 API、算法实现和实验执行尚未落地。
+
+| 项目 | 实现现状 |
 | --- | --- |
-| `Metaheuristics.Core` | 定义稳定的运行时契约，以及候选、目标、约束和执行所需的公共抽象。 |
-| `Metaheuristics.Algorithms` | 提供具体优化算法和 `Optimizer` 实现；只依赖 `Core`。 |
-| `Metaheuristics.Experiments` | 定义批量实验的强类型工厂、运行编排和结果聚合；只依赖 `Core`，不依赖具体算法项目。 |
-| `Metaheuristics.Examples` | 展示从问题和算法装配到运行、结果处理的使用方式。 |
-| `Metaheuristics.Tests` | 验证 `Core`、`Algorithms` 和 `Experiments` 的契约与行为。 |
-| `Metaheuristics.Benchmarks` | 对核心和算法热路径进行基准测量，为性能改动提供数据依据。 |
+| `Metaheuristics.Core` | 项目骨架；尚无运行时公共类型。 |
+| `Metaheuristics.Algorithms` | 项目骨架；尚无算法实现。 |
+| `Metaheuristics.Experiments` | 项目骨架；尚无实验执行能力。 |
+| `Metaheuristics.Examples` | 占位控制台入口。 |
+| `Metaheuristics.Tests` | 仅包含目标运行时检查。 |
+| `Metaheuristics.Benchmarks` | 占位基准宿主，尚无基准用例。 |
 
 ## 项目依赖
 
@@ -27,34 +29,28 @@ Tests        ──→ Core + Algorithms + Experiments
 Benchmarks   ──→ Core + Algorithms
 ```
 
-## 单次运行
+## 已接受、尚未落地的 v0.1 设计
 
-单次运行接收调用方装配的 `Problem` 和 `Optimizer`，由库管理运行生命周期：
+按照 [ADR-0004](../decisions/0004-composition-and-execution-model.md)，v0.1 将采用以下单次运行模型：
 
 ```text
 Problem + Optimizer  →  Runner  →  Session  →  Result
 ```
 
-`Optimizer` 保存可复用的算法定义和不可变参数；`Runner` 负责启动和协调运行；`Session` 独占本次运行的种群、随机流和临时缓冲区；`Result` 表示运行输出。
-
-## 批量实验
-
-批量实验由实验层使用强类型工厂创建隔离实例，并在全部运行完成后聚合结果：
+批量实验的目标流程为：
 
 ```text
 Experiments  →  typed factories  →  isolated runs  →  aggregate
 ```
 
-每个独立 run 拥有自己的运行状态和随机流，聚合阶段只处理各 run 的结果。
-
-## 当前扩展点
-
-- 以强类型接口、显式依赖和组件组合扩展 `Problem`、`Optimizer` 及策略组件。
-- 单次运行传入已装配的实例；批量实验通过强类型 factory 创建隔离实例。
-- 算法实现位于 `Algorithms`，稳定契约位于 `Core`；扩展不得反向污染核心抽象。
+这些名称和流程是已接受的设计，不是当前公共 API 或扩展点。
 
 ## 首版排除项
 
 - 远程执行、集群调度和 GPU 计算后端。
 - 多目标、二进制和排列表示；也不为尚未进入路线图的表示类型、目标类型或后端预建复杂抽象。
 - 全局字符串注册中心、服务定位器，以及按字符串类型名恢复组件的机制。
+
+## API 文档
+
+当前没有 API 文档，因为运行时公共 API 尚未实现。首批公共 API 加入时同步增加 API 文档和可运行示例。
