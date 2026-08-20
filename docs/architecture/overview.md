@@ -29,13 +29,17 @@ Tests        ──→ Core + Algorithms + Experiments
 Benchmarks   ──→ Core + Algorithms
 ```
 
-## 已接受、尚未落地的 v0.1 设计
+## 已接受、尚未落地的设计
+
+### 单次运行模型（v0.1）
 
 按照 [ADR-0004](../decisions/0004-composition-and-execution-model.md)，v0.1 将采用以下单次运行模型：
 
 ```text
 Problem + Optimizer  →  Runner  →  Session  →  Result
 ```
+
+### 批量实验流程（v0.2）
 
 批量实验的目标流程为：
 
