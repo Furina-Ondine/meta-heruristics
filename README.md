@@ -7,7 +7,7 @@
 
 ## 首版范围
 
-首版聚焦连续单目标优化：候选位置为 `double` 向量，目标值为标量 `double`，支持最小化、最大化、变量边界及约束。基础评估为单点同步评估，可选本机同步批量评估；运行之间保持随机状态隔离和可复现性。
+首版聚焦连续单目标优化：候选位置为 `double` 向量，目标值为标量 `double`，支持最小化、最大化、变量边界及约束。目标评估采用单点同步接口；运行之间保持随机状态隔离和可复现性。
 
 首版不包含远程、集群、GPU、多目标、二进制或排列表示，也不提供运行时插件发现。
 
@@ -40,6 +40,9 @@ dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.cs
 
 - [工程规范](ENGINEERING.md)：长期有效的代码、架构、测试和发布规则；
 - [架构概览](docs/architecture/overview.md)：当前项目职责、依赖和运行流程；
+- [Core API](docs/api/core.md)：第一波连续问题、运行模型和扩展契约；
+- [Experiments API](docs/api/experiments.md)：Case、RunGroup、并发调度、失败与结果统计；
+- [Superpowers 设计与实施档案](docs/superpowers/README.md)：按变更保存设计规格和实施计划，不作为长期工程规范；
 - [ADR 索引](docs/decisions/README.md)：决策背景、替代方案和重新评估条件。
 
 ## 项目来源

@@ -2,7 +2,9 @@
 
 ## 状态
 
-状态：Accepted
+状态：Superseded
+
+由 [ADR-0008](0008-experiment-run-groups-and-reusable-workers.md) 替代。
 
 ## 背景
 

@@ -2,7 +2,9 @@
 
 ## 状态
 
-状态：Accepted
+状态：Superseded
+
+由 [ADR-0010](0010-scalar-evaluation-baseline.md) 替代。
 
 ## 背景
 

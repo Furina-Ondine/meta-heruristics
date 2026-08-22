@@ -6,15 +6,15 @@
 
 ## 当前状态
 
-仓库已建立六个项目及其引用关系，但仍处于脚手架阶段：运行时公共 API、算法实现和实验执行尚未落地。
+仓库已建立六个项目及其引用关系。第一波 Core 公共 API、单次运行生命周期和 Experiment 执行已经落地；正式算法实现尚未落地。
 
 | 项目 | 实现现状 |
 | --- | --- |
-| `Metaheuristics.Core` | 项目骨架；尚无运行时公共类型。 |
+| `Metaheuristics.Core` | 已提供连续问题、标量评估与比较、有状态 Optimizer、run Context、停止、轨迹、结果和单次 Runner API。 |
 | `Metaheuristics.Algorithms` | 项目骨架；尚无算法实现。 |
-| `Metaheuristics.Experiments` | 项目骨架；尚无实验执行能力。 |
-| `Metaheuristics.Examples` | 占位控制台入口。 |
-| `Metaheuristics.Tests` | 仅包含目标运行时检查。 |
+| `Metaheuristics.Experiments` | 已提供强类型 Case、RunGroup 规划、有界并发、共享 seed、部分失败/取消结果和基本统计。 |
+| `Metaheuristics.Examples` | 已提供单次运行和双 Case Experiment 的随机搜索示例；尚无正式算法示例。 |
+| `Metaheuristics.Tests` | 已包含目标运行时检查、Core 契约以及 Experiment 调度与结果行为测试。 |
 | `Metaheuristics.Benchmarks` | 占位基准宿主，尚无基准用例。 |
 
 ## 项目依赖
@@ -29,25 +29,25 @@ Tests        ──→ Core + Algorithms + Experiments
 Benchmarks   ──→ Core + Algorithms
 ```
 
-## 已接受、尚未落地的设计
+## 运行与实验模型
 
-### 单次运行模型（v0.1）
-
-按照 [ADR-0004](../decisions/0004-composition-and-execution-model.md)，v0.1 将采用以下单次运行模型：
+### 单次运行模型
 
 ```text
-Problem + Optimizer  →  Runner  →  Session  →  Result
+Problem + stateful Optimizer  →  Runner
+    →  new run Context  →  ResetForRun  →  Advance...  →  Result/Summary
 ```
 
-### 批量实验流程（v0.2）
+由 RunGroup 独占的有状态 Optimizer 直接持有并复用工作区。每次 run 创建新的 Context 和 `Random(seed)`，重新初始化逻辑状态。Core 只提供标量单点评估，不规定算法的种群内存布局。决策见 [ADR-0009](../decisions/0009-group-scoped-optimizer-execution.md) 和 [ADR-0010](../decisions/0010-scalar-evaluation-baseline.md)。
 
-批量实验的目标流程为：
+### 批量实验流程
 
 ```text
-Experiments  →  typed factories  →  isolated runs  →  aggregate
+Cases  →  plan RunGroups  →  bounded scheduler
+       →  group factories  →  reusable Optimizers  →  aggregate
 ```
 
-这些名称和流程是已接受的设计，不是当前公共 API 或扩展点。
+Case 内用 `RunGroupCount` 表达用户掌握的并发拆分；所有 Group 再由单一全局并发上限调度。详细设计见 [Experiment 执行架构与接口设计](../superpowers/specs/2026-08-22-experiment-execution-design.md)。
 
 ## 首版排除项
 
@@ -57,4 +57,4 @@ Experiments  →  typed factories  →  isolated runs  →  aggregate
 
 ## API 文档
 
-当前没有 API 文档，因为运行时公共 API 尚未实现。首批公共 API 加入时同步增加 API 文档和可运行示例。
+公共契约见 [Core API](../api/core.md) 和 [Experiments API](../api/experiments.md)，可运行示例见 [`examples/Metaheuristics.Examples/Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
