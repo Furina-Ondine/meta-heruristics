@@ -20,6 +20,7 @@
 | 2026-08-19 | 项目基础设计 | [项目基础设计](specs/2026-08-19-project-foundation-design.md) | [项目脚手架计划](plans/2026-08-19-project-scaffolding.md) | 定义首版范围、项目结构、依赖边界、问题与评估模型、执行模型及迁移顺序。 |
 | 2026-08-20 | 工程治理文档设计 | [工程治理文档设计](specs/2026-08-20-engineering-governance-design.md) | [工程治理计划](plans/2026-08-20-engineering-governance.md) | 设计 README、ENGINEERING、AGENTS、架构概览、ADR 与本目录的职责边界，以及工程治理和发布规则。 |
 | 2026-08-22 | Experiment 执行架构 | [Experiment 执行架构与接口设计](specs/2026-08-22-experiment-execution-design.md) | [Experiment 第一版实施计划](plans/2026-08-22-experiment-execution.md) | 定义多 Case、RunGroup 拆分、有界调度、Optimizer 内存复用、seed、部分结果和统计语义。 |
+| 2026-08-22 | 蝙蝠算法第一波迁移 | [蝙蝠算法第一波迁移设计](specs/2026-08-22-bat-algorithm-migration-design.md) | [蝙蝠算法第一波迁移实施计划](plans/2026-08-22-bat-algorithm-migration.md) | 审计旧仓库 fix 分支并迁移双缓冲 Bat Optimizer、工作区复用和正确性回归。 |
 
 ## 实施计划（plans）
 
@@ -28,3 +29,4 @@
 | 2026-08-19 | 项目脚手架实施计划 | [项目脚手架计划](plans/2026-08-19-project-scaffolding.md) | [项目基础设计](specs/2026-08-19-project-foundation-design.md) | 将项目基础设计落地为可构建的 .NET 10 六项目解决方案，并验证依赖图、测试、示例和基准宿主。 |
 | 2026-08-20 | 工程治理实施计划 | [工程治理计划](plans/2026-08-20-engineering-governance.md) | [工程治理文档设计](specs/2026-08-20-engineering-governance-design.md) | 按任务落地 ENGINEERING、AGENTS、架构概览、ADR 集合和 README 文档导航。 |
 | 2026-08-22 | Experiment 第一版实施计划 | [Experiment 第一版实施计划](plans/2026-08-22-experiment-execution.md) | [Experiment 执行架构与接口设计](specs/2026-08-22-experiment-execution-design.md) | 将有状态 Optimizer、单点评估、RunGroup 调度、部分结果和统计设计落地为代码、测试与 API 文档。 |
+| 2026-08-22 | 蝙蝠算法第一波迁移实施计划 | [蝙蝠算法第一波迁移实施计划](plans/2026-08-22-bat-algorithm-migration.md) | [蝙蝠算法第一波迁移设计](specs/2026-08-22-bat-algorithm-migration-design.md) | 将修复后的旧 Bat 变体适配到当前 Core 生命周期、方向、约束、seed 和示例。 |

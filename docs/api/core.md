@@ -35,7 +35,7 @@ var result = OptimizationRunner.Run(
     cancellationToken);
 ```
 
-`optimizer` 是调用方创建并拥有的 `IOptimizer` 实例。当前仓库尚未提供正式算法包实现；可运行的自定义算法示例见 [`examples/Metaheuristics.Examples/Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
+`optimizer` 是调用方创建并拥有的 `IOptimizer` 实例。当前正式实现及其配置见 [Algorithms API](algorithms.md)，可运行示例见 [`examples/Metaheuristics.Examples/Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
 
 ## 生命周期契约
 
@@ -70,4 +70,4 @@ var result = OptimizationRunner.Run(
 
 ## 当前波次边界
 
-本波固定算法与 Experiment 共用的 Core 表面。标准约束类型、无显著改进停止条件和正式算法实现尚未进入本次交付。
+本波固定算法与 Experiment 共用的 Core 表面。标准约束类型和无显著改进停止条件尚未进入本次交付；第一种正式算法实现见 [Algorithms API](algorithms.md)。

@@ -24,6 +24,7 @@
 | [0008](0008-experiment-run-groups-and-reusable-workers.md) | Experiment RunGroup 与可复用 Worker | `Superseded` |
 | [0009](0009-group-scoped-optimizer-execution.md) | RunGroup 独占的有状态 Optimizer | `Accepted` |
 | [0010](0010-scalar-evaluation-baseline.md) | 单点评估基础契约 | `Accepted` |
+| [0011](0011-bat-first-algorithm-migration.md) | 首个算法迁移选择蝙蝠算法 | `Accepted` |
 
 ## ADR 模板
 

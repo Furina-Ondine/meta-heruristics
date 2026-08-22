@@ -17,10 +17,10 @@
 
 ## 路线图
 
-- `v0.1`：Core、运行模型、结果模型和 PSO；
-- `v0.2`：约束体系、连续遗传算法和实验管理；
+- `v0.1`：Core、运行模型、结果模型、实验管理和蝙蝠算法；
+- `v0.2`：约束体系、PSO 和连续遗传算法；
 - `v0.3`：布谷鸟搜索；
-- `v0.4`：蝙蝠算法、萤火虫算法、示例和基准；
+- `v0.4`：萤火虫算法、扩展示例和基准；
 - `v1.0`：统一质量门槛。
 
 后续按“泛型单目标值 → 多目标 → 二进制/排列表示”演进，详见[ADR 索引](docs/decisions/README.md)。
@@ -41,6 +41,7 @@ dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.cs
 - [工程规范](ENGINEERING.md)：长期有效的代码、架构、测试和发布规则；
 - [架构概览](docs/architecture/overview.md)：当前项目职责、依赖和运行流程；
 - [Core API](docs/api/core.md)：第一波连续问题、运行模型和扩展契约；
+- [Algorithms API](docs/api/algorithms.md)：蝙蝠算法配置、生命周期、迁移来源和边界；
 - [Experiments API](docs/api/experiments.md)：Case、RunGroup、并发调度、失败与结果统计；
 - [Superpowers 设计与实施档案](docs/superpowers/README.md)：按变更保存设计规格和实施计划，不作为长期工程规范；
 - [ADR 索引](docs/decisions/README.md)：决策背景、替代方案和重新评估条件。

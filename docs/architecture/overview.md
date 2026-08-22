@@ -6,16 +6,16 @@
 
 ## 当前状态
 
-仓库已建立六个项目及其引用关系。第一波 Core 公共 API、单次运行生命周期和 Experiment 执行已经落地；正式算法实现尚未落地。
+仓库已建立六个项目及其引用关系。第一波 Core 公共 API、单次运行生命周期、Experiment 执行和蝙蝠算法已经落地。
 
 | 项目 | 实现现状 |
 | --- | --- |
 | `Metaheuristics.Core` | 已提供连续问题、标量评估与比较、有状态 Optimizer、run Context、停止、轨迹、结果和单次 Runner API。 |
-| `Metaheuristics.Algorithms` | 项目骨架；尚无算法实现。 |
+| `Metaheuristics.Algorithms` | 已提供连续蝙蝠算法、强类型配置、双缓冲种群和顺序 run 工作区复用。 |
 | `Metaheuristics.Experiments` | 已提供强类型 Case、RunGroup 规划、有界并发、共享 seed、部分失败/取消结果和基本统计。 |
-| `Metaheuristics.Examples` | 已提供单次运行和双 Case Experiment 的随机搜索示例；尚无正式算法示例。 |
-| `Metaheuristics.Tests` | 已包含目标运行时检查、Core 契约以及 Experiment 调度与结果行为测试。 |
-| `Metaheuristics.Benchmarks` | 占位基准宿主，尚无基准用例。 |
+| `Metaheuristics.Examples` | 已提供蝙蝠算法的单次运行和双 Case Experiment 示例。 |
+| `Metaheuristics.Tests` | 已包含目标运行时、Core、Experiment 以及蝙蝠算法的契约与行为测试。 |
+| `Metaheuristics.Benchmarks` | 已提供蝙蝠算法“每 run 新建”与“RunGroup 内复用”工作区的分配和耗时对照基准。 |
 
 ## 项目依赖
 
@@ -55,6 +55,10 @@ Case 内用 `RunGroupCount` 表达用户掌握的并发拆分；所有 Group 再
 - 多目标、二进制和排列表示；也不为尚未进入路线图的表示类型、目标类型或后端预建复杂抽象。
 - 全局字符串注册中心、服务定位器，以及按字符串类型名恢复组件的机制。
 
+## 当前算法
+
+第一波算法为连续蝙蝠算法。它使用 Problem 的逐维位置边界，并在每个 RunGroup 独占的 Optimizer 中保存两组种群状态。迁移顺序和旧仓库修复来源见 [ADR-0011](../decisions/0011-bat-first-algorithm-migration.md)。
+
 ## API 文档
 
-公共契约见 [Core API](../api/core.md) 和 [Experiments API](../api/experiments.md)，可运行示例见 [`examples/Metaheuristics.Examples/Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
+公共契约见 [Core API](../api/core.md)、[Algorithms API](../api/algorithms.md) 和 [Experiments API](../api/experiments.md)，可运行示例见 [`examples/Metaheuristics.Examples/Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。

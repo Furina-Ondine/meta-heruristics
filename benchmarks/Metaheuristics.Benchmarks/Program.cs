@@ -1,1 +1,3 @@
-Console.WriteLine("Metaheuristics.NET benchmark project is ready.");
+using BenchmarkDotNet.Running;
+
+BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
