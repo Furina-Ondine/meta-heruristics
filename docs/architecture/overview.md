@@ -15,7 +15,7 @@
 | `Metaheuristics.Experiments` | 已提供强类型 Case、RunGroup 规划、有界并发、共享 seed、部分失败/取消结果和基本统计。 |
 | `Metaheuristics.Examples` | 已提供蝙蝠算法的单次运行和双 Case Experiment 示例。 |
 | `Metaheuristics.Tests` | 已包含目标运行时、Core、Experiment 以及蝙蝠算法的契约与行为测试。 |
-| `Metaheuristics.Benchmarks` | 已提供蝙蝠算法“每 run 新建”与“RunGroup 内复用”工作区的分配和耗时对照基准。 |
+| `Metaheuristics.Benchmarks` | 已提供蝙蝠算法工作区复用基准，以及固定 Worker、Parallel API 和信号量 RunGroup 调度基准。 |
 
 ## 项目依赖
 
@@ -48,6 +48,8 @@ Cases  →  plan RunGroups  →  bounded scheduler
 ```
 
 Case 内用 `RunGroupCount` 表达用户掌握的并发拆分；所有 Group 再由单一全局并发上限调度。详细设计见 [Experiment 执行架构与接口设计](../superpowers/specs/2026-08-22-experiment-execution-design.md)。
+
+当前调度器使用固定数量的长期 Worker 动态领取 RunGroupPlan，不为每个计划创建 Task。它与 `Parallel.ForEachAsync` 的 worker-loop 结构接近；不同计划时长下的实现对照和线程池指标见 [RunGroup 调度基准](../benchmarks/run-group-scheduling.md)。
 
 ## 首版排除项
 

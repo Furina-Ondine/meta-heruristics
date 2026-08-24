@@ -43,6 +43,7 @@ dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.cs
 - [Core API](docs/api/core.md)：第一波连续问题、运行模型和扩展契约；
 - [Algorithms API](docs/api/algorithms.md)：蝙蝠算法配置、生命周期、迁移来源和边界；
 - [Experiments API](docs/api/experiments.md)：Case、RunGroup、并发调度、失败与结果统计；
+- [RunGroup 调度基准](docs/benchmarks/run-group-scheduling.md)：固定 Worker、Parallel API 与信号量方案在长短计划下的对照；
 - [Superpowers 设计与实施档案](docs/superpowers/README.md)：按变更保存设计规格和实施计划，不作为长期工程规范；
 - [ADR 索引](docs/decisions/README.md)：决策背景、替代方案和重新评估条件。
 

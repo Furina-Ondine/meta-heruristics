@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Anastasya.Metaheuristics.Algorithms.Bat;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;

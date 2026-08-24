@@ -40,6 +40,8 @@ var result = await ExperimentRunner.RunAsync(
 - Group 工厂只在获得执行槽后调用。它创建该 Group 独占的 `ContinuousProblem`、`IOptimizer` 和可复用 `OptimizationRunOptions`。
 - 同一 Group 内各 run 单线程顺序执行，并复用同一 Optimizer 的主要工作区；不同 Group 不得共享有状态 Problem 或 Optimizer。
 
+调度实现与 `Parallel.ForEachAsync`、同步 `Parallel.ForEach` 及两种“每计划 Task + 信号量”方案的长短任务对照见 [RunGroup 调度基准](../benchmarks/run-group-scheduling.md)。现有固定 Worker 与 `Parallel.ForEachAsync` 都只维护约 `GlobalMaxConcurrency` 个长期工作项。生产者先等待信号量的版本虽能惰性投放计划，仍会为每个计划创建 Task；当前基准未显示替换收益。
+
 `ExperimentGroupContext` 向工厂提供 Case ID、Group 下标、本 Group 的 repetition 下标及 seed，以及实验取消令牌。工厂可以用这些稳定信息创建隔离资源，但不能依赖调度或完成顺序。
 
 ## Seed
