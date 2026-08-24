@@ -111,6 +111,7 @@ public delegate ExperimentGroupSetup ExperimentGroupFactory<TConfiguration>(
 /// <summary>
 /// 提供 Group 工厂创建隔离组件时所需的规划信息。
 /// </summary>
+/// <remarks>这是不可变的计划快照；取消令牌除外，它反映整个 Experiment 的实时取消状态。</remarks>
 public sealed class ExperimentGroupContext
 {
     private readonly ReadOnlyCollection<int> _repetitionIndices;
@@ -159,6 +160,7 @@ public sealed class ExperimentGroupContext
 /// <summary>
 /// 保存一个 RunGroup 独占的 Problem、Optimizer 和可复用运行选项。
 /// </summary>
+/// <remarks>组件只能在所属 Group 内顺序使用。Optimizer 在任一执行异常后必须丢弃，不能用于后续 repetition。</remarks>
 public sealed class ExperimentGroupSetup
 {
     /// <summary>

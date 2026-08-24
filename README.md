@@ -11,9 +11,15 @@
 
 首版不包含远程、集群、GPU、多目标、二进制或排列表示，也不提供运行时插件发现。
 
-## 项目结构
+## 快速开始
 
-`Core` 提供稳定契约，`Algorithms` 提供算法，`Experiments` 编排批量实验；`Examples`、`Tests` 和 `Benchmarks` 分别提供示例、测试和性能测量。职责与依赖见[架构概览](docs/architecture/overview.md)。
+先运行可构建示例，再阅读使用手册：
+
+```powershell
+dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.csproj --configuration Release
+```
+
+`Core` 定义问题与执行契约，`Algorithms` 提供算法，`Experiments` 编排批量实验。首次使用请从[用户使用手册](docs/guides/user-guide.md)开始；开发或扩展时阅读[开发者架构手册](docs/architecture/developer-guide.md)。
 
 ## 路线图
 
@@ -38,9 +44,11 @@ dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.cs
 
 ## 文档
 
+- [用户使用手册](docs/guides/user-guide.md)：从单次执行、结果复制到实验和扩展点的完整路径；
+- [开发者架构手册](docs/architecture/developer-guide.md)：模块职责、组合、生命周期、线程安全和扩展规则；
 - [工程规范](ENGINEERING.md)：长期有效的代码、架构、测试和发布规则；
 - [架构概览](docs/architecture/overview.md)：当前项目职责、依赖和运行流程；
-- [Core API](docs/api/core.md)：第一波连续问题、运行模型和扩展契约；
+- [Core API](docs/api/core.md)：连续问题、执行模型和扩展契约参考；
 - [Algorithms API](docs/api/algorithms.md)：蝙蝠算法配置、生命周期、迁移来源和边界；
 - [Experiments API](docs/api/experiments.md)：Case、RunGroup、并发调度、失败与结果统计；
 - [RunGroup 调度基准](docs/benchmarks/run-group-scheduling.md)：固定 Worker、Parallel API 与信号量方案在长短计划下的对照；

@@ -3,6 +3,7 @@ namespace Anastasya.Metaheuristics.Experiments.Configuration;
 /// <summary>
 /// 配置 Experiment 的全局并发度和共享 seed 序列来源。
 /// </summary>
+/// <remarks>在传入 <c>ExperimentRunner.RunAsync</c> 前完成初始化。Runner 在启动时复制显式 seed 列表。</remarks>
 public sealed class ExperimentExecutionOptions
 {
     /// <summary>

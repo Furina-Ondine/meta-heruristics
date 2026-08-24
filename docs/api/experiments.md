@@ -1,6 +1,6 @@
 # Experiments API（第一版）
 
-`Metaheuristics.Experiments` 用于把多个实验 Case 拆成可独立调度的 RunGroup，在受控并发度下重复执行优化，并汇总原始结果和基本统计。
+首次配置实验请先阅读[用户使用手册](../guides/user-guide.md)。`Metaheuristics.Experiments` 用于把多个实验 Case 拆成可独立调度的 RunGroup，在受控并发度下重复执行优化，并汇总原始结果和基本统计。
 
 ## 最小用法
 

@@ -19,10 +19,10 @@ public sealed class OptimizationRunnerTests
     }
 
     /// <summary>
-    /// 验证 Runner 重置调用方拥有的优化器，并复制结果中的最优位置以隔离后续状态。
+    /// 验证 Runner 重置调用方拥有的优化器，且调用方可在重置前显式复制最佳位置。
     /// </summary>
     [Xunit.Fact]
-    public void RunReusesOptimizerAndCopiesItsBestPosition()
+    public void ExecuteLeavesTheBestPositionOwnedByTheOptimizer()
     {
         var objective = new RecordingObjective();
         var problem = new ContinuousProblem([new VariableBounds(0, 10)], objective);
@@ -32,7 +32,7 @@ public sealed class OptimizationRunnerTests
             Trace = new OptimizationTraceOptions(OptimizationTraceMode.EveryIteration),
         };
 
-        var result = OptimizationRunner.Run(
+        var result = OptimizationRunner.Execute(
             problem,
             optimizer,
             options,
@@ -43,14 +43,15 @@ public sealed class OptimizationRunnerTests
         Xunit.Assert.Equal(2, result.Iterations);
         Xunit.Assert.Equal(3, result.Evaluations);
         Xunit.Assert.Equal(42, result.Seed);
-        Xunit.Assert.Equal(1, result.BestPosition[0]);
+        var bestPosition = optimizer.BestPosition.ToArray();
+        Xunit.Assert.Equal(1, bestPosition[0]);
         Xunit.Assert.Equal(1, result.BestEvaluation.Objective);
         Xunit.Assert.Equal(3, result.Trace.Count);
         Xunit.Assert.Equal(3, optimizer.BestPositionAccessCount);
         Xunit.Assert.Equal(1, optimizer.ResetCount);
 
         optimizer.Position[0] = 9;
-        Xunit.Assert.Equal(1, result.BestPosition[0]);
+        Xunit.Assert.Equal(1, bestPosition[0]);
     }
 
     /// <summary>
@@ -62,20 +63,21 @@ public sealed class OptimizationRunnerTests
         var problem = new ContinuousProblem([new VariableBounds(0, 1)], new RecordingObjective());
         var optimizer = new RandomValueOptimizer();
         var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(0));
-        var first = OptimizationRunner.Run(
+        var first = OptimizationRunner.Execute(
             problem,
             optimizer,
             options,
             seed: 1234,
             cancellationToken: Xunit.TestContext.Current.CancellationToken);
-        var second = OptimizationRunner.Run(
+        var firstPosition = optimizer.BestPosition.ToArray();
+        var second = OptimizationRunner.Execute(
             problem,
             optimizer,
             options,
             seed: 1234,
             cancellationToken: Xunit.TestContext.Current.CancellationToken);
 
-        Xunit.Assert.Equal(first.BestPosition[0], second.BestPosition[0]);
+        Xunit.Assert.Equal(firstPosition[0], optimizer.BestPosition[0]);
         Xunit.Assert.Equal(2, optimizer.ResetCount);
     }
 
@@ -92,7 +94,7 @@ public sealed class OptimizationRunnerTests
         var optimizer = new CountdownOptimizer();
 
         Xunit.Assert.Throws<OperationCanceledException>(
-            () => OptimizationRunner.Run(
+            () => OptimizationRunner.Execute(
                 problem,
                 optimizer,
                 new OptimizationRunOptions(StoppingConditions.MaxIterations(2)),
@@ -118,7 +120,7 @@ public sealed class OptimizationRunnerTests
                 progressIntervalRatio: 0.25),
         };
 
-        var result = OptimizationRunner.Run(
+        var result = OptimizationRunner.Execute(
             problem,
             optimizer,
             options,
@@ -147,7 +149,7 @@ public sealed class OptimizationRunnerTests
             },
         };
 
-        var result = OptimizationRunner.Run(
+        var result = OptimizationRunner.Execute(
             problem,
             optimizer,
             options,
@@ -173,7 +175,7 @@ public sealed class OptimizationRunnerTests
                 progressIntervalRatio: 0.1),
         };
 
-        var result = OptimizationRunner.Run(
+        var result = OptimizationRunner.Execute(
             problem,
             optimizer,
             options,
@@ -199,7 +201,7 @@ public sealed class OptimizationRunnerTests
                 progressIntervalRatio: 0.3),
         };
 
-        var result = OptimizationRunner.Run(
+        var result = OptimizationRunner.Execute(
             problem,
             optimizer,
             options,

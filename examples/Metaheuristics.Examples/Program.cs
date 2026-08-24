@@ -15,11 +15,12 @@ var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(100))
         progressIntervalRatio: 0.1),
 };
 
-var result = OptimizationRunner.Run(problem, optimizer, options, seed: 20260820);
+var result = OptimizationRunner.Execute(problem, optimizer, options, seed: 20260820);
+var bestPosition = optimizer.BestPosition.ToArray();
 
 Console.WriteLine(FormattableString.Invariant($"Best objective: {result.BestEvaluation.Objective:F6}"));
 Console.WriteLine(
-    $"Best position: [{string.Join(", ", result.BestPosition.Select(
+    $"Best position: [{string.Join(", ", bestPosition.Select(
         value => value.ToString("F4", CultureInfo.InvariantCulture)))}]");
 Console.WriteLine($"Iterations: {result.Iterations}; evaluations: {result.Evaluations}");
 

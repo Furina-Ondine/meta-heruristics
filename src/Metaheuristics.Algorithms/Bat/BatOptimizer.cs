@@ -394,33 +394,4 @@ public sealed class BatOptimizer : IOptimizer
             : lowerBound + ((upperBound - lowerBound) * random.NextDouble());
     }
 
-    /// <summary>
-    /// 保存一只蝙蝠的算法专属数组；对象本身在双缓冲之间交换，数组不会逐代分配。
-    /// </summary>
-    private sealed class BatState
-    {
-        public BatState(int dimension)
-        {
-            Position = new double[dimension];
-            Velocity = new double[dimension];
-            Frequency = new double[dimension];
-            Loudness = new double[dimension];
-            PulseRate = new double[dimension];
-            InitialPulseRate = new double[dimension];
-        }
-
-        public double[] Position { get; }
-
-        public double[] Velocity { get; }
-
-        public double[] Frequency { get; }
-
-        public double[] Loudness { get; }
-
-        public double[] PulseRate { get; }
-
-        public double[] InitialPulseRate { get; }
-
-        public Evaluation Evaluation { get; set; }
-    }
 }

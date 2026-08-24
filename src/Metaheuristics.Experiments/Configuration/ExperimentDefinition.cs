@@ -5,6 +5,7 @@ namespace Anastasya.Metaheuristics.Experiments.Configuration;
 /// <summary>
 /// 表示按声明顺序保存的完整实验案例集合。
 /// </summary>
+/// <remarks>构造函数复制案例集合；完成构造后此对象可安全地在线程之间共享。</remarks>
 public sealed class ExperimentDefinition
 {
     private readonly ReadOnlyCollection<ExperimentCase> _cases;

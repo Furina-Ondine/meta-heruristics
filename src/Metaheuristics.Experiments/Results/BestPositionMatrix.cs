@@ -3,6 +3,7 @@ namespace Anastasya.Metaheuristics.Experiments.Results;
 /// <summary>
 /// 提供 Case 中各成功 run 最佳位置的只读二维视图。
 /// </summary>
+/// <remarks>矩阵只由执行器在构造结果期间写入；公开实例完成构造后仅供并发读取。</remarks>
 public sealed class BestPositionMatrix
 {
     private readonly double[,] _positions;

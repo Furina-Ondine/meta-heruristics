@@ -7,6 +7,7 @@ namespace Anastasya.Metaheuristics.Core.Execution;
 /// </summary>
 /// <remarks>
 /// 实例可以保存种群数组和算法临时缓冲区，但不保证线程安全，也不能在一次运行异常后继续复用。
+/// <see cref="BestPosition"/> 的存储归 Optimizer 所有；调用方必须在下一次 <see cref="ResetForRun"/> 前完成读取或复制。
 /// </remarks>
 public interface IOptimizer
 {
@@ -44,6 +45,7 @@ public interface IOptimizer
 /// </summary>
 /// <remarks>
 /// 每个 run 获得独立的上下文和随机流；目标评估应通过此类型的方法完成，以保持计数和取消语义一致。
+/// Context 仅属于创建它的一次执行，不能缓存或跨线程共享。
 /// </remarks>
 public sealed class OptimizationRunContext
 {
@@ -130,6 +132,7 @@ public readonly record struct OptimizationState(
 /// <summary>
 /// 定义根据运行状态决定是否终止优化的策略。
 /// </summary>
+/// <remarks>实现必须可重入，且不得保存执行级可变状态；同一实例可能被多个 Group 并发调用。</remarks>
 public interface IStoppingCondition
 {
     /// <summary>

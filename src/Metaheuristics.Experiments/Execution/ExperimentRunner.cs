@@ -34,7 +34,7 @@ public static class ExperimentRunner
         var builders = experiment.Cases
             .Select(experimentCase => new CaseResultBuilder(experimentCase, seeds))
             .ToArray();
-        var executionState = new ExecutionState();
+        var executionState = new ExperimentExecutionState();
         var stopwatch = Stopwatch.StartNew();
 
         if (!cancellationToken.IsCancellationRequested)
@@ -71,7 +71,7 @@ public static class ExperimentRunner
         IEnumerator<RunGroupPlan> plans,
         object planGate,
         IReadOnlyList<CaseResultBuilder> builders,
-        ExecutionState executionState,
+        ExperimentExecutionState executionState,
         CancellationToken cancellationToken)
     {
         while (TryTakePlan(plans, planGate, cancellationToken, out var plan))
@@ -102,7 +102,7 @@ public static class ExperimentRunner
     private static void ExecutePlan(
         RunGroupPlan plan,
         CaseResultBuilder builder,
-        ExecutionState executionState,
+        ExperimentExecutionState executionState,
         CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested)
@@ -292,25 +292,6 @@ public static class ExperimentRunner
         return counts.Failed > 0
             ? ExperimentExecutionStatus.Failed
             : ExperimentExecutionStatus.Succeeded;
-    }
-
-    private sealed record RunGroupPlan(
-        int CaseIndex,
-        ExperimentCase Case,
-        int GroupIndex,
-        int[] RepetitionIndices,
-        int[] Seeds);
-
-    private sealed class ExecutionState
-    {
-        private int _startedGroupCount;
-
-        public int StartedGroupCount => Volatile.Read(ref _startedGroupCount);
-
-        public void MarkGroupStarted()
-        {
-            Interlocked.Increment(ref _startedGroupCount);
-        }
     }
 
     private sealed class CaseResultBuilder

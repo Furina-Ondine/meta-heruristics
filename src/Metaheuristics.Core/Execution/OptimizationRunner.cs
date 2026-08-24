@@ -13,34 +13,11 @@ namespace Anastasya.Metaheuristics.Core.Execution;
 public static class OptimizationRunner
 {
     /// <summary>
-    /// 执行一次连续优化运行，直到停止条件触发或收到取消请求。
-    /// </summary>
-    /// <param name="problem">待解决的连续优化问题。</param>
-    /// <param name="optimizer">当前调用方拥有的有状态优化器实例。</param>
-    /// <param name="options">运行停止和轨迹配置。</param>
-    /// <param name="seed">当前运行使用的随机种子。</param>
-    /// <param name="cancellationToken">用于取消运行的令牌。</param>
-    /// <returns>包含最终最优解、终止原因、计数和轨迹的不可变结果。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="problem"/>、<paramref name="optimizer"/>、<paramref name="options"/> 或轨迹配置为 <see langword="null"/>。</exception>
-    /// <exception cref="OperationCanceledException">运行开始前、初始化后或迭代后收到取消请求。</exception>
-    /// <exception cref="InvalidOperationException">停止条件返回未定义的终止原因。</exception>
-    public static OptimizationResult Run(
-        ContinuousProblem problem,
-        IOptimizer optimizer,
-        OptimizationRunOptions options,
-        int seed = 0,
-        CancellationToken cancellationToken = default)
-    {
-        var summary = Execute(problem, optimizer, options, seed, cancellationToken);
-        return new OptimizationResult(optimizer.BestPosition, summary);
-    }
-
-    /// <summary>
-    /// 执行一次优化运行并返回不复制最佳位置的汇总，供调用方将位置写入自有存储。
+    /// 执行一次优化，并返回不复制最佳位置的不可变汇总。
     /// </summary>
     /// <remarks>
-    /// 返回后 Optimizer 仍保存最终最佳位置；调用方必须在下一次
-    /// <see cref="IOptimizer.ResetForRun"/> 前完成读取。Runner 不释放 Optimizer。
+    /// 返回后 <paramref name="optimizer"/> 仍拥有最终最佳位置。调用方如需稳定快照，必须在下一次
+    /// <see cref="IOptimizer.ResetForRun"/> 前复制 <see cref="IOptimizer.BestPosition"/>；Runner 不释放 Optimizer。
     /// </remarks>
     /// <param name="problem">待解决的连续优化问题。</param>
     /// <param name="optimizer">当前调用方拥有的有状态优化器实例。</param>

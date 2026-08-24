@@ -1,6 +1,6 @@
 # Algorithms API（第一波）
 
-`Metaheuristics.Algorithms` 当前提供连续蝙蝠算法 `BatOptimizer`。它实现 Core 的有状态 `IOptimizer`，可以用于单次 `OptimizationRunner`，也可以由 Experiment 的 RunGroup 工厂创建。
+首次选择算法请先阅读[用户使用手册](../guides/user-guide.md)。`Metaheuristics.Algorithms` 当前提供连续蝙蝠算法 `BatOptimizer`。它实现 Core 的有状态 `IOptimizer`，可以用于单次 `OptimizationRunner`，也可以由 Experiment 的 RunGroup 工厂创建。
 
 ## 最小用法
 
@@ -14,12 +14,13 @@ var optimizer = new BatOptimizer(new BatOptimizerOptions
     PopulationSize = 40,
 });
 
-var result = OptimizationRunner.Run(
+var summary = OptimizationRunner.Execute(
     problem,
     optimizer,
     new OptimizationRunOptions(StoppingConditions.MaxIterations(200)),
     seed: 42,
     cancellationToken);
+var bestPosition = optimizer.BestPosition.ToArray();
 ```
 
 可运行的单次和双 Case Experiment 示例见 [`examples/Metaheuristics.Examples/Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。

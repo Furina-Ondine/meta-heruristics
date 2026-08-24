@@ -106,6 +106,7 @@ public sealed class ExperimentCaseResult
 /// <summary>
 /// 表示一次 Experiment 执行完成后的不可变部分或完整结果。
 /// </summary>
+/// <remarks>结果及其集合均为稳定快照，可在线程之间安全共享。</remarks>
 public sealed class ExperimentResult
 {
     private readonly ReadOnlyCollection<ExperimentCaseResult> _cases;

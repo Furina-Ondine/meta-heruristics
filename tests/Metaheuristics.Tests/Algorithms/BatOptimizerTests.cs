@@ -21,7 +21,7 @@ public sealed class BatOptimizerTests
             new BatOptimizerOptions { PopulationSize = 4 },
             new SequenceInitializer(4, 3, 2, 1));
 
-        var result = OptimizationRunner.Run(
+        var result = ExecuteWithSnapshot(
             CreateProblem(1, objective),
             optimizer,
             StopAfterIterations(0),
@@ -48,7 +48,7 @@ public sealed class BatOptimizerTests
             new FirstCoordinateObjective(),
             OptimizationDirection.Maximize);
 
-        var result = OptimizationRunner.Run(
+        var result = ExecuteWithSnapshot(
             problem,
             optimizer,
             StopAfterIterations(0),
@@ -73,7 +73,7 @@ public sealed class BatOptimizerTests
             new FirstCoordinateObjective(),
             constraints: [new NegativeValueConstraint()]);
 
-        var result = OptimizationRunner.Run(
+        var result = ExecuteWithSnapshot(
             problem,
             optimizer,
             StopAfterIterations(0),
@@ -91,13 +91,13 @@ public sealed class BatOptimizerTests
     public void RunIsReproducibleForTheSameSeed()
     {
         var options = new BatOptimizerOptions { PopulationSize = 20 };
-        var first = OptimizationRunner.Run(
+        var first = ExecuteWithSnapshot(
             CreateProblem(4, new SphereObjective()),
             new BatOptimizer(options),
             StopAfterIterations(30),
             seed: 20260822,
             Xunit.TestContext.Current.CancellationToken);
-        var second = OptimizationRunner.Run(
+        var second = ExecuteWithSnapshot(
             CreateProblem(4, new SphereObjective()),
             new BatOptimizer(options),
             StopAfterIterations(30),
@@ -118,7 +118,7 @@ public sealed class BatOptimizerTests
         var cancellationToken = Xunit.TestContext.Current.CancellationToken;
         var tasks = Enumerable.Range(0, 4)
             .Select(_ => Task.Run(
-                () => OptimizationRunner.Run(
+                () => ExecuteWithSnapshot(
                     CreateProblem(3, new SphereObjective()),
                     new BatOptimizer(new BatOptimizerOptions { PopulationSize = 16 }),
                     StopAfterIterations(20),
@@ -148,7 +148,7 @@ public sealed class BatOptimizerTests
         var optimizer = new BatOptimizer(new BatOptimizerOptions { PopulationSize = 3 });
         var problem = CreateProblem(2, new SphereObjective());
 
-        OptimizationRunner.Run(
+        ExecuteWithSnapshot(
             problem,
             optimizer,
             StopAfterIterations(0),
@@ -159,7 +159,7 @@ public sealed class BatOptimizerTests
         var firstPositions = GetStateVectors(firstPopulationA, "Position");
         var firstVelocities = GetStateVectors(firstPopulationA, "Velocity");
 
-        OptimizationRunner.Run(
+        ExecuteWithSnapshot(
             problem,
             optimizer,
             StopAfterIterations(0),
@@ -195,7 +195,7 @@ public sealed class BatOptimizerTests
             InitialLoudnessUpperBound = 0,
         };
         var baseline = new BatOptimizer(options, new SequenceInitializer(1, 2));
-        OptimizationRunner.Run(
+        ExecuteWithSnapshot(
             CreateProblem(1, new IncreasingObjective()),
             baseline,
             StopAfterIterations(0),
@@ -206,7 +206,7 @@ public sealed class BatOptimizerTests
             .ToArray();
 
         var exercised = new BatOptimizer(options, new SequenceInitializer(1, 2));
-        var result = OptimizationRunner.Run(
+        var result = ExecuteWithSnapshot(
             CreateProblem(1, new IncreasingObjective()),
             exercised,
             StopAfterIterations(1),
@@ -235,13 +235,13 @@ public sealed class BatOptimizerTests
     public void RunImprovesTheSphereBenchmark()
     {
         var problem = CreateProblem(5, new SphereObjective());
-        var initial = OptimizationRunner.Run(
+        var initial = ExecuteWithSnapshot(
             problem,
             new BatOptimizer(new BatOptimizerOptions { PopulationSize = 40 }),
             StopAfterIterations(0),
             seed: 314159,
             Xunit.TestContext.Current.CancellationToken);
-        var optimized = OptimizationRunner.Run(
+        var optimized = ExecuteWithSnapshot(
             problem,
             new BatOptimizer(new BatOptimizerOptions { PopulationSize = 40 }),
             StopAfterIterations(200),
@@ -262,14 +262,14 @@ public sealed class BatOptimizerTests
         var problem = new ContinuousProblem([VariableBounds.Unbounded], new SphereObjective());
 
         Xunit.Assert.Throws<InvalidOperationException>(
-            () => OptimizationRunner.Run(
+            () => ExecuteWithSnapshot(
                 problem,
                 new BatOptimizer(new BatOptimizerOptions { PopulationSize = 2 }),
                 StopAfterIterations(0),
                 seed: 1,
                 Xunit.TestContext.Current.CancellationToken));
 
-        var result = OptimizationRunner.Run(
+        var result = ExecuteWithSnapshot(
             problem,
             new BatOptimizer(
                 new BatOptimizerOptions { PopulationSize = 2 },
@@ -287,7 +287,7 @@ public sealed class BatOptimizerTests
     public void ResetForRunRejectsADifferentProblemDimension()
     {
         var optimizer = new BatOptimizer(new BatOptimizerOptions { PopulationSize = 2 });
-        OptimizationRunner.Run(
+        ExecuteWithSnapshot(
             CreateProblem(1, new SphereObjective()),
             optimizer,
             StopAfterIterations(0),
@@ -295,7 +295,7 @@ public sealed class BatOptimizerTests
             Xunit.TestContext.Current.CancellationToken);
 
         Xunit.Assert.Throws<InvalidOperationException>(
-            () => OptimizationRunner.Run(
+            () => ExecuteWithSnapshot(
                 CreateProblem(2, new SphereObjective()),
                 optimizer,
                 StopAfterIterations(0),
@@ -337,6 +337,28 @@ public sealed class BatOptimizerTests
     private static OptimizationRunOptions StopAfterIterations(int iterations)
     {
         return new OptimizationRunOptions(StoppingConditions.MaxIterations(iterations));
+    }
+
+    private static ExecutionSnapshot ExecuteWithSnapshot(
+        ContinuousProblem problem,
+        BatOptimizer optimizer,
+        OptimizationRunOptions options,
+        int seed = 0,
+        CancellationToken cancellationToken = default)
+    {
+        var summary = OptimizationRunner.Execute(problem, optimizer, options, seed, cancellationToken);
+        return new ExecutionSnapshot(summary, optimizer.BestPosition.ToArray());
+    }
+
+    private sealed class ExecutionSnapshot(
+        OptimizationRunSummary summary,
+        double[] bestPosition)
+    {
+        public Evaluation BestEvaluation => summary.BestEvaluation;
+
+        public double[] BestPosition => bestPosition;
+
+        public long Evaluations => summary.Evaluations;
     }
 
     private static Array GetPopulation(BatOptimizer optimizer, string fieldName)
