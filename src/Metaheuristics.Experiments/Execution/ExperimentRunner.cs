@@ -47,12 +47,7 @@ public static class ExperimentRunner
             for (var workerIndex = 0; workerIndex < workers.Length; workerIndex++)
             {
                 workers[workerIndex] = Task.Run(
-                    () => RunWorker(
-                        plans,
-                        planGate,
-                        builders,
-                        executionState,
-                        cancellationToken),
+                    () => RunWorker(plans, planGate, builders, executionState, cancellationToken),
                     CancellationToken.None);
             }
 
@@ -145,10 +140,7 @@ public static class ExperimentRunner
                     setup.RunOptions,
                     seed,
                     cancellationToken);
-                builder.SetSucceeded(
-                    repetitionIndex,
-                    summary,
-                    setup.Optimizer.BestPosition);
+                builder.SetSucceeded(repetitionIndex, summary, setup.Optimizer.BestPosition);
                 nextRunOffset++;
             }
             catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
@@ -202,9 +194,7 @@ public static class ExperimentRunner
         return setup;
     }
 
-    private static IEnumerable<RunGroupPlan> CreatePlans(
-        IReadOnlyList<ExperimentCase> cases,
-        int[] seeds)
+    private static IEnumerable<RunGroupPlan> CreatePlans(IReadOnlyList<ExperimentCase> cases, int[] seeds)
     {
         var maximumGroupCount = cases.Max(static experimentCase => experimentCase.RunGroupCount);
         for (var groupIndex = 0; groupIndex < maximumGroupCount; groupIndex++)
@@ -230,12 +220,7 @@ public static class ExperimentRunner
                     groupSeeds[offset] = seeds[repetitionIndex];
                 }
 
-                yield return new RunGroupPlan(
-                    caseIndex,
-                    experimentCase,
-                    groupIndex,
-                    repetitionIndices,
-                    groupSeeds);
+                yield return new RunGroupPlan(caseIndex, experimentCase, groupIndex, repetitionIndices, groupSeeds);
             }
         }
     }
@@ -275,9 +260,7 @@ public static class ExperimentRunner
         return unchecked((int)value);
     }
 
-    private static ExperimentExecutionStatus ResolveExperimentStatus(
-        ExperimentRunCounts counts,
-        int startedGroupCount)
+    private static ExperimentExecutionStatus ResolveExperimentStatus(ExperimentRunCounts counts, int startedGroupCount)
     {
         if (startedGroupCount == 0)
         {
@@ -383,21 +366,12 @@ public static class ExperimentRunner
             for (var repetitionIndex = 0; repetitionIndex < runs.Length; repetitionIndex++)
             {
                 runs[repetitionIndex] = _runs[repetitionIndex]
-                    ?? CreateRunResult(
-                        repetitionIndex,
-                        ExperimentExecutionStatus.NotStarted,
-                        null,
-                        null);
+                    ?? CreateRunResult(repetitionIndex, ExperimentExecutionStatus.NotStarted, null, null);
             }
 
             var statistics = ExperimentStatisticsCalculator.Create(runs);
             var status = ResolveCaseStatus(statistics.Counts, Volatile.Read(ref _startedGroupCount));
-            return new ExperimentCaseResult(
-                _case.Id,
-                status,
-                runs,
-                _bestPositions,
-                statistics);
+            return new ExperimentCaseResult(_case.Id, status, runs, _bestPositions, statistics);
         }
 
         private ExperimentRunResult CreateRunResult(
@@ -416,9 +390,7 @@ public static class ExperimentRunner
                 exception);
         }
 
-        private static ExperimentExecutionStatus ResolveCaseStatus(
-            ExperimentRunCounts counts,
-            int startedGroupCount)
+        private static ExperimentExecutionStatus ResolveCaseStatus(ExperimentRunCounts counts, int startedGroupCount)
         {
             if (startedGroupCount == 0)
             {

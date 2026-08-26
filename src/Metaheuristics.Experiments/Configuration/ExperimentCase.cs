@@ -170,10 +170,7 @@ public sealed class ExperimentGroupSetup
     /// <param name="optimizer">当前 Group 独占的有状态优化器实例。</param>
     /// <param name="runOptions">Group 内各 run 复用的停止和轨迹配置。</param>
     /// <exception cref="ArgumentNullException">任一组件为 <see langword="null"/>。</exception>
-    public ExperimentGroupSetup(
-        ContinuousProblem problem,
-        IOptimizer optimizer,
-        OptimizationRunOptions runOptions)
+    public ExperimentGroupSetup(ContinuousProblem problem, IOptimizer optimizer, OptimizationRunOptions runOptions)
     {
         Problem = problem ?? throw new ArgumentNullException(nameof(problem));
         Optimizer = optimizer ?? throw new ArgumentNullException(nameof(optimizer));

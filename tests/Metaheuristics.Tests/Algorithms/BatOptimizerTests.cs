@@ -282,10 +282,7 @@ public sealed class BatOptimizerTests
         var optimizer = new BatOptimizer(
             new ConstantInitializer(0.5),
             new BatOptimizerOptions { PopulationSize = 3 });
-        var problem = new ContinuousProblem(
-            [new VariableBounds(0, 1)],
-            new SphereObjective(),
-            repair: repair);
+        var problem = new ContinuousProblem([new VariableBounds(0, 1)], new SphereObjective(), repair: repair);
 
         ExecuteWithSnapshot(
             problem,
@@ -347,9 +344,7 @@ public sealed class BatOptimizerTests
 
     private static ContinuousProblem CreateProblem(int dimension, IObjectiveFunction objective)
     {
-        return new ContinuousProblem(
-            Enumerable.Repeat(new VariableBounds(-5, 5), dimension).ToArray(),
-            objective);
+        return new ContinuousProblem(Enumerable.Repeat(new VariableBounds(-5, 5), dimension).ToArray(), objective);
     }
 
     private static OptimizationRunOptions StopAfterIterations(int iterations)
@@ -373,9 +368,7 @@ public sealed class BatOptimizerTests
         return new ExecutionSnapshot(summary, optimizer.BestPosition.ToArray());
     }
 
-    private sealed class ExecutionSnapshot(
-        OptimizationRunSummary summary,
-        double[] bestPosition)
+    private sealed class ExecutionSnapshot(OptimizationRunSummary summary, double[] bestPosition)
     {
         public Evaluation BestEvaluation => summary.BestEvaluation;
 

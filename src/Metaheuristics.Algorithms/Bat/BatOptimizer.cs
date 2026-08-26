@@ -32,9 +32,7 @@ public sealed class BatOptimizer : IOptimizer
     /// <param name="options">算法参数；为 <see langword="null"/> 时使用默认配置。</param>
     /// <exception cref="ArgumentOutOfRangeException">种群数量或任一数值参数不在允许范围内。</exception>
     /// <exception cref="ArgumentException">任一参数区间反向或宽度溢出。</exception>
-    public BatOptimizer(
-        ICandidateInitializer initializer,
-        BatOptimizerOptions? options = null)
+    public BatOptimizer(ICandidateInitializer initializer, BatOptimizerOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(initializer);
         _options = options is null ? new BatOptimizerOptions() : options with { };
@@ -101,10 +99,7 @@ public sealed class BatOptimizer : IOptimizer
             }
 
             bat.Evaluation = context.Evaluate(bat.Position);
-            if (!hasBest || EvaluationComparer.IsBetter(
-                    bat.Evaluation,
-                    _bestEvaluation,
-                    context.Problem.Direction))
+            if (!hasBest || EvaluationComparer.IsBetter(bat.Evaluation, _bestEvaluation, context.Problem.Direction))
             {
                 CopyBest(bat);
                 hasBest = true;
@@ -162,10 +157,7 @@ public sealed class BatOptimizer : IOptimizer
             }
         }
 
-        if (EvaluationComparer.IsBetter(
-                generationBest!.Evaluation,
-                _bestEvaluation,
-                _context.Problem.Direction))
+        if (EvaluationComparer.IsBetter(generationBest!.Evaluation, _bestEvaluation, _context.Problem.Direction))
         {
             CopyBest(generationBest);
         }
@@ -177,41 +169,23 @@ public sealed class BatOptimizer : IOptimizer
     private static void ValidateOptions(BatOptimizerOptions options)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.PopulationSize);
-        ValidateRange(
-            options.VelocityLowerBound,
-            options.VelocityUpperBound,
-            nameof(options));
-        ValidateRange(
-            options.FrequencyLowerBound,
-            options.FrequencyUpperBound,
-            nameof(options));
+        ValidateRange(options.VelocityLowerBound, options.VelocityUpperBound, nameof(options));
+        ValidateRange(options.FrequencyLowerBound, options.FrequencyUpperBound, nameof(options));
         if (options.FrequencyLowerBound < 0)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(options),
-                "Frequency bounds must be non-negative.");
+            throw new ArgumentOutOfRangeException(nameof(options), "Frequency bounds must be non-negative.");
         }
 
-        ValidateRange(
-            options.InitialLoudnessLowerBound,
-            options.InitialLoudnessUpperBound,
-            nameof(options));
+        ValidateRange(options.InitialLoudnessLowerBound, options.InitialLoudnessUpperBound, nameof(options));
         if (options.InitialLoudnessLowerBound < 0)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(options),
-                "Initial loudness must be non-negative.");
+            throw new ArgumentOutOfRangeException(nameof(options), "Initial loudness must be non-negative.");
         }
 
-        ValidateRange(
-            options.InitialPulseRateLowerBound,
-            options.InitialPulseRateUpperBound,
-            nameof(options));
+        ValidateRange(options.InitialPulseRateLowerBound, options.InitialPulseRateUpperBound, nameof(options));
         if (options.InitialPulseRateLowerBound < 0 || options.InitialPulseRateUpperBound > 1)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(options),
-                "Initial pulse rates must be between zero and one.");
+            throw new ArgumentOutOfRangeException(nameof(options), "Initial pulse rates must be between zero and one.");
         }
 
         if (!double.IsFinite(options.LoudnessDecay)
@@ -231,10 +205,7 @@ public sealed class BatOptimizer : IOptimizer
         }
     }
 
-    private static void ValidateRange(
-        double lowerBound,
-        double upperBound,
-        string parameterName)
+    private static void ValidateRange(double lowerBound, double upperBound, string parameterName)
     {
         if (!double.IsFinite(lowerBound))
         {

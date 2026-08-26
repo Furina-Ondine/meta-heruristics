@@ -34,9 +34,7 @@ public sealed class ExperimentRunnerTests
             Xunit.TestContext.Current.CancellationToken);
 
         Xunit.Assert.Equal(ExperimentExecutionStatus.Succeeded, result.Status);
-        Xunit.Assert.Equal(
-            ["first:0:0,1,2", "second:0:0,1,2", "first:1:3,4", "second:1:3,4"],
-            creationOrder);
+        Xunit.Assert.Equal(["first:0:0,1,2", "second:0:0,1,2", "first:1:3,4", "second:1:3,4"], creationOrder);
         Xunit.Assert.Equal([2, 2, 3, 3], optimizers.Select(static optimizer => optimizer.ResetCount).Order());
         Xunit.Assert.Equal(result.Cases[0].Runs.Select(static run => run.Seed), result.Cases[1].Runs.Select(static run => run.Seed));
         Xunit.Assert.Equal(11, result.Cases[0].BestPositions![0, 0]);
@@ -306,10 +304,7 @@ public sealed class ExperimentRunnerTests
                 "invalid",
                 new object(),
                 repetitions: 1,
-                static (_, _) => new ExperimentGroupSetup(
-                    CreateProblem(),
-                    new SeedValueOptimizer(),
-                    StopImmediately()),
+                static (_, _) => new ExperimentGroupSetup(CreateProblem(), new SeedValueOptimizer(), StopImmediately()),
                 runGroupCount: 2));
     }
 

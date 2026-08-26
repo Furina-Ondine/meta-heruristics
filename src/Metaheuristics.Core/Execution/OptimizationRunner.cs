@@ -87,11 +87,7 @@ public static class OptimizationRunner
             cancellationToken.ThrowIfCancellationRequested();
             iterations = checked(iterations + 1);
             bestEvaluation = optimizer.BestEvaluation;
-            trace.RecordStep(
-                iterations,
-                context.Evaluations,
-                stopwatch.Elapsed,
-                bestEvaluation);
+            trace.RecordStep(iterations, context.Evaluations, stopwatch.Elapsed, bestEvaluation);
         }
     }
 
@@ -126,9 +122,7 @@ public static class OptimizationRunner
         private double _lastProgressBucket;
         private bool _progressCompleted;
 
-        public TraceCollector(
-            OptimizationTraceOptions options,
-            int? progressTotalIterations)
+        public TraceCollector(OptimizationTraceOptions options, int? progressTotalIterations)
         {
             _options = options;
             _progressTotalIterations = progressTotalIterations;
@@ -136,11 +130,7 @@ public static class OptimizationRunner
 
         public IReadOnlyList<OptimizationTracePoint> Points => _points;
 
-        public void RecordInitial(
-            int iteration,
-            long evaluations,
-            TimeSpan elapsed,
-            Evaluation bestEvaluation)
+        public void RecordInitial(int iteration, long evaluations, TimeSpan elapsed, Evaluation bestEvaluation)
         {
             if (_options.Mode == OptimizationTraceMode.None)
             {
@@ -154,11 +144,7 @@ public static class OptimizationRunner
             }
         }
 
-        public void RecordStep(
-            int iteration,
-            long evaluations,
-            TimeSpan elapsed,
-            Evaluation currentBest)
+        public void RecordStep(int iteration, long evaluations, TimeSpan elapsed, Evaluation currentBest)
         {
             var shouldRecord = _options.Mode switch
             {
@@ -209,11 +195,7 @@ public static class OptimizationRunner
                 : (intervals + 1) * interval;
         }
 
-        private void Add(
-            int iteration,
-            long evaluations,
-            TimeSpan elapsed,
-            Evaluation bestEvaluation)
+        private void Add(int iteration, long evaluations, TimeSpan elapsed, Evaluation bestEvaluation)
         {
             _points.Add(new OptimizationTracePoint(iteration, evaluations, elapsed, bestEvaluation));
         }

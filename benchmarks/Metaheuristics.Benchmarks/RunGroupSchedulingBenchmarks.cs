@@ -250,10 +250,7 @@ public class RunGroupSchedulingBenchmarks
         }
     }
 
-    private static bool TryTakePlan(
-        IEnumerator<int> plans,
-        object planGate,
-        out int workUnits)
+    private static bool TryTakePlan(IEnumerator<int> plans, object planGate, out int workUnits)
     {
         lock (planGate)
         {

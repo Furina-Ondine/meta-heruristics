@@ -88,9 +88,7 @@ public sealed class OptimizationRunnerTests
     public void RunThrowsForCancellation()
     {
         using var cancellation = new CancellationTokenSource();
-        var problem = new ContinuousProblem(
-            [new VariableBounds(0, 10)],
-            new CancellingObjective(cancellation));
+        var problem = new ContinuousProblem([new VariableBounds(0, 10)], new CancellingObjective(cancellation));
         var optimizer = new CountdownOptimizer();
 
         Xunit.Assert.Throws<OperationCanceledException>(
@@ -111,13 +109,9 @@ public sealed class OptimizationRunnerTests
         var problem = new ContinuousProblem([new VariableBounds(0, 1)], new RecordingObjective());
         var optimizer = new RandomValueOptimizer();
         var options = new OptimizationRunOptions(
-            StoppingConditions.Any(
-                StoppingConditions.MaxEvaluations(1_000),
-                StoppingConditions.MaxIterations(20)))
+            StoppingConditions.Any(StoppingConditions.MaxEvaluations(1_000), StoppingConditions.MaxIterations(20)))
         {
-            Trace = new OptimizationTraceOptions(
-                OptimizationTraceMode.IterationProgress,
-                progressIntervalRatio: 0.25),
+            Trace = new OptimizationTraceOptions(OptimizationTraceMode.IterationProgress, progressIntervalRatio: 0.25),
         };
 
         var result = OptimizationRunner.Execute(
@@ -141,9 +135,7 @@ public sealed class OptimizationRunnerTests
         var optimizer = new RandomValueOptimizer();
         var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(10))
         {
-            Trace = new OptimizationTraceOptions(
-                OptimizationTraceMode.IterationProgress,
-                progressIntervalRatio: 0.25)
+            Trace = new OptimizationTraceOptions(OptimizationTraceMode.IterationProgress, progressIntervalRatio: 0.25)
             {
                 ProgressTotalIterations = 20,
             },
@@ -170,9 +162,7 @@ public sealed class OptimizationRunnerTests
         var optimizer = new RandomValueOptimizer();
         var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(23))
         {
-            Trace = new OptimizationTraceOptions(
-                OptimizationTraceMode.IterationProgress,
-                progressIntervalRatio: 0.1),
+            Trace = new OptimizationTraceOptions(OptimizationTraceMode.IterationProgress, progressIntervalRatio: 0.1),
         };
 
         var result = OptimizationRunner.Execute(
@@ -196,9 +186,7 @@ public sealed class OptimizationRunnerTests
         var optimizer = new RandomValueOptimizer();
         var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(10))
         {
-            Trace = new OptimizationTraceOptions(
-                OptimizationTraceMode.IterationProgress,
-                progressIntervalRatio: 0.3),
+            Trace = new OptimizationTraceOptions(OptimizationTraceMode.IterationProgress, progressIntervalRatio: 0.3),
         };
 
         var result = OptimizationRunner.Execute(

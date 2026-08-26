@@ -18,10 +18,7 @@ public static class EvaluationComparer
     /// <param name="direction">目标优化方向。</param>
     /// <returns>候选评估严格更优时返回 <see langword="true"/>，相等或更差时返回 <see langword="false"/>。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="direction"/> 不是定义的枚举值。</exception>
-    public static bool IsBetter(
-        Evaluation candidate,
-        Evaluation incumbent,
-        OptimizationDirection direction)
+    public static bool IsBetter(Evaluation candidate, Evaluation incumbent, OptimizationDirection direction)
     {
         return Compare(candidate, incumbent, direction) < 0;
     }
@@ -34,10 +31,7 @@ public static class EvaluationComparer
     /// <param name="direction">目标优化方向。</param>
     /// <returns>第一个结果更优时返回负数，相等时返回零，更差时返回正数。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="direction"/> 不是定义的枚举值。</exception>
-    public static int Compare(
-        Evaluation first,
-        Evaluation second,
-        OptimizationDirection direction)
+    public static int Compare(Evaluation first, Evaluation second, OptimizationDirection direction)
     {
         if (!Enum.IsDefined(direction))
         {
@@ -51,8 +45,7 @@ public static class EvaluationComparer
 
         if (!first.Constraints.IsFeasible)
         {
-            var violationComparison = first.Constraints.TotalViolation.CompareTo(
-                second.Constraints.TotalViolation);
+            var violationComparison = first.Constraints.TotalViolation.CompareTo(second.Constraints.TotalViolation);
             if (violationComparison != 0)
             {
                 return violationComparison;

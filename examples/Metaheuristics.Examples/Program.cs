@@ -12,9 +12,7 @@ var optimizer = new BatOptimizer(
     new BatOptimizerOptions { PopulationSize = 40 });
 var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(100))
 {
-    Trace = new OptimizationTraceOptions(
-        OptimizationTraceMode.IterationProgress,
-        progressIntervalRatio: 0.1),
+    Trace = new OptimizationTraceOptions(OptimizationTraceMode.IterationProgress, progressIntervalRatio: 0.1),
 };
 
 var result = OptimizationRunner.Execute(problem, optimizer, options, seed: 20260820);
@@ -87,10 +85,7 @@ namespace Anastasya.Metaheuristics.Examples
     /// <param name="Dimension">连续问题的维度。</param>
     /// <param name="PopulationSize">每个 RunGroup 持有的蝙蝠数量。</param>
     /// <param name="Iterations">每次 run 的最大迭代次数。</param>
-    file sealed record BatCaseConfiguration(
-        int Dimension,
-        int PopulationSize,
-        int Iterations);
+    file sealed record BatCaseConfiguration(int Dimension, int PopulationSize, int Iterations);
 
     /// <summary>
     /// 计算连续位置平方和的最小化目标函数。

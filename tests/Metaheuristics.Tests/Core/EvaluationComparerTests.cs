@@ -42,10 +42,7 @@ public sealed class EvaluationComparerTests
     [Xunit.Theory]
     [Xunit.InlineData(OptimizationDirection.Minimize, 1, 2)]
     [Xunit.InlineData(OptimizationDirection.Maximize, 2, 1)]
-    public void DirectionControlsObjectiveOrdering(
-        OptimizationDirection direction,
-        double preferred,
-        double other)
+    public void DirectionControlsObjectiveOrdering(OptimizationDirection direction, double preferred, double other)
     {
         var candidate = new Evaluation(preferred, ConstraintEvaluation.Feasible);
         var incumbent = new Evaluation(other, ConstraintEvaluation.Feasible);
