@@ -8,8 +8,9 @@ Metaheuristics.NET 是一个仍在演进中的连续单目标优化 demo。你�
 
 ```csharp
 var problem = new ContinuousProblem(
-    [new VariableBounds(-5, 5), new VariableBounds(-5, 5)],
-    new SphereObjective());
+    dimension: 2,
+    objective: new SphereObjective(),
+    repair: CandidateRepairs.Clamp(-5, 5));
 var optimizer = new BatOptimizer(
     new RandomPositionInitializer(),
     new BatOptimizerOptions { PopulationSize = 40 });
@@ -40,11 +41,11 @@ sealed class RandomPositionInitializer : ICandidateInitializer
 
 ## 描述问题
 
-`ContinuousProblem` 需要每一维的 `VariableBounds` 与一个 `IObjectiveFunction`。边界用于确定维度，并在没有显式 Repair 时创建默认的截断 Repair；算法实现不会读取它们。目标函数必须返回有限 `double`。默认方向为最小化；传入 `OptimizationDirection.Maximize` 可最大化。
+`ContinuousProblem` 需要维度与一个 `IObjectiveFunction`。未传 Repair 时，它使用标量 `[0, 10]` Clamp；算法实现不会读取 Repair 的端点。目标函数必须返回有限 `double`。默认方向为最小化；传入 `OptimizationDirection.Maximize` 可最大化。
 
 可选 `IConstraint` 返回已归一化的非负违背量，零表示满足。比较时始终先选可行解，再比较不可行解的总违背量，最后才按目标方向比较。位置本身由你的 `ICandidateInitializer` 和 `ICandidateRepair` 负责：算法在初始 Position 写入后、以及每次修改 Position 后都会调用 Repair；Core 不检查位置是否越界、非有限或包含 `NaN`。
 
-默认 Repair 是 `CandidateRepairs.Clamp`：有界维度上的有限越界值与正负无穷会被截断到端点，`NaN` 保持不变，无界维度不处理。也可传入 `CandidateRepairs.Reflect(bounds)` 做双侧镜像，或 `CandidateRepairs.RandomReset(bounds)` 在双侧有限边界内随机回退。`CandidateRepairs.DoNothing` 完全跳过修复；除非你能自行保证初始化、每条位置更新路径及其数值后果，否则不要使用它。
+默认 Repair 是 `CandidateRepairs.Clamp(0, 10)`：越界值与正负无穷会被截断到端点，`NaN` 保持不变。Repair 的下界和上界可分别使用标量或逐维 `ReadOnlySpan<double>`；`-Infinity`/`+Infinity` 分别表示无下界/无上界。也可传入 `CandidateRepairs.Reflect(-5, 5)` 做双侧镜像，或 `CandidateRepairs.RandomReset(-5, 5)` 在双侧有限边界内随机回退。`CandidateRepairs.DoNothing` 完全跳过修复；除非你能自行保证初始化、每条位置更新路径及其数值后果，否则不要使用它。
 
 ## 控制执行
 

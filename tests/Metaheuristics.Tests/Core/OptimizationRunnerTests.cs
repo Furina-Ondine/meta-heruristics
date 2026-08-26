@@ -25,7 +25,7 @@ public sealed class OptimizationRunnerTests
     public void ExecuteLeavesTheBestPositionOwnedByTheOptimizer()
     {
         var objective = new RecordingObjective();
-        var problem = new ContinuousProblem([new VariableBounds(0, 10)], objective);
+        var problem = new ContinuousProblem(1, objective);
         var optimizer = new CountdownOptimizer();
         var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(2))
         {
@@ -60,7 +60,7 @@ public sealed class OptimizationRunnerTests
     [Xunit.Fact]
     public void RunUsesAnIndependentSeededRandomStream()
     {
-        var problem = new ContinuousProblem([new VariableBounds(0, 1)], new RecordingObjective());
+        var problem = new ContinuousProblem(1, new RecordingObjective(), CandidateRepairs.Clamp(0, 1));
         var optimizer = new RandomValueOptimizer();
         var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(0));
         var first = OptimizationRunner.Execute(
@@ -88,7 +88,7 @@ public sealed class OptimizationRunnerTests
     public void RunThrowsForCancellation()
     {
         using var cancellation = new CancellationTokenSource();
-        var problem = new ContinuousProblem([new VariableBounds(0, 10)], new CancellingObjective(cancellation));
+        var problem = new ContinuousProblem(1, new CancellingObjective(cancellation));
         var optimizer = new CountdownOptimizer();
 
         Xunit.Assert.Throws<OperationCanceledException>(
@@ -106,7 +106,7 @@ public sealed class OptimizationRunnerTests
     [Xunit.Fact]
     public void RunRecordsAtTheRequestedProgressRatio()
     {
-        var problem = new ContinuousProblem([new VariableBounds(0, 1)], new RecordingObjective());
+        var problem = new ContinuousProblem(1, new RecordingObjective(), CandidateRepairs.Clamp(0, 1));
         var optimizer = new RandomValueOptimizer();
         var options = new OptimizationRunOptions(
             StoppingConditions.Any(StoppingConditions.MaxEvaluations(1_000), StoppingConditions.MaxIterations(20)))
@@ -131,7 +131,7 @@ public sealed class OptimizationRunnerTests
     [Xunit.Fact]
     public void ProportionalTraceAcceptsAnExplicitIterationTotal()
     {
-        var problem = new ContinuousProblem([new VariableBounds(0, 1)], new RecordingObjective());
+        var problem = new ContinuousProblem(1, new RecordingObjective(), CandidateRepairs.Clamp(0, 1));
         var optimizer = new RandomValueOptimizer();
         var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(10))
         {
@@ -158,7 +158,7 @@ public sealed class OptimizationRunnerTests
     [Xunit.Fact]
     public void ProportionalTraceRoundsEachCheckpointUpToACompletedIteration()
     {
-        var problem = new ContinuousProblem([new VariableBounds(0, 1)], new RecordingObjective());
+        var problem = new ContinuousProblem(1, new RecordingObjective(), CandidateRepairs.Clamp(0, 1));
         var optimizer = new RandomValueOptimizer();
         var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(23))
         {
@@ -182,7 +182,7 @@ public sealed class OptimizationRunnerTests
     [Xunit.Fact]
     public void ProportionalTraceAlwaysRecordsTheFinalState()
     {
-        var problem = new ContinuousProblem([new VariableBounds(0, 1)], new RecordingObjective());
+        var problem = new ContinuousProblem(1, new RecordingObjective(), CandidateRepairs.Clamp(0, 1));
         var optimizer = new RandomValueOptimizer();
         var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(10))
         {

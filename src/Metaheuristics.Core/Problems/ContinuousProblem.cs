@@ -13,27 +13,23 @@ public sealed class ContinuousProblem
     private readonly ReadOnlyCollection<IConstraint> _readOnlyConstraints;
 
     /// <summary>创建一个连续优化问题。</summary>
-    /// <param name="bounds">每个维度的变量范围；至少包含一个维度，仅用于确定维度并创建默认 Repair。</param>
+    /// <param name="dimension">候选位置的维度；必须大于零。</param>
     /// <param name="objective">用于计算目标值的目标函数。</param>
+    /// <param name="repair">候选修复策略；省略时使用边界为 [0, 10] 的 Clamp Repair。</param>
     /// <param name="direction">目标优化方向。</param>
     /// <param name="constraints">可选约束集合；集合中的每一项都不能为 <see langword="null"/>。</param>
-    /// <param name="repair">候选修复策略；省略时创建持有 <paramref name="bounds"/> 副本的 Clamp Repair。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="bounds"/> 或 <paramref name="objective"/> 为 <see langword="null"/>。</exception>
-    /// <exception cref="ArgumentException">没有维度，或约束集合包含 <see langword="null"/> 项。</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="direction"/> 不是定义的枚举值。</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="objective"/> 为 <see langword="null"/>。</exception>
+    /// <exception cref="ArgumentException">约束集合包含 <see langword="null"/> 项。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="dimension"/> 不是正数，或 <paramref name="direction"/> 不是定义的枚举值。</exception>
     public ContinuousProblem(
-        IReadOnlyList<VariableBounds> bounds,
+        int dimension,
         IObjectiveFunction objective,
+        ICandidateRepair? repair = null,
         OptimizationDirection direction = OptimizationDirection.Minimize,
-        IReadOnlyList<IConstraint>? constraints = null,
-        ICandidateRepair? repair = null)
+        IReadOnlyList<IConstraint>? constraints = null)
     {
-        ArgumentNullException.ThrowIfNull(bounds);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(dimension);
         ArgumentNullException.ThrowIfNull(objective);
-        if (bounds.Count == 0)
-        {
-            throw new ArgumentException("A problem must contain at least one dimension.", nameof(bounds));
-        }
 
         if (!Enum.IsDefined(direction))
         {
@@ -48,10 +44,10 @@ public sealed class ContinuousProblem
         }
 
         _readOnlyConstraints = Array.AsReadOnly(_constraints);
-        Dimension = bounds.Count;
+        Dimension = dimension;
         Objective = objective;
         Direction = direction;
-        Repair = repair ?? CandidateRepairs.Clamp(bounds);
+        Repair = repair ?? CandidateRepairs.Clamp(0, 10);
     }
 
     /// <summary>获取候选位置的维度。</summary>

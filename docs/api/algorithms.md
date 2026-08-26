@@ -6,8 +6,9 @@
 
 ```csharp
 var problem = new ContinuousProblem(
-    Enumerable.Repeat(new VariableBounds(-5, 5), 10).ToArray(),
-    new SphereObjective());
+    dimension: 10,
+    objective: new SphereObjective(),
+    repair: CandidateRepairs.Clamp(-5, 5));
 
 var optimizer = new BatOptimizer(
     new RandomPositionInitializer(),
@@ -43,7 +44,7 @@ var bestPosition = optimizer.BestPosition.ToArray();
 
 `BatOptimizer` 必须接收 `ICandidateInitializer`；它只写 Position，不能初始化速度、频率、响度或脉冲率等蝙蝠专属状态。算法独立初始化这些状态，并在每个 Position 初始化后及每次生成候选后调用 `OptimizationRunContext.Repair`。
 
-算法不读取 `ContinuousProblem` 的边界，也不自行截断位置。未提供自定义 Repair 时，Problem 使用 Clamp Repair；自定义 Repair 必须自行保存所需边界。无界问题同样需要调用方提供能生成适用位置的初始化器。除非调用方能承担越界、无穷或 `NaN` 的后果，否则不要使用 `CandidateRepairs.DoNothing`。
+算法不读取 `ContinuousProblem` 的边界，也不自行截断位置。未提供自定义 Repair 时，Problem 使用标量 `[0, 10]` Clamp；自定义 Repair 必须自行保存所需标量或向量端点。无界问题同样需要调用方提供能生成适用位置的初始化器。除非调用方能承担越界、无穷或 `NaN` 的后果，否则不要使用 `CandidateRepairs.DoNothing`。
 
 ## 生命周期和状态
 

@@ -6,7 +6,7 @@
 
 | 分组 | 公共类型 | 职责 |
 | --- | --- | --- |
-| 问题 | `ContinuousProblem`、`VariableBounds`、`IObjectiveFunction`、`IConstraint` | 定义维度、标量目标函数和归一化约束违背量；边界仅用于构造默认 Repair。 |
+| 问题 | `ContinuousProblem`、`IObjectiveFunction`、`IConstraint` | 定义维度、标量目标函数和归一化约束违背量。 |
 | 数值结果 | `Evaluation`、`ConstraintEvaluation`、`OptimizationDirection` | 固定首版的 `double` 目标值、可行性与约束统计。 |
 | 比较 | `EvaluationComparer` | 实现可行性优先、总违背量优先，再按最小化或最大化方向比较目标值。 |
 | 策略 | `ICandidateInitializer`、`ICandidateRepair`、`CandidateRepairs` | 将位置初始化和修复与约束判定分离；Repair 自己持有边界或其他恢复数据。 |
@@ -18,8 +18,9 @@
 
 ```csharp
 var problem = new ContinuousProblem(
-    [new VariableBounds(-5, 5), new VariableBounds(-5, 5)],
+    dimension: 2,
     new SphereObjective(),
+    CandidateRepairs.Clamp(-5, 5),
     OptimizationDirection.Minimize);
 
 var options = new OptimizationRunOptions(
@@ -62,9 +63,9 @@ var bestPosition = optimizer.BestPosition.ToArray();
 
 ## 数值契约
 
-- `VariableBounds` 用 `null` 表示缺省的无界端点；显式边界必须有限且不能形成反向区间。它们只用于构造或实现 `ICandidateRepair`，不由算法读取。
+- 内置 Repair 的端点可分别是标量或逐维 `ReadOnlySpan<double>`；`-Infinity` 与 `+Infinity` 分别表示无下界与无上界。端点不能是 `NaN`，且任一维下界不能大于上界。
 - `ContinuousProblem` 和 Runner 不验证候选位置的维度、范围或有限性。初始化器和 Repair 共同对此负责；算法必须在每次初始化或修改位置后调用 `context.Repair`。
-- 未显式提供 Repair 时，`ContinuousProblem` 从构造参数创建 `CandidateRepairs.Clamp`。内置 Clamp 将有界维度的有限越界值和无穷值截断到端点，保留 `NaN`；无界维度不处理。
+- 未显式提供 Repair 时，`ContinuousProblem` 使用 `CandidateRepairs.Clamp(0, 10)`。Clamp 将越界值和无穷值截断到端点，保留 `NaN`；无界端点不限制对应一侧。
 - `CandidateRepairs.DoNothing` 完全跳过修复。除非调用方能自行保证每条位置更新路径与其数值后果，否则不要使用它。
 - 目标函数只能返回有限 `double`。
 - `IConstraint.EvaluateViolation` 返回已经加权、归一化的非负有限违背量；`0` 表示约束满足。

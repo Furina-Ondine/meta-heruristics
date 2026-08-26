@@ -333,7 +333,7 @@ public sealed class ExperimentRunnerTests
 
     private static ContinuousProblem CreateProblem()
     {
-        return new ContinuousProblem([VariableBounds.Unbounded], new FirstCoordinateObjective());
+        return new ContinuousProblem(1, new FirstCoordinateObjective(), CandidateRepairs.DoNothing);
     }
 
     private static OptimizationRunOptions StopImmediately()

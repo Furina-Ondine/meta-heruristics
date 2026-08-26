@@ -1,122 +1,192 @@
 namespace Anastasya.Metaheuristics.Core.Problems;
 
-/// <summary>创建由自身持有变量边界的内置候选 Repair。</summary>
+/// <summary>创建由自身持有标量或逐维边界的内置候选 Repair。</summary>
 public static class CandidateRepairs
 {
-    /// <summary>创建将有界维度截断到端点的 Repair。</summary>
-    /// <param name="bounds">每个位置分量的边界；创建时复制。</param>
-    /// <remarks><see cref="double.NaN"/> 保持不变；无界维度不处理。</remarks>
-    public static ICandidateRepair Clamp(IReadOnlyList<VariableBounds> bounds) => new ClampCandidateRepair(bounds);
+    /// <summary>创建使用标量下界和上界的 Clamp Repair。</summary>
+    public static ICandidateRepair Clamp(double lower, double upper) => new ClampCandidateRepair(lower, upper);
+    /// <summary>创建使用逐维下界和标量上界的 Clamp Repair。</summary>
+    public static ICandidateRepair Clamp(ReadOnlySpan<double> lower, double upper) => new ClampCandidateRepair(lower, upper);
+    /// <summary>创建使用标量下界和逐维上界的 Clamp Repair。</summary>
+    public static ICandidateRepair Clamp(double lower, ReadOnlySpan<double> upper) => new ClampCandidateRepair(lower, upper);
+    /// <summary>创建使用逐维下界和上界的 Clamp Repair。</summary>
+    public static ICandidateRepair Clamp(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) => new ClampCandidateRepair(lower, upper);
 
-    /// <summary>创建对双侧有限边界执行镜像映射的 Repair。</summary>
-    /// <param name="bounds">每个位置分量的边界；创建时复制。</param>
-    /// <remarks>单侧边界和无穷值退化为截断；<see cref="double.NaN"/> 与无界维度保持不变。</remarks>
-    public static ICandidateRepair Reflect(IReadOnlyList<VariableBounds> bounds) => new ReflectCandidateRepair(bounds);
+    /// <summary>创建使用标量下界和上界的 Reflect Repair。</summary>
+    public static ICandidateRepair Reflect(double lower, double upper) => new ReflectCandidateRepair(lower, upper);
+    /// <summary>创建使用逐维下界和标量上界的 Reflect Repair。</summary>
+    public static ICandidateRepair Reflect(ReadOnlySpan<double> lower, double upper) => new ReflectCandidateRepair(lower, upper);
+    /// <summary>创建使用标量下界和逐维上界的 Reflect Repair。</summary>
+    public static ICandidateRepair Reflect(double lower, ReadOnlySpan<double> upper) => new ReflectCandidateRepair(lower, upper);
+    /// <summary>创建使用逐维下界和上界的 Reflect Repair。</summary>
+    public static ICandidateRepair Reflect(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) => new ReflectCandidateRepair(lower, upper);
 
-    /// <summary>创建对双侧有限边界随机回退的 Repair。</summary>
-    /// <param name="bounds">每个位置分量的边界；创建时复制。</param>
-    /// <remarks>单侧边界退化为截断；<see cref="double.NaN"/> 与无界维度保持不变。</remarks>
-    public static ICandidateRepair RandomReset(IReadOnlyList<VariableBounds> bounds) => new RandomResetCandidateRepair(bounds);
+    /// <summary>创建使用标量下界和上界的 RandomReset Repair。</summary>
+    public static ICandidateRepair RandomReset(double lower, double upper) => new RandomResetCandidateRepair(lower, upper);
+    /// <summary>创建使用逐维下界和标量上界的 RandomReset Repair。</summary>
+    public static ICandidateRepair RandomReset(ReadOnlySpan<double> lower, double upper) => new RandomResetCandidateRepair(lower, upper);
+    /// <summary>创建使用标量下界和逐维上界的 RandomReset Repair。</summary>
+    public static ICandidateRepair RandomReset(double lower, ReadOnlySpan<double> upper) => new RandomResetCandidateRepair(lower, upper);
+    /// <summary>创建使用逐维下界和上界的 RandomReset Repair。</summary>
+    public static ICandidateRepair RandomReset(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) => new RandomResetCandidateRepair(lower, upper);
 
     /// <summary>获取完全不修改位置的 Repair。</summary>
-    /// <remarks>除非调用方能自行保证位置正确性，否则不要使用；它不处理越界值、无穷值或 <see cref="double.NaN"/>。</remarks>
     public static ICandidateRepair DoNothing { get; } = new DoNothingCandidateRepair();
 
-    private abstract class BoundedCandidateRepair(IReadOnlyList<VariableBounds> bounds) : ICandidateRepair
+    private abstract class BoundedCandidateRepair : ICandidateRepair
     {
-        protected VariableBounds[] Bounds { get; } = CopyBounds(bounds);
+        private readonly Boundary _lower;
+        private readonly Boundary _upper;
+
+        protected BoundedCandidateRepair(double lower, double upper) : this(Boundary.Create(lower), Boundary.Create(upper)) { }
+        protected BoundedCandidateRepair(ReadOnlySpan<double> lower, double upper) : this(Boundary.Create(lower), Boundary.Create(upper)) { }
+        protected BoundedCandidateRepair(double lower, ReadOnlySpan<double> upper) : this(Boundary.Create(lower), Boundary.Create(upper)) { }
+        protected BoundedCandidateRepair(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) : this(Boundary.Create(lower), Boundary.Create(upper)) { }
 
         public abstract void Repair(Span<double> position, Random random);
 
-        protected void ValidateDimension(Span<double> position)
+        protected void ValidatePositionLength(Span<double> position)
         {
-            if (position.Length != Bounds.Length)
+            if ((_lower.IsVector && position.Length != _lower.Length)
+                || (_upper.IsVector && position.Length != _upper.Length))
             {
-                throw new ArgumentException("The position length must match the repair boundary dimension.", nameof(position));
+                throw new ArgumentException("The position length must match every vector boundary length.", nameof(position));
             }
         }
 
-        protected static double Clamp(double value, VariableBounds bounds)
+        protected double GetLower(int index) => _lower.GetValue(index);
+        protected double GetUpper(int index) => _upper.GetValue(index);
+
+        protected static double Clamp(double value, double lower, double upper)
         {
             if (double.IsNaN(value))
             {
                 return value;
             }
 
-            if (bounds.LowerBound is { } lowerBound && value < lowerBound)
+            if (value < lower)
             {
-                return lowerBound;
+                return lower;
             }
 
-            return bounds.UpperBound is { } upperBound && value > upperBound
-                ? upperBound
-                : value;
+            return value > upper ? upper : value;
         }
 
-        private static VariableBounds[] CopyBounds(IReadOnlyList<VariableBounds> bounds)
+        private BoundedCandidateRepair(Boundary lower, Boundary upper)
         {
-            ArgumentNullException.ThrowIfNull(bounds);
-            var copy = new VariableBounds[bounds.Count];
-            for (var index = 0; index < copy.Length; index++)
+            ValidateBounds(lower, upper);
+            _lower = lower;
+            _upper = upper;
+        }
+
+        private static void ValidateBounds(Boundary lower, Boundary upper)
+        {
+            if (lower.IsVector && upper.IsVector && lower.Length != upper.Length)
             {
-                copy[index] = bounds[index];
+                throw new ArgumentException("The lower and upper boundary vectors must have the same length.", nameof(upper));
             }
 
-            return copy;
+            var length = lower.IsVector ? lower.Length : upper.IsVector ? upper.Length : 1;
+            for (var index = 0; index < length; index++)
+            {
+                if (lower.GetValue(index) > upper.GetValue(index))
+                {
+                    throw new ArgumentException("A lower boundary cannot exceed its corresponding upper boundary.", nameof(lower));
+                }
+            }
+        }
+
+        private readonly struct Boundary
+        {
+            private readonly double _scalar;
+            private readonly double[]? _values;
+
+            private Boundary(double scalar)
+            {
+                if (double.IsNaN(scalar))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(scalar), "A boundary cannot be NaN.");
+                }
+
+                _scalar = scalar;
+            }
+
+            private Boundary(ReadOnlySpan<double> values)
+            {
+                _values = values.ToArray();
+                for (var index = 0; index < _values.Length; index++)
+                {
+                    if (double.IsNaN(_values[index]))
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(values), "A boundary cannot contain NaN.");
+                    }
+                }
+            }
+
+            public bool IsVector => _values is not null;
+            public int Length => _values?.Length ?? 0;
+            public double GetValue(int index) => _values is null ? _scalar : _values[index];
+            public static Boundary Create(double scalar) => new(scalar);
+            public static Boundary Create(ReadOnlySpan<double> values) => new(values);
         }
     }
 
-    private sealed class ClampCandidateRepair(IReadOnlyList<VariableBounds> bounds) : BoundedCandidateRepair(bounds)
+    private sealed class ClampCandidateRepair : BoundedCandidateRepair
     {
+        public ClampCandidateRepair(double lower, double upper) : base(lower, upper) { }
+        public ClampCandidateRepair(ReadOnlySpan<double> lower, double upper) : base(lower, upper) { }
+        public ClampCandidateRepair(double lower, ReadOnlySpan<double> upper) : base(lower, upper) { }
+        public ClampCandidateRepair(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) : base(lower, upper) { }
+
         public override void Repair(Span<double> position, Random random)
         {
-            ValidateDimension(position);
+            ValidatePositionLength(position);
             for (var index = 0; index < position.Length; index++)
             {
-                position[index] = Clamp(position[index], Bounds[index]);
+                position[index] = Clamp(position[index], GetLower(index), GetUpper(index));
             }
         }
     }
 
-    private sealed class ReflectCandidateRepair(IReadOnlyList<VariableBounds> bounds) : BoundedCandidateRepair(bounds)
+    private sealed class ReflectCandidateRepair : BoundedCandidateRepair
     {
+        public ReflectCandidateRepair(double lower, double upper) : base(lower, upper) { }
+        public ReflectCandidateRepair(ReadOnlySpan<double> lower, double upper) : base(lower, upper) { }
+        public ReflectCandidateRepair(double lower, ReadOnlySpan<double> upper) : base(lower, upper) { }
+        public ReflectCandidateRepair(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) : base(lower, upper) { }
+
         public override void Repair(Span<double> position, Random random)
         {
-            ValidateDimension(position);
+            ValidatePositionLength(position);
             for (var index = 0; index < position.Length; index++)
             {
-                position[index] = Reflect(position[index], Bounds[index]);
+                position[index] = Reflect(position[index], GetLower(index), GetUpper(index));
             }
         }
 
-        private static double Reflect(double value, VariableBounds bounds)
+        private static double Reflect(double value, double lower, double upper)
         {
-            if (double.IsNaN(value) || bounds.LowerBound is not { } lowerBound || bounds.UpperBound is not { } upperBound)
+            if (double.IsNaN(value) || !double.IsFinite(lower) || !double.IsFinite(upper) || !double.IsFinite(value))
             {
-                return Clamp(value, bounds);
+                return Clamp(value, lower, upper);
             }
 
-            if (double.IsFinite(value) && value > lowerBound && value < upperBound)
+            if (value > lower && value < upper)
             {
                 return value;
             }
 
-            if (!double.IsFinite(value))
-            {
-                return Clamp(value, bounds);
-            }
-
-            var width = upperBound - lowerBound;
+            var width = upper - lower;
             var period = width * 2;
             if (width <= 0 || !double.IsFinite(width) || !double.IsFinite(period))
             {
-                return Clamp(value, bounds);
+                return Clamp(value, lower, upper);
             }
 
-            var offset = value - lowerBound;
+            var offset = value - lower;
             if (!double.IsFinite(offset))
             {
-                return Clamp(value, bounds);
+                return Clamp(value, lower, upper);
             }
 
             var remainder = offset % period;
@@ -125,34 +195,38 @@ public static class CandidateRepairs
                 remainder += period;
             }
 
-            return remainder <= width
-                ? lowerBound + remainder
-                : upperBound - (remainder - width);
+            return remainder <= width ? lower + remainder : upper - (remainder - width);
         }
     }
 
-    private sealed class RandomResetCandidateRepair(IReadOnlyList<VariableBounds> bounds) : BoundedCandidateRepair(bounds)
+    private sealed class RandomResetCandidateRepair : BoundedCandidateRepair
     {
+        public RandomResetCandidateRepair(double lower, double upper) : base(lower, upper) { }
+        public RandomResetCandidateRepair(ReadOnlySpan<double> lower, double upper) : base(lower, upper) { }
+        public RandomResetCandidateRepair(double lower, ReadOnlySpan<double> upper) : base(lower, upper) { }
+        public RandomResetCandidateRepair(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) : base(lower, upper) { }
+
         public override void Repair(Span<double> position, Random random)
         {
             ArgumentNullException.ThrowIfNull(random);
-            ValidateDimension(position);
+            ValidatePositionLength(position);
             for (var index = 0; index < position.Length; index++)
             {
                 var value = position[index];
-                var bounds = Bounds[index];
-                if (double.IsNaN(value) || bounds.LowerBound is not { } lowerBound || bounds.UpperBound is not { } upperBound)
+                var lower = GetLower(index);
+                var upper = GetUpper(index);
+                if (double.IsNaN(value) || !double.IsFinite(lower) || !double.IsFinite(upper))
                 {
-                    position[index] = Clamp(value, bounds);
+                    position[index] = Clamp(value, lower, upper);
                     continue;
                 }
 
-                if (value < lowerBound || value > upperBound)
+                if (value < lower || value > upper)
                 {
-                    var width = upperBound - lowerBound;
+                    var width = upper - lower;
                     position[index] = double.IsFinite(width)
-                        ? lowerBound + (width * random.NextDouble())
-                        : Clamp(value, bounds);
+                        ? lower + (width * random.NextDouble())
+                        : Clamp(value, lower, upper);
                 }
             }
         }
@@ -160,8 +234,6 @@ public static class CandidateRepairs
 
     private sealed class DoNothingCandidateRepair : ICandidateRepair
     {
-        public void Repair(Span<double> position, Random random)
-        {
-        }
+        public void Repair(Span<double> position, Random random) { }
     }
 }

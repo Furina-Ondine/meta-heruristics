@@ -58,10 +58,7 @@ foreach (var caseResult in experimentResult.Cases)
 
 static ContinuousProblem CreateSphereProblem(int dimension)
 {
-    var bounds = Enumerable
-        .Repeat(new VariableBounds(-5, 5), dimension)
-        .ToArray();
-    return new ContinuousProblem(bounds, new SphereObjective());
+    return new ContinuousProblem(dimension, new SphereObjective(), CandidateRepairs.Clamp(-5, 5));
 }
 
 static ExperimentGroupSetup CreateGroup(BatCaseConfiguration configuration)

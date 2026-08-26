@@ -14,8 +14,9 @@ public sealed class ContinuousProblemTests
     public void EvaluateAggregatesNormalizedConstraintViolations()
     {
         var problem = new ContinuousProblem(
-            [new VariableBounds(0, 10), new VariableBounds(-5, 5)],
+            2,
             new SumObjective(),
+            CandidateRepairs.Clamp([0, -5], [10, 5]),
             constraints: [new FixedConstraint(0), new FixedConstraint(1.5), new FixedConstraint(0.5)]);
 
         var evaluation = problem.Evaluate([2, 3]);
@@ -33,11 +34,9 @@ public sealed class ContinuousProblemTests
     [Xunit.Fact]
     public void ConstructorCopiesDefaultRepairBoundsAndConstraints()
     {
-        var bounds = new[] { new VariableBounds(0, 1) };
         var constraints = new IConstraint[] { new FixedConstraint(0) };
-        var problem = new ContinuousProblem(bounds, new SumObjective(), constraints: constraints);
+        var problem = new ContinuousProblem(1, new SumObjective(), CandidateRepairs.Clamp(0, 1), constraints: constraints);
 
-        bounds[0] = new VariableBounds(2, 3);
         constraints[0] = new FixedConstraint(1);
 
         var position = new[] { 2.0 };
@@ -52,27 +51,68 @@ public sealed class ContinuousProblemTests
     [Xunit.Fact]
     public void EvaluateDefersPositionValidityToTheCaller()
     {
-        var problem = new ContinuousProblem([new VariableBounds(0, 1)], new FixedObjective(2));
+        var problem = new ContinuousProblem(1, new FixedObjective(2));
 
         Xunit.Assert.Equal(2, problem.Evaluate([double.NaN]).Objective);
         Xunit.Assert.Equal(2, problem.Evaluate([1.1]).Objective);
     }
 
     /// <summary>
-    /// 验证默认 Clamp Repair 截断有界分量，并保留 NaN 和无界分量。
+    /// 验证默认 Clamp Repair 使用 [0, 10] 并保留 NaN。
     /// </summary>
     [Xunit.Fact]
     public void DefaultClampRepairHandlesBoundsAndSpecialValues()
     {
         var problem = new ContinuousProblem(
-            [new VariableBounds(0, 1), new VariableBounds(null, 2), new VariableBounds(-2, null), VariableBounds.Unbounded, new VariableBounds(0, 1)],
+            5,
             new SumObjective());
         var position = new[] { -1.0, double.PositiveInfinity, double.NegativeInfinity, double.PositiveInfinity, double.NaN };
 
         problem.Repair.Repair(position, new Random(1));
 
-        Xunit.Assert.Equal([0, 2, -2, double.PositiveInfinity], position[..4]);
+        Xunit.Assert.Equal([0, 10, 0, 10], position[..4]);
         Xunit.Assert.True(double.IsNaN(position[4]));
+    }
+
+    /// <summary>验证 Clamp 支持四种标量和向量端点组合。</summary>
+    [Xunit.Fact]
+    public void ClampSupportsAllScalarAndVectorBoundaryCombinations()
+    {
+        var scalar = new[] { -1.0, 11.0 };
+        CandidateRepairs.Clamp(0, 10).Repair(scalar, new Random(1));
+        Xunit.Assert.Equal([0, 10], scalar);
+
+        var vectorLower = new[] { -1.0, 11.0 };
+        CandidateRepairs.Clamp([0.0, 1], 10).Repair(vectorLower, new Random(1));
+        Xunit.Assert.Equal([0, 10], vectorLower);
+
+        var vectorUpper = new[] { -1.0, 11.0 };
+        CandidateRepairs.Clamp(0, [2.0, 3]).Repair(vectorUpper, new Random(1));
+        Xunit.Assert.Equal([0, 3], vectorUpper);
+
+        var vectors = new[] { -1.0, 11.0 };
+        CandidateRepairs.Clamp([0.0, 1], [2.0, 3]).Repair(vectors, new Random(1));
+        Xunit.Assert.Equal([0, 3], vectors);
+    }
+
+    /// <summary>验证 Repair 在创建时验证端点，并复制向量端点。</summary>
+    [Xunit.Fact]
+    public void BoundaryRepairsValidateDefinitionsAndCopyVectors()
+    {
+        Xunit.Assert.Throws<ArgumentOutOfRangeException>(() => CandidateRepairs.Clamp(double.NaN, 1));
+        Xunit.Assert.Throws<ArgumentException>(() => CandidateRepairs.Clamp(1, 0));
+        Xunit.Assert.Throws<ArgumentException>(() => CandidateRepairs.Clamp([0.0], [1.0, 2]));
+
+        var lower = new[] { 0.0 };
+        var upper = new[] { 1.0 };
+        var repair = CandidateRepairs.Clamp(lower, upper);
+        lower[0] = -5;
+        upper[0] = 5;
+
+        var position = new[] { 2.0 };
+        repair.Repair(position, new Random(1));
+        Xunit.Assert.Equal(1, position[0]);
+        Xunit.Assert.Throws<ArgumentException>(() => repair.Repair([0.0, 0], new Random(1)));
     }
 
     /// <summary>
@@ -81,15 +121,16 @@ public sealed class ContinuousProblemTests
     [Xunit.Fact]
     public void BuiltInRepairsFollowTheirDocumentedSemantics()
     {
-        var bounds = new[] { new VariableBounds(0, 10), VariableBounds.Unbounded };
+        var lower = new[] { 0.0, double.NegativeInfinity };
+        var upper = new[] { 10.0, double.PositiveInfinity };
         var reflected = new[] { 12.0, double.PositiveInfinity };
-        CandidateRepairs.Reflect(bounds).Repair(reflected, new Random(1));
+        CandidateRepairs.Reflect(lower, upper).Repair(reflected, new Random(1));
         Xunit.Assert.Equal([8, double.PositiveInfinity], reflected);
 
         var randomFirst = new[] { -1.0, double.NaN };
         var randomSecond = new[] { -1.0, double.NaN };
-        CandidateRepairs.RandomReset(bounds).Repair(randomFirst, new Random(42));
-        CandidateRepairs.RandomReset(bounds).Repair(randomSecond, new Random(42));
+        CandidateRepairs.RandomReset(lower, upper).Repair(randomFirst, new Random(42));
+        CandidateRepairs.RandomReset(lower, upper).Repair(randomSecond, new Random(42));
         Xunit.Assert.InRange(randomFirst[0], 0, 10);
         Xunit.Assert.Equal(randomFirst[0], randomSecond[0]);
         Xunit.Assert.True(double.IsNaN(randomFirst[1]));
@@ -105,7 +146,7 @@ public sealed class ContinuousProblemTests
     [Xunit.Fact]
     public void EvaluateRejectsInvalidObjectiveResult()
     {
-        var problem = new ContinuousProblem([VariableBounds.Unbounded], new NonFiniteObjective());
+        var problem = new ContinuousProblem(1, new NonFiniteObjective(), CandidateRepairs.DoNothing);
 
         Xunit.Assert.Throws<InvalidOperationException>(() => problem.Evaluate([0]));
     }

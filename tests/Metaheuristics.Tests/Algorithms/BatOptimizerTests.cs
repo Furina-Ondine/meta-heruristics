@@ -44,8 +44,9 @@ public sealed class BatOptimizerTests
             new SequenceInitializer(1, 2, 3, 4),
             new BatOptimizerOptions { PopulationSize = 4 });
         var problem = new ContinuousProblem(
-            [new VariableBounds(-10, 10)],
+            1,
             new FirstCoordinateObjective(),
+            CandidateRepairs.Clamp(-10, 10),
             OptimizationDirection.Maximize);
 
         var result = ExecuteWithSnapshot(
@@ -69,8 +70,9 @@ public sealed class BatOptimizerTests
             new SequenceInitializer(-1, 1),
             new BatOptimizerOptions { PopulationSize = 2 });
         var problem = new ContinuousProblem(
-            [new VariableBounds(-2, 2)],
+            1,
             new FirstCoordinateObjective(),
+            CandidateRepairs.Clamp(-2, 2),
             constraints: [new NegativeValueConstraint()]);
 
         var result = ExecuteWithSnapshot(
@@ -254,12 +256,12 @@ public sealed class BatOptimizerTests
     }
 
     /// <summary>
-    /// 验证显式初始化器可与默认 Clamp Repair 一起处理无界问题。
+    /// 验证显式初始化器可与 DoNothing Repair 一起处理无界问题。
     /// </summary>
     [Xunit.Fact]
     public void ExplicitInitializerSupportsUnboundedProblem()
     {
-        var problem = new ContinuousProblem([VariableBounds.Unbounded], new SphereObjective());
+        var problem = new ContinuousProblem(1, new SphereObjective(), CandidateRepairs.DoNothing);
 
         var result = ExecuteWithSnapshot(
             problem,
@@ -282,7 +284,7 @@ public sealed class BatOptimizerTests
         var optimizer = new BatOptimizer(
             new ConstantInitializer(0.5),
             new BatOptimizerOptions { PopulationSize = 3 });
-        var problem = new ContinuousProblem([new VariableBounds(0, 1)], new SphereObjective(), repair: repair);
+        var problem = new ContinuousProblem(1, new SphereObjective(), repair);
 
         ExecuteWithSnapshot(
             problem,
@@ -344,7 +346,7 @@ public sealed class BatOptimizerTests
 
     private static ContinuousProblem CreateProblem(int dimension, IObjectiveFunction objective)
     {
-        return new ContinuousProblem(Enumerable.Repeat(new VariableBounds(-5, 5), dimension).ToArray(), objective);
+        return new ContinuousProblem(dimension, objective, CandidateRepairs.Clamp(-5, 5));
     }
 
     private static OptimizationRunOptions StopAfterIterations(int iterations)

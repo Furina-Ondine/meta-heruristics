@@ -43,9 +43,7 @@ public class BatWorkspaceReuseBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _problem = new ContinuousProblem(
-            Enumerable.Repeat(new VariableBounds(-5, 5), Dimension).ToArray(),
-            new SphereObjective());
+        _problem = new ContinuousProblem(Dimension, new SphereObjective(), CandidateRepairs.Clamp(-5, 5));
         _optimizerOptions = new BatOptimizerOptions { PopulationSize = PopulationSize };
         _runOptions = new OptimizationRunOptions(StoppingConditions.MaxIterations(5));
         _groupOptimizer = new BatOptimizer(_initializer, _optimizerOptions);

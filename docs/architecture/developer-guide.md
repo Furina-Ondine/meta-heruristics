@@ -41,7 +41,7 @@ ExperimentDefinition → RunGroup plans → fixed workers
 
 ## 所有权与线程安全
 
-`ContinuousProblem` 防御性复制约束集合；构造参数中的边界仅由默认 Clamp Repair 防御性复制。自定义 Repair 自己拥有边界，Problem 不公开它们。其用户提供的目标、约束、初始化器和修复策略是否可并发调用由用户决定。`IOptimizer` 拥有种群、临时数组与 `BestPosition`，不保证线程安全；一个实例只能属于一个 Group。正常的顺序执行可以复用数组，异常后必须丢弃实例。
+`ContinuousProblem` 防御性复制约束集合，并在未提供 Repair 时使用标量 `[0, 10]` Clamp。自定义 Repair 自己拥有边界；向量边界会在 Repair 创建时防御性复制，Problem 不公开它们。其用户提供的目标、约束、初始化器和修复策略是否可并发调用由用户决定。`IOptimizer` 拥有种群、临时数组与 `BestPosition`，不保证线程安全；一个实例只能属于一个 Group。正常的顺序执行可以复用数组，异常后必须丢弃实例。
 
 `OptimizationRunSummary`、`Evaluation`、`ConstraintEvaluation` 和最终 Experiment 结果均为不可变快照。`BestPosition` 不是快照；它在下一次 reset 前才有效。`IStoppingCondition` 必须可重入，因此可从多个 Group 并发调用。
 
