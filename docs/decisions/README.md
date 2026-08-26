@@ -18,13 +18,14 @@
 | [0002](0002-library-scope-and-evolution.md) | 库范围与演进顺序 | `Accepted` |
 | [0003](0003-project-and-package-boundaries.md) | 项目与包边界 | `Accepted` |
 | [0004](0004-composition-and-execution-model.md) | 组件构造与运行模型 | `Superseded` |
-| [0005](0005-candidate-objective-and-constraints.md) | 候选、目标值与约束 | `Accepted` |
+| [0005](0005-candidate-objective-and-constraints.md) | 候选、目标值与约束 | `Superseded` |
 | [0006](0006-evaluation-performance-and-reproducibility.md) | 评估、性能与可复现性 | `Superseded` |
 | [0007](0007-versioning-and-release.md) | 版本与发布 | `Accepted` |
 | [0008](0008-experiment-run-groups-and-reusable-workers.md) | Experiment RunGroup 与可复用 Worker | `Superseded` |
 | [0009](0009-group-scoped-optimizer-execution.md) | RunGroup 独占的有状态 Optimizer | `Accepted` |
 | [0010](0010-scalar-evaluation-baseline.md) | 单点评估基础契约 | `Accepted` |
 | [0011](0011-bat-first-algorithm-migration.md) | 首个算法迁移选择蝙蝠算法 | `Accepted` |
+| [0012](0012-repair-owned-candidate-boundaries.md) | Repair 拥有候选位置边界 | `Accepted` |
 
 ## ADR 模板
 

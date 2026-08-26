@@ -2,7 +2,7 @@
 
 ## 状态
 
-状态：Accepted
+Superseded by [ADR-0012](0012-repair-owned-candidate-boundaries.md)
 
 ## 背景
 
