@@ -2,7 +2,7 @@
 
 ## 状态
 
-Superseded by [ADR-0013](0013-continuous-problem-default-clamp.md).
+Accepted
 
 替代 [ADR-0005](0005-candidate-objective-and-constraints.md) 中关于候选边界与可选修复的规定。
 

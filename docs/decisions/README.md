@@ -25,8 +25,7 @@
 | [0009](0009-group-scoped-optimizer-execution.md) | RunGroup 独占的有状态 Optimizer | `Accepted` |
 | [0010](0010-scalar-evaluation-baseline.md) | 单点评估基础契约 | `Accepted` |
 | [0011](0011-bat-first-algorithm-migration.md) | 首个算法迁移选择蝙蝠算法 | `Accepted` |
-| [0012](0012-repair-owned-candidate-boundaries.md) | Repair 拥有候选位置边界 | `Superseded` |
-| [0013](0013-continuous-problem-default-clamp.md) | ContinuousProblem 默认标量 Clamp Repair | `Accepted` |
+| [0012](0012-repair-owned-candidate-boundaries.md) | Repair 拥有候选位置边界 | `Accepted` |
 
 ## ADR 模板
 
