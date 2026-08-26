@@ -88,8 +88,6 @@ public sealed class OptimizationRunContext
     /// <param name="position">待评估的候选位置。</param>
     /// <returns>目标值和约束违背汇总。</returns>
     /// <exception cref="OperationCanceledException">取消令牌在评估前已请求取消。</exception>
-    /// <exception cref="ArgumentException">候选位置维度不正确。</exception>
-    /// <exception cref="ArgumentOutOfRangeException">候选位置越界或包含非有限值。</exception>
     /// <exception cref="InvalidOperationException">目标函数或约束返回了无效数值。</exception>
     public Evaluation Evaluate(ReadOnlySpan<double> position)
     {
@@ -99,18 +97,13 @@ public sealed class OptimizationRunContext
         return evaluation;
     }
 
-    /// <summary>
-    /// 使用问题配置的修复策略就地修复候选位置，并在修复后验证边界。
-    /// </summary>
+    /// <summary>使用问题配置的 Repair 就地修复候选位置。</summary>
     /// <param name="position">要就地修复的候选位置。</param>
     /// <exception cref="OperationCanceledException">取消令牌在修复前已请求取消。</exception>
-    /// <exception cref="ArgumentException">候选位置维度不正确。</exception>
-    /// <exception cref="ArgumentOutOfRangeException">修复后的候选位置越界或包含非有限值。</exception>
     public void Repair(Span<double> position)
     {
         CancellationToken.ThrowIfCancellationRequested();
-        Problem.Repair?.Repair(position, Problem, Random);
-        Problem.ValidatePosition(position);
+        Problem.Repair.Repair(position, Random);
     }
 }
 

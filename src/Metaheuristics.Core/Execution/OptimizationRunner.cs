@@ -45,13 +45,11 @@ public static class OptimizationRunner
 
         var context = new OptimizationRunContext(problem, seed, cancellationToken);
         var stopwatch = Stopwatch.StartNew();
-        // Reset 同时负责当前 run 的逻辑初始化和初始评估；正常返回后才能读取最佳状态。
+        // Reset 同时负责当前 run 的逻辑初始化、位置 Repair 和初始评估；正常返回后才能读取最佳状态。
         optimizer.ResetForRun(context);
         cancellationToken.ThrowIfCancellationRequested();
 
         var iterations = 0;
-        // 初始化后只验证位置，不复制缓冲区；需要快照的调用方在终止后自行复制一次。
-        problem.ValidatePosition(optimizer.BestPosition);
         var bestEvaluation = optimizer.BestEvaluation;
         var trace = new TraceCollector(options.Trace, progressTotalIterations);
         trace.RecordInitial(iterations, context.Evaluations, stopwatch.Elapsed, bestEvaluation);
@@ -75,7 +73,6 @@ public static class OptimizationRunner
                 }
 
                 stopwatch.Stop();
-                problem.ValidatePosition(optimizer.BestPosition);
                 return new OptimizationRunSummary(
                     optimizer.BestEvaluation,
                     reason.Value,

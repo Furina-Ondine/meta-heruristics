@@ -28,10 +28,10 @@ public sealed class ContinuousProblemTests
     }
 
     /// <summary>
-    /// 验证构造函数复制边界和约束集合，避免调用方后续修改影响问题定义。
+    /// 验证默认 Repair 复制边界，避免调用方后续修改影响修复语义。
     /// </summary>
     [Xunit.Fact]
-    public void ConstructorCopiesBoundsAndConstraints()
+    public void ConstructorCopiesDefaultRepairBoundsAndConstraints()
     {
         var bounds = new[] { new VariableBounds(0, 1) };
         var constraints = new IConstraint[] { new FixedConstraint(0) };
@@ -40,34 +40,63 @@ public sealed class ContinuousProblemTests
         bounds[0] = new VariableBounds(2, 3);
         constraints[0] = new FixedConstraint(1);
 
-        Xunit.Assert.Equal(new VariableBounds(0, 1), problem.Bounds[0]);
+        var position = new[] { 2.0 };
+        problem.Repair.Repair(position, new Random(1));
+        Xunit.Assert.Equal(1, position[0]);
         Xunit.Assert.True(problem.Evaluate([0.5]).Constraints.IsFeasible);
     }
 
     /// <summary>
-    /// 验证候选位置中的非有限值会被拒绝。
+    /// 验证评估不再验证候选位置；位置责任由初始化器和 Repair 承担。
     /// </summary>
-    /// <param name="value">待验证的非有限候选值。</param>
-    [Xunit.Theory]
-    [Xunit.InlineData(double.NaN)]
-    [Xunit.InlineData(double.PositiveInfinity)]
-    [Xunit.InlineData(double.NegativeInfinity)]
-    public void EvaluateRejectsNonFiniteCandidateValues(double value)
+    [Xunit.Fact]
+    public void EvaluateDefersPositionValidityToTheCaller()
     {
-        var problem = new ContinuousProblem([VariableBounds.Unbounded], new SumObjective());
+        var problem = new ContinuousProblem([new VariableBounds(0, 1)], new FixedObjective(2));
 
-        Xunit.Assert.Throws<ArgumentOutOfRangeException>(() => problem.Evaluate([value]));
+        Xunit.Assert.Equal(2, problem.Evaluate([double.NaN]).Objective);
+        Xunit.Assert.Equal(2, problem.Evaluate([1.1]).Objective);
     }
 
     /// <summary>
-    /// 验证越过变量边界的候选位置会被拒绝。
+    /// 验证默认 Clamp Repair 截断有界分量，并保留 NaN 和无界分量。
     /// </summary>
     [Xunit.Fact]
-    public void EvaluateRejectsCandidateOutsideBounds()
+    public void DefaultClampRepairHandlesBoundsAndSpecialValues()
     {
-        var problem = new ContinuousProblem([new VariableBounds(0, 1)], new SumObjective());
+        var problem = new ContinuousProblem(
+            [new VariableBounds(0, 1), new VariableBounds(null, 2), new VariableBounds(-2, null), VariableBounds.Unbounded, new VariableBounds(0, 1)],
+            new SumObjective());
+        var position = new[] { -1.0, double.PositiveInfinity, double.NegativeInfinity, double.PositiveInfinity, double.NaN };
 
-        Xunit.Assert.Throws<ArgumentOutOfRangeException>(() => problem.Evaluate([1.1]));
+        problem.Repair.Repair(position, new Random(1));
+
+        Xunit.Assert.Equal([0, 2, -2, double.PositiveInfinity], position[..4]);
+        Xunit.Assert.True(double.IsNaN(position[4]));
+    }
+
+    /// <summary>
+    /// 验证镜像、随机回退和 DoNothing Repair 的公开语义。
+    /// </summary>
+    [Xunit.Fact]
+    public void BuiltInRepairsFollowTheirDocumentedSemantics()
+    {
+        var bounds = new[] { new VariableBounds(0, 10), VariableBounds.Unbounded };
+        var reflected = new[] { 12.0, double.PositiveInfinity };
+        CandidateRepairs.Reflect(bounds).Repair(reflected, new Random(1));
+        Xunit.Assert.Equal([8, double.PositiveInfinity], reflected);
+
+        var randomFirst = new[] { -1.0, double.NaN };
+        var randomSecond = new[] { -1.0, double.NaN };
+        CandidateRepairs.RandomReset(bounds).Repair(randomFirst, new Random(42));
+        CandidateRepairs.RandomReset(bounds).Repair(randomSecond, new Random(42));
+        Xunit.Assert.InRange(randomFirst[0], 0, 10);
+        Xunit.Assert.Equal(randomFirst[0], randomSecond[0]);
+        Xunit.Assert.True(double.IsNaN(randomFirst[1]));
+
+        var unchanged = new[] { -1.0, double.PositiveInfinity };
+        CandidateRepairs.DoNothing.Repair(unchanged, new Random(1));
+        Xunit.Assert.Equal([-1, double.PositiveInfinity], unchanged);
     }
 
     /// <summary>
@@ -114,6 +143,11 @@ public sealed class ContinuousProblemTests
         /// <param name="position">未使用的候选位置。</param>
         /// <returns>始终为 <see cref="double.NaN"/>。</returns>
         public double Evaluate(ReadOnlySpan<double> position) => double.NaN;
+    }
+
+    private sealed class FixedObjective(double value) : IObjectiveFunction
+    {
+        public double Evaluate(ReadOnlySpan<double> position) => value;
     }
 
     /// <summary>

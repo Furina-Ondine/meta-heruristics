@@ -10,7 +10,9 @@ Metaheuristics.NET 是一个仍在演进中的连续单目标优化 demo。你�
 var problem = new ContinuousProblem(
     [new VariableBounds(-5, 5), new VariableBounds(-5, 5)],
     new SphereObjective());
-var optimizer = new BatOptimizer(new BatOptimizerOptions { PopulationSize = 40 });
+var optimizer = new BatOptimizer(
+    new RandomPositionInitializer(),
+    new BatOptimizerOptions { PopulationSize = 40 });
 var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(200));
 
 var summary = OptimizationRunner.Execute(problem, optimizer, options, seed: 42);
@@ -19,13 +21,30 @@ var bestPosition = optimizer.BestPosition.ToArray();
 Console.WriteLine(summary.BestEvaluation.Objective);
 ```
 
+其中初始化器只负责写入 Position，并使用执行提供的随机流；默认 Clamp Repair 会在它返回后立即运行：
+
+```csharp
+sealed class RandomPositionInitializer : ICandidateInitializer
+{
+    public void Initialize(Span<double> position, Random random)
+    {
+        for (var index = 0; index < position.Length; index++)
+        {
+            position[index] = (random.NextDouble() * 10) - 5;
+        }
+    }
+}
+```
+
 `OptimizationRunSummary` 是不可变的，包含最佳评估、停止原因、迭代数、评估数、耗时、seed 和轨迹。`BestPosition` 由 `IOptimizer` 的可复用工作区拥有：在下一次 `ResetForRun` 或任何异常之后都不得继续引用它；需要长期保存时立即复制。
 
 ## 描述问题
 
-`ContinuousProblem` 需要每一维的 `VariableBounds` 与一个 `IObjectiveFunction`。目标函数必须对合法位置返回有限 `double`。默认方向为最小化；传入 `OptimizationDirection.Maximize` 可最大化。
+`ContinuousProblem` 需要每一维的 `VariableBounds` 与一个 `IObjectiveFunction`。边界用于确定维度，并在没有显式 Repair 时创建默认的截断 Repair；算法实现不会读取它们。目标函数必须返回有限 `double`。默认方向为最小化；传入 `OptimizationDirection.Maximize` 可最大化。
 
-可选 `IConstraint` 返回已归一化的非负违背量，零表示满足。比较时始终先选可行解，再比较不可行解的总违背量，最后才按目标方向比较。可选 `ICandidateRepair` 在算法产生越界候选时就地修复；修复后仍会由 Core 验证边界。
+可选 `IConstraint` 返回已归一化的非负违背量，零表示满足。比较时始终先选可行解，再比较不可行解的总违背量，最后才按目标方向比较。位置本身由你的 `ICandidateInitializer` 和 `ICandidateRepair` 负责：算法在初始 Position 写入后、以及每次修改 Position 后都会调用 Repair；Core 不检查位置是否越界、非有限或包含 `NaN`。
+
+默认 Repair 是 `CandidateRepairs.Clamp`：有界维度上的有限越界值与正负无穷会被截断到端点，`NaN` 保持不变，无界维度不处理。也可传入 `CandidateRepairs.Reflect(bounds)` 做双侧镜像，或 `CandidateRepairs.RandomReset(bounds)` 在双侧有限边界内随机回退。`CandidateRepairs.DoNothing` 完全跳过修复；除非你能自行保证初始化、每条位置更新路径及其数值后果，否则不要使用它。
 
 ## 控制执行
 
@@ -46,6 +65,6 @@ Console.WriteLine(summary.BestEvaluation.Objective);
 - `IOptimizer` 不线程安全；只能由一个 Group 顺序驱动，异常后必须丢弃。
 - `IStoppingCondition` 必须可重入，不能保存执行级可变状态。
 - `IObjectiveFunction`、`IConstraint`、`ICandidateInitializer` 和 `ICandidateRepair` 的线程安全由实现者负责；若多个 Group 共享它们依赖的底层数据，该数据必须不可变或自行同步。
-- 蝙蝠算法的默认初始化要求每一维均有有限上下界。无界问题请提供能生成有限合法位置的初始化器。
+- `BatOptimizer` 必须传入 `ICandidateInitializer`。它只初始化 Position；速度、频率、响度和脉冲率仍由算法自己初始化。初始化器应使用传入的 `Random`，并让随后的 Repair 处理位置恢复。
 
 可运行的单次与实验示例见 [`Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。

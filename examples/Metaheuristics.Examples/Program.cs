@@ -7,7 +7,9 @@ using Anastasya.Metaheuristics.Experiments.Configuration;
 using Anastasya.Metaheuristics.Experiments.Execution;
 
 var problem = CreateSphereProblem(dimension: 2);
-var optimizer = new BatOptimizer(new BatOptimizerOptions { PopulationSize = 40 });
+var optimizer = new BatOptimizer(
+    new RandomPositionInitializer(),
+    new BatOptimizerOptions { PopulationSize = 40 });
 var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(100))
 {
     Trace = new OptimizationTraceOptions(
@@ -68,10 +70,12 @@ static ExperimentGroupSetup CreateGroup(BatCaseConfiguration configuration)
 {
     return new ExperimentGroupSetup(
         CreateSphereProblem(configuration.Dimension),
-        new BatOptimizer(new BatOptimizerOptions
-        {
-            PopulationSize = configuration.PopulationSize,
-        }),
+        new BatOptimizer(
+            new RandomPositionInitializer(),
+            new BatOptimizerOptions
+            {
+                PopulationSize = configuration.PopulationSize,
+            }),
         new OptimizationRunOptions(StoppingConditions.MaxIterations(configuration.Iterations)));
 }
 
@@ -107,6 +111,18 @@ namespace Anastasya.Metaheuristics.Examples
             }
 
             return result;
+        }
+    }
+
+    /// <summary>生成待默认 Clamp Repair 处理的随机初始位置。</summary>
+    file sealed class RandomPositionInitializer : ICandidateInitializer
+    {
+        public void Initialize(Span<double> position, Random random)
+        {
+            for (var index = 0; index < position.Length; index++)
+            {
+                position[index] = (random.NextDouble() * 20) - 10;
+            }
         }
     }
 }

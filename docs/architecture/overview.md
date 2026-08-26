@@ -59,7 +59,7 @@ Case 内用 `RunGroupCount` 表达用户掌握的并发拆分；所有 Group 再
 
 ## 当前算法
 
-第一波算法为连续蝙蝠算法。它使用 Problem 的逐维位置边界，并在每个 RunGroup 独占的 Optimizer 中保存两组种群状态。迁移顺序和旧仓库修复来源见 [ADR-0011](../decisions/0011-bat-first-algorithm-migration.md)。
+第一波算法为连续蝙蝠算法。它不读取 Problem 的逐维位置边界：调用方提供位置初始化器，算法在初始化和每次位置更新后通过 Context 调用 Problem 配置的 Repair。默认 Repair 为 Clamp，并在每个 RunGroup 独占的 Optimizer 中保存两组种群状态。迁移顺序和旧仓库修复来源见 [ADR-0011](../decisions/0011-bat-first-algorithm-migration.md)，候选边界职责见 [ADR-0012](../decisions/0012-repair-owned-candidate-boundaries.md)。
 
 ## API 文档
 

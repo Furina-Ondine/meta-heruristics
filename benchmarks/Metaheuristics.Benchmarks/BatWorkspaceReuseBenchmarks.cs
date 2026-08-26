@@ -14,6 +14,7 @@ namespace Anastasya.Metaheuristics.Benchmarks;
 public class BatWorkspaceReuseBenchmarks
 {
     private BatOptimizer _groupOptimizer = null!;
+    private readonly ICandidateInitializer _initializer = new RandomPositionInitializer();
     private BatOptimizerOptions _optimizerOptions = null!;
     private OptimizationRunOptions _runOptions = null!;
     private ContinuousProblem _problem = null!;
@@ -47,7 +48,7 @@ public class BatWorkspaceReuseBenchmarks
             new SphereObjective());
         _optimizerOptions = new BatOptimizerOptions { PopulationSize = PopulationSize };
         _runOptions = new OptimizationRunOptions(StoppingConditions.MaxIterations(5));
-        _groupOptimizer = new BatOptimizer(_optimizerOptions);
+        _groupOptimizer = new BatOptimizer(_initializer, _optimizerOptions);
 
         // 预热一次以把工作区分配排除在复用路径的测量之外。
         OptimizationRunner.Execute(_problem, _groupOptimizer, _runOptions, seed: -1);
@@ -63,7 +64,7 @@ public class BatWorkspaceReuseBenchmarks
         var checksum = 0.0;
         for (var repetition = 0; repetition < Repetitions; repetition++)
         {
-            var optimizer = new BatOptimizer(_optimizerOptions);
+            var optimizer = new BatOptimizer(_initializer, _optimizerOptions);
             checksum += OptimizationRunner.Execute(
                 _problem,
                 optimizer,
@@ -108,6 +109,17 @@ public class BatWorkspaceReuseBenchmarks
             }
 
             return result;
+        }
+    }
+
+    private sealed class RandomPositionInitializer : ICandidateInitializer
+    {
+        public void Initialize(Span<double> position, Random random)
+        {
+            for (var index = 0; index < position.Length; index++)
+            {
+                position[index] = (random.NextDouble() * 20) - 10;
+            }
         }
     }
 }

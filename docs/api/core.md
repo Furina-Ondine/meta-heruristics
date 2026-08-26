@@ -6,10 +6,10 @@
 
 | 分组 | 公共类型 | 职责 |
 | --- | --- | --- |
-| 问题 | `ContinuousProblem`、`VariableBounds`、`IObjectiveFunction`、`IConstraint` | 定义维度、逐维边界、标量目标函数和归一化约束违背量。 |
+| 问题 | `ContinuousProblem`、`VariableBounds`、`IObjectiveFunction`、`IConstraint` | 定义维度、标量目标函数和归一化约束违背量；边界仅用于构造默认 Repair。 |
 | 数值结果 | `Evaluation`、`ConstraintEvaluation`、`OptimizationDirection` | 固定首版的 `double` 目标值、可行性与约束统计。 |
 | 比较 | `EvaluationComparer` | 实现可行性优先、总违背量优先，再按最小化或最大化方向比较目标值。 |
-| 策略 | `ICandidateInitializer`、`ICandidateRepair` | 将候选初始化和可选修复与约束判定分离。 |
+| 策略 | `ICandidateInitializer`、`ICandidateRepair`、`CandidateRepairs` | 将位置初始化和修复与约束判定分离；Repair 自己持有边界或其他恢复数据。 |
 | 算法扩展 | `IOptimizer`、`OptimizationRunContext` | 有状态 Optimizer 持有可复用工作区；Context 提供当前 run 的问题、随机流、取消和统一评估计数。 |
 | 执行 | `OptimizationRunner`、`OptimizationRunOptions`、`OptimizationRunSummary` | 管理重置、运行循环、停止和可选轨迹。 |
 | 停止与轨迹 | `IStoppingCondition`、`StoppingConditions`、`OptimizationTraceOptions` | 支持自定义停止条件以及最大迭代、最大评估、时限、目标值和 OR 组合；轨迹可关闭或按迭代、评估间隔、用户指定的迭代进度比例记录。 |
@@ -49,7 +49,7 @@ var bestPosition = optimizer.BestPosition.ToArray();
 ```
 
 - `IOptimizer` 是有状态实例，可以保存种群、临时数组和当前运行状态；它不保证线程安全，不能被并发调用。
-- `ResetForRun` 必须覆盖上一 run 的逻辑状态，并在返回前产生合法的 `BestPosition` 和 `BestEvaluation`。首次调用可以分配依赖维度的主要工作区，后续正常运行应复用它们。
+- `ResetForRun` 必须覆盖上一 run 的逻辑状态，并在返回前产生可评估的 `BestPosition` 和 `BestEvaluation`。算法应在初始化每个位置后调用 `context.Repair`；首次调用可以分配依赖维度的主要工作区，后续正常运行应复用它们。
 - 每次 `Advance()` 完成一个原子算法迭代。算法只通过 `OptimizationRunContext.Evaluate` 评估候选，以统一处理计数、取消和数值校验。
 - 每个 run 都有显式 seed 和新的 `Random(seed)`；不得使用 `Random.Shared` 或按当前时间自行播种。
 - Runner 在重置后及每个完整迭代之后检查停止条件。因此最大评估数是迭代边界预算；单次 `Advance()` 可以让最终计数超过阈值。
@@ -62,8 +62,10 @@ var bestPosition = optimizer.BestPosition.ToArray();
 
 ## 数值契约
 
-- `VariableBounds` 用 `null` 表示缺省的无界端点；`EffectiveLowerBound` 和 `EffectiveUpperBound` 分别把它们投影为 `double.NegativeInfinity` 和 `double.PositiveInfinity`，便于算法比较。显式边界必须有限且不能形成反向区间。
-- 候选维度必须匹配问题维度，每个候选值都必须有限并且位于声明边界内。
+- `VariableBounds` 用 `null` 表示缺省的无界端点；显式边界必须有限且不能形成反向区间。它们只用于构造或实现 `ICandidateRepair`，不由算法读取。
+- `ContinuousProblem` 和 Runner 不验证候选位置的维度、范围或有限性。初始化器和 Repair 共同对此负责；算法必须在每次初始化或修改位置后调用 `context.Repair`。
+- 未显式提供 Repair 时，`ContinuousProblem` 从构造参数创建 `CandidateRepairs.Clamp`。内置 Clamp 将有界维度的有限越界值和无穷值截断到端点，保留 `NaN`；无界维度不处理。
+- `CandidateRepairs.DoNothing` 完全跳过修复。除非调用方能自行保证每条位置更新路径与其数值后果，否则不要使用它。
 - 目标函数只能返回有限 `double`。
 - `IConstraint.EvaluateViolation` 返回已经加权、归一化的非负有限违背量；`0` 表示约束满足。
 - 两个不可行候选先比较 `TotalViolation`；相同后才比较目标值。候选修复不会改变这套比较语义。

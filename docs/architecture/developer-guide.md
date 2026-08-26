@@ -28,7 +28,7 @@ ContinuousProblem + IOptimizer + OptimizationRunOptions
   → ResetForRun → Advance* → OptimizationRunSummary
 ```
 
-`OptimizationRunContext` 为每次执行新建，拥有 `Random(seed)`、评估计数与取消令牌。所有算法评估必须调用 `context.Evaluate`，以保持计数、取消与数值验证一致。停止检查发生在初始化完成后和每次完整 `Advance` 后；因此评估阈值是迭代边界预算。
+`OptimizationRunContext` 为每次执行新建，拥有 `Random(seed)`、评估计数与取消令牌。所有算法评估必须调用 `context.Evaluate`，以保持计数、取消与目标/约束结果验证一致；所有位置初始化与修改后必须调用 `context.Repair`。停止检查发生在初始化完成后和每次完整 `Advance` 后；因此评估阈值是迭代边界预算。
 
 实验路径为：
 
@@ -41,7 +41,7 @@ ExperimentDefinition → RunGroup plans → fixed workers
 
 ## 所有权与线程安全
 
-`ContinuousProblem` 防御性复制边界和约束集合，但其用户提供的目标、约束和修复策略是否可并发调用由用户决定。`IOptimizer` 拥有种群、临时数组与 `BestPosition`，不保证线程安全；一个实例只能属于一个 Group。正常的顺序执行可以复用数组，异常后必须丢弃实例。
+`ContinuousProblem` 防御性复制约束集合；构造参数中的边界仅由默认 Clamp Repair 防御性复制。自定义 Repair 自己拥有边界，Problem 不公开它们。其用户提供的目标、约束、初始化器和修复策略是否可并发调用由用户决定。`IOptimizer` 拥有种群、临时数组与 `BestPosition`，不保证线程安全；一个实例只能属于一个 Group。正常的顺序执行可以复用数组，异常后必须丢弃实例。
 
 `OptimizationRunSummary`、`Evaluation`、`ConstraintEvaluation` 和最终 Experiment 结果均为不可变快照。`BestPosition` 不是快照；它在下一次 reset 前才有效。`IStoppingCondition` 必须可重入，因此可从多个 Group 并发调用。
 
@@ -49,12 +49,12 @@ Experiment 的每个 Group 都创建独占的 Problem、Optimizer 和运行选�
 
 ## 错误、取消与确定性
 
-目标值、边界、约束违背和关键配置都会验证有限性与范围。非取消异常使当前 repetition 失败；Experiment 为同 Group 的后续 repetition 新建环境。取消停止投放新的 Group，已经开始的执行通过 Context 协作取消，最后返回部分结果。
+目标值、约束违背和关键配置都会验证有限性与范围。候选位置不由 Core 验证：`ICandidateInitializer` 写入初值，算法每次修改后通过 `context.Repair` 委托 `ICandidateRepair`。内置 Clamp 是默认策略；DoNothing 是调用方明确承担后果的风险选择。非取消异常使当前 repetition 失败；Experiment 为同 Group 的后续 repetition 新建环境。取消停止投放新的 Group，已经开始的执行通过 Context 协作取消，最后返回部分结果。
 
 禁止全局随机流、时间播种和跨执行共享逻辑状态。不要为优化方便改变随机调用顺序、数组布局、候选比较或 seed 派生；这些都是确定性契约的一部分。
 
 ## 新增算法
 
-实现 `IOptimizer` 时，`ResetForRun` 必须完整初始化逻辑状态、完成初始评估并建立合法最佳状态；`Advance` 必须完成一个完整迭代。首次 reset 可按维度分配工作区；后续正常执行应复用它。算法不应把论文专用模型带入 Core，也不应直接依赖 Experiments。
+实现 `IOptimizer` 时，`ResetForRun` 必须完整初始化逻辑状态、在每个初始位置写入后调用 `context.Repair`、完成初始评估并建立最佳状态；`Advance` 必须完成一个完整迭代，并在每条修改位置的路径结束后调用 `context.Repair`。首次 reset 可按维度分配工作区；后续正常执行应复用它。算法不应读取变量上下界，不应把论文专用模型带入 Core，也不应直接依赖 Experiments。
 
 至少补充固定 seed、最小化/最大化、约束比较、取消、并发隔离、异常后不复用及工作区复用测试。若声称性能收益，使用 BenchmarkDotNet 测量实际算法、约束处理和布局转换的端到端路径。

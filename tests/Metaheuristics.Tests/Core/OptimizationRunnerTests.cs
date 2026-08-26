@@ -47,7 +47,7 @@ public sealed class OptimizationRunnerTests
         Xunit.Assert.Equal(1, bestPosition[0]);
         Xunit.Assert.Equal(1, result.BestEvaluation.Objective);
         Xunit.Assert.Equal(3, result.Trace.Count);
-        Xunit.Assert.Equal(3, optimizer.BestPositionAccessCount);
+        Xunit.Assert.Equal(1, optimizer.BestPositionAccessCount);
         Xunit.Assert.Equal(1, optimizer.ResetCount);
 
         optimizer.Position[0] = 9;

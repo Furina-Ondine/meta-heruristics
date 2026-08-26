@@ -1,6 +1,6 @@
 # 蝙蝠算法第一波迁移设计
 
-状态：第一版已实现。
+状态：第一版已实现；候选边界和初始化器职责的后续调整见 [ADR-0012](../../decisions/0012-repair-owned-candidate-boundaries.md)。
 
 ## 目标
 
@@ -19,7 +19,7 @@
 
 - `BatOptimizerOptions`：不可变配置记录。
 - `BatOptimizer`：RunGroup 独占的有状态算法实例。
-- 可选 `ICandidateInitializer`：为默认有限边界均匀初始化提供替代策略。
+- 当时的可选 `ICandidateInitializer`：为默认有限边界均匀初始化提供替代策略；该公共契约现已由 ADR-0012 替代。
 
 位置范围只由 `ContinuousProblem` 定义。算法构造阶段验证全部独立参数；问题维度和边界在 `ResetForRun` 时验证。
 

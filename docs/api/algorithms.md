@@ -9,7 +9,9 @@ var problem = new ContinuousProblem(
     Enumerable.Repeat(new VariableBounds(-5, 5), 10).ToArray(),
     new SphereObjective());
 
-var optimizer = new BatOptimizer(new BatOptimizerOptions
+var optimizer = new BatOptimizer(
+    new RandomPositionInitializer(),
+    new BatOptimizerOptions
 {
     PopulationSize = 40,
 });
@@ -22,6 +24,8 @@ var summary = OptimizationRunner.Execute(
     cancellationToken);
 var bestPosition = optimizer.BestPosition.ToArray();
 ```
+
+`RandomPositionInitializer` 是一个实现 `ICandidateInitializer` 的应用类型，例如用户手册中的[位置初始化器示例](../guides/user-guide.md#从单次执行开始)。它只写 Position；不要让它持有或修改 `BatOptimizer` 的速度、频率、响度或脉冲率状态。
 
 可运行的单次和双 Case Experiment 示例见 [`examples/Metaheuristics.Examples/Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
 
@@ -37,9 +41,9 @@ var bestPosition = optimizer.BestPosition.ToArray();
 | `LoudnessDecay` | `0.98` | 位于 `(0, 1]`，接受坐标更新时衰减响度。 |
 | `PulseRateGrowth` | `0.98` | 有限正数，控制脉冲发射率向初始值增长。 |
 
-位置边界来自 `ContinuousProblem.Bounds`，不会在算法配置中重复。默认初始化器要求每一维都有有限上下界和有限区间宽度。对于无界问题，构造 `BatOptimizer` 时必须传入能够产生有限合法位置的 `ICandidateInitializer`。
+`BatOptimizer` 必须接收 `ICandidateInitializer`；它只写 Position，不能初始化速度、频率、响度或脉冲率等蝙蝠专属状态。算法独立初始化这些状态，并在每个 Position 初始化后及每次生成候选后调用 `OptimizationRunContext.Repair`。
 
-候选越界时，问题提供 `ICandidateRepair` 就调用该策略；否则算法把位置夹到问题逐维边界。随后仍由 Core 验证有限性和边界。
+算法不读取 `ContinuousProblem` 的边界，也不自行截断位置。未提供自定义 Repair 时，Problem 使用 Clamp Repair；自定义 Repair 必须自行保存所需边界。无界问题同样需要调用方提供能生成适用位置的初始化器。除非调用方能承担越界、无穷或 `NaN` 的后果，否则不要使用 `CandidateRepairs.DoNothing`。
 
 ## 生命周期和状态
 
@@ -58,7 +62,7 @@ var bestPosition = optimizer.BestPosition.ToArray();
 - 历史最优使用独立快照；
 - 候选使用本轮新频率，并且只写目标速度缓冲。
 
-新实现不承诺与旧仓库逐位复现。旧实现使用 `Random.Shared`、只按较小适应度选择，并在算法配置中重复声明位置边界；这些行为已经由当前 Core 的显式 seed、优化方向、约束比较和 Problem 边界替代。
+新实现不承诺与旧仓库逐位复现。旧实现使用 `Random.Shared`、只按较小适应度选择，并在算法配置中重复声明位置边界；这些行为已经由当前 Core 的显式 seed、优化方向、约束比较和 Repair-owned 边界替代。
 
 ## 工作区复用基准
 

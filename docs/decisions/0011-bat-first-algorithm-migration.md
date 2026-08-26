@@ -12,11 +12,13 @@
 
 ## 决策
 
+候选位置边界的后续职责调整见 [ADR-0012](0012-repair-owned-candidate-boundaries.md)；本节中与该主题有关的历史表述已被其替代。
+
 - 第一波正式算法迁移选择连续蝙蝠算法，PSO 调整到后续波次。
 - 公共类型使用当前 Core 的 `IOptimizer`、`OptimizationRunContext` 和 `EvaluationComparer`，不保留旧仓库的泛型适应度、解对象或 `Random.Shared`。
 - 强类型 `BatOptimizerOptions` 保存种群、速度、频率、初始响度、初始脉冲发射率及其演化系数。
-- 位置边界只由 `ContinuousProblem` 定义，算法配置不重复声明全局位置上下界。
-- 默认初始化在问题的有限逐维边界内均匀采样；无界问题必须显式提供 `ICandidateInitializer`。
+- 当时位置边界只由 `ContinuousProblem` 定义，算法配置不重复声明全局位置上下界。
+- 当时默认初始化在问题的有限逐维边界内均匀采样；无界问题必须显式提供 `ICandidateInitializer`。
 - 每个 `BatOptimizer` 拥有两组算法专属种群工作区，并在同一 RunGroup 的正常顺序 run 之间复用。不同维度不能复用同一实例。
 - 迁移保留旧实现的逐维频率、响度和脉冲率变体，同时修复 `fix` 分支确认的初始化、历史最优和候选缓冲所有权问题。
 - 评估和选择使用 Core 的优化方向、可行性优先和约束违背量语义，因此同时支持最小化与最大化。

@@ -13,7 +13,7 @@ namespace Anastasya.Metaheuristics.Algorithms.Bat;
 /// </remarks>
 public sealed class BatOptimizer : IOptimizer
 {
-    private readonly ICandidateInitializer? _initializer;
+    private readonly ICandidateInitializer _initializer;
     private readonly BatOptimizerOptions _options;
     private BatState[]? _populationA;
     private BatState[]? _populationB;
@@ -28,16 +28,15 @@ public sealed class BatOptimizer : IOptimizer
     /// <summary>
     /// 创建蝙蝠优化器。
     /// </summary>
+    /// <param name="initializer">为每个候选 Position 写入初始值的必需初始化器；返回后会立即调用 Repair。</param>
     /// <param name="options">算法参数；为 <see langword="null"/> 时使用默认配置。</param>
-    /// <param name="initializer">
-    /// 可选的候选初始化器；省略时在问题的有限逐维边界内均匀初始化。
-    /// </param>
     /// <exception cref="ArgumentOutOfRangeException">种群数量或任一数值参数不在允许范围内。</exception>
     /// <exception cref="ArgumentException">任一参数区间反向或宽度溢出。</exception>
     public BatOptimizer(
-        BatOptimizerOptions? options = null,
-        ICandidateInitializer? initializer = null)
+        ICandidateInitializer initializer,
+        BatOptimizerOptions? options = null)
     {
+        ArgumentNullException.ThrowIfNull(initializer);
         _options = options is null ? new BatOptimizerOptions() : options with { };
         ValidateOptions(_options);
         _initializer = initializer;
@@ -64,9 +63,7 @@ public sealed class BatOptimizer : IOptimizer
     /// </summary>
     /// <param name="context">当前 run 独占的问题、随机数、取消和评估上下文。</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> 为 <see langword="null"/>。</exception>
-    /// <exception cref="InvalidOperationException">
-    /// 当前实例被用于不同维度的问题，或默认初始化器遇到无界或过宽的变量范围。
-    /// </exception>
+    /// <exception cref="InvalidOperationException">当前实例被用于不同维度的问题。</exception>
     public void ResetForRun(OptimizationRunContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -292,28 +289,8 @@ public sealed class BatOptimizer : IOptimizer
 
     private void InitializePosition(Span<double> position, OptimizationRunContext context)
     {
-        if (_initializer is not null)
-        {
-            _initializer.Initialize(position, context.Problem, context.Random);
-            context.Problem.ValidatePosition(position);
-            return;
-        }
-
-        for (var dimensionIndex = 0; dimensionIndex < position.Length; dimensionIndex++)
-        {
-            var bounds = context.Problem.Bounds[dimensionIndex];
-            if (bounds.LowerBound is not { } lowerBound
-                || bounds.UpperBound is not { } upperBound
-                || !double.IsFinite(upperBound - lowerBound))
-            {
-                throw new InvalidOperationException(
-                    "Default bat initialization requires finite problem bounds with a finite width in every dimension.");
-            }
-
-            position[dimensionIndex] = NextDouble(context.Random, lowerBound, upperBound);
-        }
-
-        context.Problem.ValidatePosition(position);
+        _initializer.Initialize(position, context.Random);
+        context.Repair(position);
     }
 
     private void GenerateCandidate(BatState source, BatState target)
@@ -358,27 +335,12 @@ public sealed class BatOptimizer : IOptimizer
             }
         }
 
-        ApplyProblemBounds(target.Position, context);
+        RepairPosition(target.Position, context);
     }
 
-    private static void ApplyProblemBounds(Span<double> position, OptimizationRunContext context)
+    private static void RepairPosition(Span<double> position, OptimizationRunContext context)
     {
-        if (context.Problem.Repair is not null)
-        {
-            context.Repair(position);
-            return;
-        }
-
-        for (var dimensionIndex = 0; dimensionIndex < position.Length; dimensionIndex++)
-        {
-            var bounds = context.Problem.Bounds[dimensionIndex];
-            position[dimensionIndex] = Math.Clamp(
-                position[dimensionIndex],
-                bounds.EffectiveLowerBound,
-                bounds.EffectiveUpperBound);
-        }
-
-        context.Problem.ValidatePosition(position);
+        context.Repair(position);
     }
 
     private void CopyBest(BatState source)

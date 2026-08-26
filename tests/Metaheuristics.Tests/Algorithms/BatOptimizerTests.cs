@@ -18,8 +18,8 @@ public sealed class BatOptimizerTests
     {
         var objective = new FirstCoordinateObjective();
         var optimizer = new BatOptimizer(
-            new BatOptimizerOptions { PopulationSize = 4 },
-            new SequenceInitializer(4, 3, 2, 1));
+            new SequenceInitializer(4, 3, 2, 1),
+            new BatOptimizerOptions { PopulationSize = 4 });
 
         var result = ExecuteWithSnapshot(
             CreateProblem(1, objective),
@@ -41,8 +41,8 @@ public sealed class BatOptimizerTests
     public void RunSupportsMaximization()
     {
         var optimizer = new BatOptimizer(
-            new BatOptimizerOptions { PopulationSize = 4 },
-            new SequenceInitializer(1, 2, 3, 4));
+            new SequenceInitializer(1, 2, 3, 4),
+            new BatOptimizerOptions { PopulationSize = 4 });
         var problem = new ContinuousProblem(
             [new VariableBounds(-10, 10)],
             new FirstCoordinateObjective(),
@@ -66,8 +66,8 @@ public sealed class BatOptimizerTests
     public void RunUsesTheCoreConstraintOrdering()
     {
         var optimizer = new BatOptimizer(
-            new BatOptimizerOptions { PopulationSize = 2 },
-            new SequenceInitializer(-1, 1));
+            new SequenceInitializer(-1, 1),
+            new BatOptimizerOptions { PopulationSize = 2 });
         var problem = new ContinuousProblem(
             [new VariableBounds(-2, 2)],
             new FirstCoordinateObjective(),
@@ -93,13 +93,13 @@ public sealed class BatOptimizerTests
         var options = new BatOptimizerOptions { PopulationSize = 20 };
         var first = ExecuteWithSnapshot(
             CreateProblem(4, new SphereObjective()),
-            new BatOptimizer(options),
+            CreateOptimizer(options),
             StopAfterIterations(30),
             seed: 20260822,
             Xunit.TestContext.Current.CancellationToken);
         var second = ExecuteWithSnapshot(
             CreateProblem(4, new SphereObjective()),
-            new BatOptimizer(options),
+            CreateOptimizer(options),
             StopAfterIterations(30),
             seed: 20260822,
             Xunit.TestContext.Current.CancellationToken);
@@ -120,7 +120,7 @@ public sealed class BatOptimizerTests
             .Select(_ => Task.Run(
                 () => ExecuteWithSnapshot(
                     CreateProblem(3, new SphereObjective()),
-                    new BatOptimizer(new BatOptimizerOptions { PopulationSize = 16 }),
+                    CreateOptimizer(new BatOptimizerOptions { PopulationSize = 16 }),
                     StopAfterIterations(20),
                     seed: 12345,
                     cancellationToken),
@@ -145,7 +145,7 @@ public sealed class BatOptimizerTests
     [Xunit.Fact]
     public void ResetForRunReusesTheAllocatedWorkspace()
     {
-        var optimizer = new BatOptimizer(new BatOptimizerOptions { PopulationSize = 3 });
+        var optimizer = CreateOptimizer(new BatOptimizerOptions { PopulationSize = 3 });
         var problem = CreateProblem(2, new SphereObjective());
 
         ExecuteWithSnapshot(
@@ -194,7 +194,7 @@ public sealed class BatOptimizerTests
             InitialLoudnessLowerBound = 0,
             InitialLoudnessUpperBound = 0,
         };
-        var baseline = new BatOptimizer(options, new SequenceInitializer(1, 2));
+        var baseline = new BatOptimizer(new SequenceInitializer(1, 2), options);
         ExecuteWithSnapshot(
             CreateProblem(1, new IncreasingObjective()),
             baseline,
@@ -205,7 +205,7 @@ public sealed class BatOptimizerTests
             .Select(static velocity => velocity.ToArray())
             .ToArray();
 
-        var exercised = new BatOptimizer(options, new SequenceInitializer(1, 2));
+        var exercised = new BatOptimizer(new SequenceInitializer(1, 2), options);
         var result = ExecuteWithSnapshot(
             CreateProblem(1, new IncreasingObjective()),
             exercised,
@@ -237,13 +237,13 @@ public sealed class BatOptimizerTests
         var problem = CreateProblem(5, new SphereObjective());
         var initial = ExecuteWithSnapshot(
             problem,
-            new BatOptimizer(new BatOptimizerOptions { PopulationSize = 40 }),
+            CreateOptimizer(new BatOptimizerOptions { PopulationSize = 40 }),
             StopAfterIterations(0),
             seed: 314159,
             Xunit.TestContext.Current.CancellationToken);
         var optimized = ExecuteWithSnapshot(
             problem,
-            new BatOptimizer(new BatOptimizerOptions { PopulationSize = 40 }),
+            CreateOptimizer(new BatOptimizerOptions { PopulationSize = 40 }),
             StopAfterIterations(200),
             seed: 314159,
             Xunit.TestContext.Current.CancellationToken);
@@ -254,30 +254,47 @@ public sealed class BatOptimizerTests
     }
 
     /// <summary>
-    /// 验证默认均匀初始化拒绝无界问题，而显式初始化器可以为其提供有限起点。
+    /// 验证显式初始化器可与默认 Clamp Repair 一起处理无界问题。
     /// </summary>
     [Xunit.Fact]
-    public void DefaultInitializerRequiresFiniteProblemBounds()
+    public void ExplicitInitializerSupportsUnboundedProblem()
     {
         var problem = new ContinuousProblem([VariableBounds.Unbounded], new SphereObjective());
-
-        Xunit.Assert.Throws<InvalidOperationException>(
-            () => ExecuteWithSnapshot(
-                problem,
-                new BatOptimizer(new BatOptimizerOptions { PopulationSize = 2 }),
-                StopAfterIterations(0),
-                seed: 1,
-                Xunit.TestContext.Current.CancellationToken));
 
         var result = ExecuteWithSnapshot(
             problem,
             new BatOptimizer(
-                new BatOptimizerOptions { PopulationSize = 2 },
-                new ConstantInitializer(0.5)),
+                new ConstantInitializer(0.5),
+                new BatOptimizerOptions { PopulationSize = 2 }),
             StopAfterIterations(0),
             seed: 1,
             Xunit.TestContext.Current.CancellationToken);
         Xunit.Assert.Equal(0.25, result.BestEvaluation.Objective);
+    }
+
+    /// <summary>
+    /// 验证算法会在每个 Position 初始化后和每次候选更新后调用 Repair。
+    /// </summary>
+    [Xunit.Fact]
+    public void RunRepairsEveryInitializedAndUpdatedPosition()
+    {
+        var repair = new RecordingRepair();
+        var optimizer = new BatOptimizer(
+            new ConstantInitializer(0.5),
+            new BatOptimizerOptions { PopulationSize = 3 });
+        var problem = new ContinuousProblem(
+            [new VariableBounds(0, 1)],
+            new SphereObjective(),
+            repair: repair);
+
+        ExecuteWithSnapshot(
+            problem,
+            optimizer,
+            StopAfterIterations(1),
+            seed: 1,
+            Xunit.TestContext.Current.CancellationToken);
+
+        Xunit.Assert.Equal(6, repair.CallCount);
     }
 
     /// <summary>
@@ -286,7 +303,7 @@ public sealed class BatOptimizerTests
     [Xunit.Fact]
     public void ResetForRunRejectsADifferentProblemDimension()
     {
-        var optimizer = new BatOptimizer(new BatOptimizerOptions { PopulationSize = 2 });
+        var optimizer = CreateOptimizer(new BatOptimizerOptions { PopulationSize = 2 });
         ExecuteWithSnapshot(
             CreateProblem(1, new SphereObjective()),
             optimizer,
@@ -309,22 +326,23 @@ public sealed class BatOptimizerTests
     [Xunit.Fact]
     public void ConstructorRejectsInvalidOptions()
     {
+        Xunit.Assert.Throws<ArgumentNullException>(() => new BatOptimizer(null!));
         Xunit.Assert.Throws<ArgumentOutOfRangeException>(
-            () => new BatOptimizer(new BatOptimizerOptions { PopulationSize = 0 }));
+            () => CreateOptimizer(new BatOptimizerOptions { PopulationSize = 0 }));
         Xunit.Assert.Throws<ArgumentException>(
-            () => new BatOptimizer(new BatOptimizerOptions
+            () => CreateOptimizer(new BatOptimizerOptions
             {
                 VelocityLowerBound = 2,
                 VelocityUpperBound = -2,
             }));
         Xunit.Assert.Throws<ArgumentOutOfRangeException>(
-            () => new BatOptimizer(new BatOptimizerOptions { FrequencyLowerBound = -1 }));
+            () => CreateOptimizer(new BatOptimizerOptions { FrequencyLowerBound = -1 }));
         Xunit.Assert.Throws<ArgumentOutOfRangeException>(
-            () => new BatOptimizer(new BatOptimizerOptions { InitialPulseRateUpperBound = 1.1 }));
+            () => CreateOptimizer(new BatOptimizerOptions { InitialPulseRateUpperBound = 1.1 }));
         Xunit.Assert.Throws<ArgumentOutOfRangeException>(
-            () => new BatOptimizer(new BatOptimizerOptions { LoudnessDecay = 0 }));
+            () => CreateOptimizer(new BatOptimizerOptions { LoudnessDecay = 0 }));
         Xunit.Assert.Throws<ArgumentOutOfRangeException>(
-            () => new BatOptimizer(new BatOptimizerOptions { PulseRateGrowth = double.NaN }));
+            () => CreateOptimizer(new BatOptimizerOptions { PulseRateGrowth = double.NaN }));
     }
 
     private static ContinuousProblem CreateProblem(int dimension, IObjectiveFunction objective)
@@ -337,6 +355,11 @@ public sealed class BatOptimizerTests
     private static OptimizationRunOptions StopAfterIterations(int iterations)
     {
         return new OptimizationRunOptions(StoppingConditions.MaxIterations(iterations));
+    }
+
+    private static BatOptimizer CreateOptimizer(BatOptimizerOptions? options = null)
+    {
+        return new BatOptimizer(new RandomPositionInitializer(), options);
     }
 
     private static ExecutionSnapshot ExecuteWithSnapshot(
@@ -392,7 +415,7 @@ public sealed class BatOptimizerTests
     {
         private int _next;
 
-        public void Initialize(Span<double> position, ContinuousProblem problem, Random random)
+        public void Initialize(Span<double> position, Random random)
         {
             position.Clear();
             position[0] = values[_next++ % values.Length];
@@ -404,9 +427,30 @@ public sealed class BatOptimizerTests
     /// </summary>
     private sealed class ConstantInitializer(double value) : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, ContinuousProblem problem, Random random)
+        public void Initialize(Span<double> position, Random random)
         {
             position.Fill(value);
+        }
+    }
+
+    private sealed class RandomPositionInitializer : ICandidateInitializer
+    {
+        public void Initialize(Span<double> position, Random random)
+        {
+            for (var index = 0; index < position.Length; index++)
+            {
+                position[index] = (random.NextDouble() * 10) - 5;
+            }
+        }
+    }
+
+    private sealed class RecordingRepair : ICandidateRepair
+    {
+        public int CallCount { get; private set; }
+
+        public void Repair(Span<double> position, Random random)
+        {
+            CallCount++;
         }
     }
 

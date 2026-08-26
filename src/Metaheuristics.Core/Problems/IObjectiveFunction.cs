@@ -5,9 +5,7 @@ namespace Anastasya.Metaheuristics.Core.Problems;
 public interface IObjectiveFunction
 {
     /// <summary>计算给定候选位置的目标值。</summary>
-    /// <param name="position">长度必须等于问题维度的候选位置。</param>
+    /// <param name="position">由调用方的初始化器和 Repair 准备的候选位置。</param>
     /// <returns>候选位置对应的有限目标值。</returns>
-    /// <exception cref="ArgumentException">候选位置维度不正确。</exception>
-    /// <exception cref="ArgumentOutOfRangeException">候选位置包含非有限值或越过边界。</exception>
     double Evaluate(ReadOnlySpan<double> position);
 }

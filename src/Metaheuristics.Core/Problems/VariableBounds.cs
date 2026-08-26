@@ -41,13 +41,13 @@ public readonly record struct VariableBounds
     /// <summary>获取包含式上界；无上界时为 <see langword="null"/>。</summary>
     public double? UpperBound { get; }
 
-    /// <summary>获取用于快速比较的有效下界；无下界时为负无穷。</summary>
+    /// <summary>获取供 Repair 实现使用的有效下界；无下界时为负无穷。</summary>
     public double EffectiveLowerBound => LowerBound ?? double.NegativeInfinity;
 
-    /// <summary>获取用于快速比较的有效上界；无上界时为正无穷。</summary>
+    /// <summary>获取供 Repair 实现使用的有效上界；无上界时为正无穷。</summary>
     public double EffectiveUpperBound => UpperBound ?? double.PositiveInfinity;
 
-    /// <summary>判断给定值是否为有限值且位于此范围内。</summary>
+    /// <summary>判断给定值是否为有限值且位于此范围内；Core 不会自动调用此方法验证候选位置。</summary>
     /// <param name="value">要检查的变量值。</param>
     /// <returns>值满足边界且为有限值时返回 <see langword="true"/>。</returns>
     public bool Contains(double value) =>
