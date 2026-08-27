@@ -21,7 +21,7 @@
 | 2026-08-20 | 工程治理文档设计 | [工程治理文档设计](specs/2026-08-20-engineering-governance-design.md) | [工程治理计划](plans/2026-08-20-engineering-governance.md) | 设计 README、ENGINEERING、AGENTS、架构概览、ADR 与本目录的职责边界，以及工程治理和发布规则。 |
 | 2026-08-22 | Experiment 执行架构 | [Experiment 执行架构与接口设计](specs/2026-08-22-experiment-execution-design.md) | [Experiment 第一版实施计划](plans/2026-08-22-experiment-execution.md) | 定义多 Case、RunGroup 拆分、有界调度、Optimizer 内存复用、seed、部分结果和统计语义。 |
 | 2026-08-22 | 蝙蝠算法第一波迁移 | [蝙蝠算法第一波迁移设计](specs/2026-08-22-bat-algorithm-migration-design.md) | [蝙蝠算法第一波迁移实施计划](plans/2026-08-22-bat-algorithm-migration.md) | 审计旧仓库 fix 分支并迁移双缓冲 Bat Optimizer、工作区复用和正确性回归。 |
-| 2026-08-26 | Spec-Driven 开发工作流 | [Spec-Driven 开发工作流设计](specs/2026-08-26-spec-driven-development-workflow-design.md) | 待设计批准后制定 | 定义风险分级、架构风格、文档信息架构、注释质量、Spec/Plan/Tasks/Verification 产物和批准门。 |
+| 2026-08-26 | Spec-Driven 开发工作流 | [Spec-Driven 开发工作流设计](specs/2026-08-26-spec-driven-development-workflow-design.md) | [Spec-Driven 开发工作流实施计划](plans/2026-08-27-spec-driven-development-workflow.md) | 定义风险分级、架构风格、文档信息架构、注释质量、Spec/Plan/Tasks/Verification 产物和批准门。 |
 
 ## 实施计划（plans）
 
@@ -31,3 +31,4 @@
 | 2026-08-20 | 工程治理实施计划 | [工程治理计划](plans/2026-08-20-engineering-governance.md) | [工程治理文档设计](specs/2026-08-20-engineering-governance-design.md) | 按任务落地 ENGINEERING、AGENTS、架构概览、ADR 集合和 README 文档导航。 |
 | 2026-08-22 | Experiment 第一版实施计划 | [Experiment 第一版实施计划](plans/2026-08-22-experiment-execution.md) | [Experiment 执行架构与接口设计](specs/2026-08-22-experiment-execution-design.md) | 将有状态 Optimizer、单点评估、RunGroup 调度、部分结果和统计设计落地为代码、测试与 API 文档。 |
 | 2026-08-22 | 蝙蝠算法第一波迁移实施计划 | [蝙蝠算法第一波迁移实施计划](plans/2026-08-22-bat-algorithm-migration.md) | [蝙蝠算法第一波迁移设计](specs/2026-08-22-bat-algorithm-migration-design.md) | 将修复后的旧 Bat 变体适配到当前 Core 生命周期、方向、约束、seed 和示例。 |
+| 2026-08-27 | Spec-Driven 开发工作流实施计划 | [Spec-Driven 开发工作流实施计划](plans/2026-08-27-spec-driven-development-workflow.md) | [Spec-Driven 开发工作流设计](specs/2026-08-26-spec-driven-development-workflow-design.md) | 建立权威 change package、验证门禁、DocFX Reference、读者任务式文档和注释质量审计。 |
