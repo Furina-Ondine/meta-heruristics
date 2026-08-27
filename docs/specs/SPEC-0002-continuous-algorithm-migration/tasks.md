@@ -9,7 +9,7 @@
 
 ## T001：实现并验证 PSO Optimizer
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-006`、`NFR-001`、`NFR-002`
 - 依赖：无
 - 影响区域：Algorithms 的 Pso 类型、Algorithms 测试。
@@ -17,11 +17,11 @@
 - 明确不做：不添加位置边界参数、公共粒子类型、共享 VectorOps、批量评估、并行化或基准。
 - 完成条件：PSO 的 API、参数验证、固定 seed、方向/约束、Repair、工作区复用、最佳快照和 Sphere fixture 全部有通过证据。
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Algorithms`
-- 验证结果：尚未执行
+- 验证结果：新增 7 项 PSO 契约测试；Algorithms 命名空间共 19 项测试通过，覆盖 Bat 回归与 PSO 的初始评估、比较、确定性、隔离、复用、Repair、最佳快照、参数边界和 Sphere fixture。
 
 ## T002：实现并验证萤火虫 Optimizer
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-004`、`FR-006`、`NFR-001`、`NFR-002`
 - 依赖：`T001`
 - 影响区域：Algorithms 的 Firefly 类型、Algorithms 测试。
