@@ -243,6 +243,58 @@ public sealed class ExperimentRunnerTests
         Xunit.Assert.Equal(0, caseResult.Statistics.BestObjective!.StandardDeviation);
     }
 
+    [Xunit.Fact]
+    public async Task RunAsyncUsesNullForStatisticsUndefinedByOppositeInfinities()
+    {
+        var statistics = await RunValueStatisticsAsync([double.NegativeInfinity, double.PositiveInfinity]);
+
+        Xunit.Assert.Null(statistics.Mean);
+        Xunit.Assert.Null(statistics.Median);
+        Xunit.Assert.Equal(double.NegativeInfinity, statistics.Minimum);
+        Xunit.Assert.Equal(double.PositiveInfinity, statistics.Maximum);
+        Xunit.Assert.Null(statistics.StandardDeviation);
+    }
+
+    [Xunit.Theory]
+    [Xunit.InlineData(1.0, double.PositiveInfinity, double.PositiveInfinity)]
+    [Xunit.InlineData(double.NegativeInfinity, 1.0, double.NegativeInfinity)]
+    public async Task RunAsyncPreservesOneSidedInfinityInMeanAndMedian(
+        double first,
+        double second,
+        double expected)
+    {
+        var statistics = await RunValueStatisticsAsync([first, second]);
+
+        Xunit.Assert.Equal(expected, statistics.Mean);
+        Xunit.Assert.Equal(expected, statistics.Median);
+        Xunit.Assert.Null(statistics.StandardDeviation);
+    }
+
+    [Xunit.Fact]
+    public async Task RunAsyncKeepsSingleInfiniteSampleDefined()
+    {
+        var statistics = await RunValueStatisticsAsync([double.PositiveInfinity]);
+
+        Xunit.Assert.Equal(double.PositiveInfinity, statistics.Mean);
+        Xunit.Assert.Equal(double.PositiveInfinity, statistics.Median);
+        Xunit.Assert.Equal(0, statistics.StandardDeviation);
+    }
+
+    [Xunit.Fact]
+    public async Task RunAsyncAvoidsIntermediateOverflowForFiniteSamples()
+    {
+        var sameExtreme = await RunValueStatisticsAsync([double.MaxValue, double.MaxValue]);
+        var oppositeExtremes = await RunValueStatisticsAsync([-double.MaxValue, double.MaxValue]);
+
+        Xunit.Assert.Equal(double.MaxValue, sameExtreme.Mean);
+        Xunit.Assert.Equal(double.MaxValue, sameExtreme.Median);
+        Xunit.Assert.Equal(0, sameExtreme.StandardDeviation);
+
+        Xunit.Assert.Equal(0, oppositeExtremes.Mean);
+        Xunit.Assert.Equal(0, oppositeExtremes.Median);
+        Xunit.Assert.Equal(double.PositiveInfinity, oppositeExtremes.StandardDeviation);
+    }
+
     /// <summary>
     /// 验证自动派生的共享 seed 不受不同 Case 的 Group 拆分方式影响。
     /// </summary>
@@ -336,6 +388,25 @@ public sealed class ExperimentRunnerTests
         return new ContinuousProblem(1, new FirstCoordinateObjective(), CandidateRepairs.DoNothing);
     }
 
+    private static async Task<NumericStatistics> RunValueStatisticsAsync(double[] values)
+    {
+        var experimentCase = new ExperimentCase<double[]>(
+            "special-values",
+            values,
+            values.Length,
+            static (configuration, _) => new ExperimentGroupSetup(
+                CreateProblem(),
+                new SequenceValueOptimizer(configuration),
+                StopImmediately()),
+            runGroupCount: 1);
+        var result = await ExperimentRunner.RunAsync(
+            new ExperimentDefinition([experimentCase]),
+            new ExperimentExecutionOptions { Seeds = Enumerable.Range(1, values.Length).ToArray() },
+            Xunit.TestContext.Current.CancellationToken);
+
+        return result.Cases[0].Statistics.BestObjective!;
+    }
+
     private static OptimizationRunOptions StopImmediately()
     {
         return new OptimizationRunOptions(StoppingConditions.MaxIterations(0));
@@ -371,6 +442,26 @@ public sealed class ExperimentRunnerTests
             _position[0] = context.Seed;
             BestEvaluation = context.Evaluate(_position);
             ResetCount++;
+        }
+
+        public void Advance()
+        {
+        }
+    }
+
+    private sealed class SequenceValueOptimizer(double[] values) : IOptimizer
+    {
+        private readonly double[] _position = new double[1];
+        private int _nextValue;
+
+        public ReadOnlySpan<double> BestPosition => _position;
+
+        public Evaluation BestEvaluation { get; private set; }
+
+        public void ResetForRun(OptimizationRunContext context)
+        {
+            _position[0] = values[_nextValue++];
+            BestEvaluation = context.Evaluate(_position);
         }
 
         public void Advance()

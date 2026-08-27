@@ -5,7 +5,7 @@ namespace Anastasya.Metaheuristics.Experiments.Results;
 /// </summary>
 public sealed class NumericStatistics
 {
-    internal NumericStatistics(double mean, double median, double minimum, double maximum, double standardDeviation)
+    internal NumericStatistics(double? mean, double? median, double minimum, double maximum, double? standardDeviation)
     {
         Mean = mean;
         Median = median;
@@ -14,11 +14,11 @@ public sealed class NumericStatistics
         StandardDeviation = standardDeviation;
     }
 
-    /// <summary>获取算术平均值。</summary>
-    public double Mean { get; }
+    /// <summary>获取算术平均值；样本同时包含正负 Infinity 时为 <see langword="null"/>。</summary>
+    public double? Mean { get; }
 
-    /// <summary>获取中位数。</summary>
-    public double Median { get; }
+    /// <summary>获取中位数；偶数样本的两个中间值为相反 Infinity 时为 <see langword="null"/>。</summary>
+    public double? Median { get; }
 
     /// <summary>获取最小值。</summary>
     public double Minimum { get; }
@@ -26,8 +26,8 @@ public sealed class NumericStatistics
     /// <summary>获取最大值。</summary>
     public double Maximum { get; }
 
-    /// <summary>获取以 <c>n - 1</c> 为分母的样本标准差；单样本时为零。</summary>
-    public double StandardDeviation { get; }
+    /// <summary>获取以 <c>n - 1</c> 为分母的样本标准差；单样本时为零，多样本包含 Infinity 时为 <see langword="null"/>。</summary>
+    public double? StandardDeviation { get; }
 }
 
 /// <summary>
@@ -182,12 +182,12 @@ internal static class ExperimentStatisticsCalculator
     {
         var values = source.ToArray();
         Array.Sort(values);
-        var mean = values.Average();
+        var minimum = values[0];
+        var maximum = values[^1];
+        var mean = Mean(values, minimum, maximum);
         var median = Median(values);
-        var variance = values.Length == 1
-            ? 0
-            : values.Sum(value => Math.Pow(value - mean, 2)) / (values.Length - 1);
-        return new NumericStatistics(mean, median, values[0], values[^1], Math.Sqrt(variance));
+        var standardDeviation = StandardDeviation(values, minimum, maximum, mean);
+        return new NumericStatistics(mean, median, minimum, maximum, standardDeviation);
     }
 
     private static DurationStatistics CreateDuration(IEnumerable<TimeSpan> source)
@@ -195,19 +195,112 @@ internal static class ExperimentStatisticsCalculator
         var ticks = source.Select(static duration => (double)duration.Ticks).ToArray();
         var statistics = CreateNumeric(ticks);
         return new DurationStatistics(
-            FromTicks(statistics.Mean),
-            FromTicks(statistics.Median),
+            FromTicks(RequireDefined(statistics.Mean)),
+            FromTicks(RequireDefined(statistics.Median)),
             FromTicks(statistics.Minimum),
             FromTicks(statistics.Maximum),
-            FromTicks(statistics.StandardDeviation));
+            FromTicks(RequireDefined(statistics.StandardDeviation)));
     }
 
-    private static double Median(double[] sortedValues)
+    private static double? Mean(double[] sortedValues, double minimum, double maximum)
+    {
+        if (double.IsNegativeInfinity(minimum))
+        {
+            return double.IsPositiveInfinity(maximum) ? null : double.NegativeInfinity;
+        }
+
+        if (double.IsPositiveInfinity(maximum))
+        {
+            return double.PositiveInfinity;
+        }
+
+        var scale = Math.Max(Math.Abs(minimum), Math.Abs(maximum));
+        if (scale == 0)
+        {
+            return 0;
+        }
+
+        var sum = 0.0;
+        var compensation = 0.0;
+        foreach (var value in sortedValues)
+        {
+            var corrected = (value / scale) - compensation;
+            var next = sum + corrected;
+            compensation = (next - sum) - corrected;
+            sum = next;
+        }
+
+        var normalizedMean = Math.Clamp(sum / sortedValues.Length, -1, 1);
+        return normalizedMean * scale;
+    }
+
+    private static double? Median(double[] sortedValues)
     {
         var middle = sortedValues.Length / 2;
-        return sortedValues.Length % 2 == 0
-            ? (sortedValues[middle - 1] + sortedValues[middle]) / 2
-            : sortedValues[middle];
+        if (sortedValues.Length % 2 != 0)
+        {
+            return sortedValues[middle];
+        }
+
+        var lower = sortedValues[middle - 1];
+        var upper = sortedValues[middle];
+        if (double.IsNegativeInfinity(lower))
+        {
+            return double.IsPositiveInfinity(upper) ? null : double.NegativeInfinity;
+        }
+
+        if (double.IsPositiveInfinity(upper))
+        {
+            return double.PositiveInfinity;
+        }
+
+        return Math.Sign(lower) == Math.Sign(upper)
+            ? lower + ((upper - lower) / 2)
+            : (lower / 2) + (upper / 2);
+    }
+
+    private static double? StandardDeviation(
+        double[] sortedValues,
+        double minimum,
+        double maximum,
+        double? mean)
+    {
+        if (sortedValues.Length == 1)
+        {
+            return 0;
+        }
+
+        if (double.IsInfinity(minimum) || double.IsInfinity(maximum))
+        {
+            return null;
+        }
+
+        var scale = Math.Max(Math.Abs(minimum), Math.Abs(maximum));
+        if (scale == 0)
+        {
+            return 0;
+        }
+
+        var normalizedMean = mean!.Value / scale;
+        var squaredDeviationSum = 0.0;
+        var compensation = 0.0;
+        foreach (var value in sortedValues)
+        {
+            var deviation = (value / scale) - normalizedMean;
+            var squaredDeviation = deviation * deviation;
+            var corrected = squaredDeviation - compensation;
+            var next = squaredDeviationSum + corrected;
+            compensation = (next - squaredDeviationSum) - corrected;
+            squaredDeviationSum = next;
+        }
+
+        var normalizedDeviation = Math.Sqrt(squaredDeviationSum / (sortedValues.Length - 1));
+        return normalizedDeviation * scale;
+    }
+
+    private static double RequireDefined(double? value)
+    {
+        return value ?? throw new InvalidOperationException("Finite duration samples must produce defined statistics.");
     }
 
     private static TimeSpan FromTicks(double ticks)

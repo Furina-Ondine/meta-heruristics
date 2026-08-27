@@ -32,7 +32,7 @@
 
 ## T003: 实现 Experiment 可空统计
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-005`、`NFR-001`
 - 依赖：`T002`
 - 影响区域：ExperimentStatistics、ExperimentRunnerTests 及仓库内 API 消费者。
@@ -40,11 +40,11 @@
 - 明确不做：不新增 Infinity 计数、不过滤样本、不新增公共统计类型。
 - 完成条件：任何统计字段不产生 NaN；有限常规结果不变；计算保持一次物化、一次排序、两次线性遍历。
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Experiments`
-- 验证结果：尚未执行。
+- 验证结果：新增 7 个 Infinity/极端有限统计用例；Experiments 16 项测试和全仓 78 项测试通过，Release Build 零警告零错误。
 
 ## T004: 迁移示例与文档契约
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`
 - 依赖：`T003`
 - 影响区域：Example、XML 注释、User Guide、Developer Guide、架构概览、API Reference。
