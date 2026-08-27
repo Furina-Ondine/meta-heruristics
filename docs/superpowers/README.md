@@ -21,7 +21,7 @@
 | 2026-08-20 | 工程治理文档设计 | [工程治理文档设计](specs/2026-08-20-engineering-governance-design.md) | [工程治理计划](plans/2026-08-20-engineering-governance.md) | 设计 README、ENGINEERING、AGENTS、架构概览、ADR 与本目录的职责边界，以及工程治理和发布规则。 |
 | 2026-08-22 | Experiment 执行架构 | [Experiment 执行架构与接口设计](specs/2026-08-22-experiment-execution-design.md) | [Experiment 第一版实施计划](plans/2026-08-22-experiment-execution.md) | 定义多 Case、RunGroup 拆分、有界调度、Optimizer 内存复用、seed、部分结果和统计语义。 |
 | 2026-08-22 | 蝙蝠算法第一波迁移 | [蝙蝠算法第一波迁移设计](specs/2026-08-22-bat-algorithm-migration-design.md) | [蝙蝠算法第一波迁移实施计划](plans/2026-08-22-bat-algorithm-migration.md) | 审计旧仓库 fix 分支并迁移双缓冲 Bat Optimizer、工作区复用和正确性回归。 |
-| 2026-08-26 | Spec-Driven 开发工作流 | [Spec-Driven 开发工作流设计](specs/2026-08-26-spec-driven-development-workflow-design.md) | 待设计批准后制定 | 定义风险分级、架构风格、Spec/Plan/Tasks/Verification 产物和批准门。 |
+| 2026-08-26 | Spec-Driven 开发工作流 | [Spec-Driven 开发工作流设计](specs/2026-08-26-spec-driven-development-workflow-design.md) | 待设计批准后制定 | 定义风险分级、架构风格、文档信息架构、注释质量、Spec/Plan/Tasks/Verification 产物和批准门。 |
 
 ## 实施计划（plans）
 
