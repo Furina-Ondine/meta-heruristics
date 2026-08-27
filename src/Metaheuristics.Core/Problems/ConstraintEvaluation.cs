@@ -7,21 +7,21 @@ namespace Anastasya.Metaheuristics.Core.Problems;
 public readonly record struct ConstraintEvaluation
 {
     /// <summary>使用违背量汇总创建约束评估结果。</summary>
-    /// <param name="totalViolation">所有违背约束的归一化违背量之和。</param>
-    /// <param name="maxViolation">单个约束的最大归一化违背量。</param>
+    /// <param name="totalViolation">所有违背约束的归一化违背量之和；允许 <see cref="double.PositiveInfinity"/>。</param>
+    /// <param name="maxViolation">单个约束的最大归一化违背量；允许 <see cref="double.PositiveInfinity"/>。</param>
     /// <param name="violatedCount">产生正违背量的约束数量。</param>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="totalViolation"/>、<paramref name="maxViolation"/> 不是有限非负值，或 <paramref name="violatedCount"/> 为负数。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="totalViolation"/>、<paramref name="maxViolation"/> 为 <see cref="double.NaN"/> 或负值，或 <paramref name="violatedCount"/> 为负数。</exception>
     /// <exception cref="ArgumentException">违背量与违背约束数量之间的汇总关系不一致。</exception>
     public ConstraintEvaluation(double totalViolation, double maxViolation, int violatedCount)
     {
-        if (!double.IsFinite(totalViolation) || totalViolation < 0)
+        if (double.IsNaN(totalViolation) || totalViolation < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(totalViolation), "The total constraint violation must be finite and non-negative.");
+            throw new ArgumentOutOfRangeException(nameof(totalViolation), "The total constraint violation must be non-negative and cannot be NaN.");
         }
 
-        if (!double.IsFinite(maxViolation) || maxViolation < 0)
+        if (double.IsNaN(maxViolation) || maxViolation < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(maxViolation), "The maximum constraint violation must be finite and non-negative.");
+            throw new ArgumentOutOfRangeException(nameof(maxViolation), "The maximum constraint violation must be non-negative and cannot be NaN.");
         }
 
         ArgumentOutOfRangeException.ThrowIfNegative(violatedCount);

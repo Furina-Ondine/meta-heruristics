@@ -74,9 +74,9 @@ public sealed class ContinuousProblem
 
     private Evaluation CreateEvaluation(double objective, ReadOnlySpan<double> position)
     {
-        if (!double.IsFinite(objective))
+        if (double.IsNaN(objective))
         {
-            throw new InvalidOperationException("The objective function returned a non-finite value.");
+            throw new InvalidOperationException("The objective function returned NaN.");
         }
 
         var totalViolation = 0.0;
@@ -85,9 +85,9 @@ public sealed class ContinuousProblem
         foreach (var constraint in _constraints)
         {
             var violation = constraint.EvaluateViolation(position);
-            if (!double.IsFinite(violation) || violation < 0)
+            if (double.IsNaN(violation) || violation < 0)
             {
-                throw new InvalidOperationException("A constraint returned a non-finite or negative normalized violation.");
+                throw new InvalidOperationException("A constraint returned NaN or a negative normalized violation.");
             }
 
             if (violation == 0)
@@ -96,11 +96,6 @@ public sealed class ContinuousProblem
             }
 
             totalViolation += violation;
-            if (!double.IsFinite(totalViolation))
-            {
-                throw new InvalidOperationException("The total constraint violation overflowed.");
-            }
-
             maxViolation = Math.Max(maxViolation, violation);
             violatedCount++;
         }

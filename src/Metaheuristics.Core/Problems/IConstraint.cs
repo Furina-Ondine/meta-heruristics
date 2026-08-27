@@ -6,6 +6,6 @@ public interface IConstraint
 {
     /// <summary>计算候选位置对该约束的归一化违背量。</summary>
     /// <param name="position">由调用方的初始化器和 Repair 准备的候选位置。</param>
-    /// <returns>非负且有限的违背量；零表示满足约束。</returns>
+    /// <returns>非负违背量；零表示满足约束，<see cref="double.PositiveInfinity"/> 表示无界违背，不得返回 <see cref="double.NaN"/>。</returns>
     double EvaluateViolation(ReadOnlySpan<double> position);
 }

@@ -20,26 +20,26 @@
 
 ## T002: 实现 Core 特殊值契约
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
 - 依赖：`T001`
 - 影响区域：Core 的 Evaluation、ConstraintEvaluation、ContinuousProblem、EvaluationComparer、StoppingConditions 与 Core 测试。
 - 实施内容：先添加失败测试，再以常数次标量分类实现 NaN 拒绝、Infinity 接受/排序、约束汇总和目标阈值语义。
 - 明确不做：不扫描候选位置，不在算法层重复验证，不修改 Repair。
 - 完成条件：Core 需求矩阵全部通过，热路径没有新增维度相关循环或分配。
-- 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release --filter "FullyQualifiedName~Core"`
-- 验证结果：尚未执行。
+- 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Core`
+- 验证结果：新增 29 个特殊值契约用例；Core 命名空间共 49 项测试通过，Release Build 零警告零错误。
 
 ## T003: 实现 Experiment 可空统计
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-005`、`NFR-001`
 - 依赖：`T002`
 - 影响区域：ExperimentStatistics、ExperimentRunnerTests 及仓库内 API 消费者。
 - 实施内容：先添加 Infinity 组合和极端有限值失败测试，再迁移三个 nullable 属性并实现显式分类、缩放 Mean/StandardDeviation 与安全 Median。
 - 明确不做：不新增 Infinity 计数、不过滤样本、不新增公共统计类型。
 - 完成条件：任何统计字段不产生 NaN；有限常规结果不变；计算保持一次物化、一次排序、两次线性遍历。
-- 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release --filter "FullyQualifiedName~Experiments"`
+- 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Experiments`
 - 验证结果：尚未执行。
 
 ## T004: 迁移示例与文档契约

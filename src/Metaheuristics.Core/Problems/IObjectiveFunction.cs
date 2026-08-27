@@ -6,6 +6,6 @@ public interface IObjectiveFunction
 {
     /// <summary>计算给定候选位置的目标值。</summary>
     /// <param name="position">由调用方的初始化器和 Repair 准备的候选位置。</param>
-    /// <returns>候选位置对应的有限目标值。</returns>
+    /// <returns>候选位置对应的目标值；允许有限值与正负 Infinity，不得返回 <see cref="double.NaN"/>。</returns>
     double Evaluate(ReadOnlySpan<double> position);
 }

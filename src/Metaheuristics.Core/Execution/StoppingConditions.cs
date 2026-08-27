@@ -54,10 +54,10 @@ public static class StoppingConditions
     /// </summary>
     /// <param name="target">目标阈值；最小化时要求目标值不大于该值，最大化时要求不小于该值。</param>
     /// <returns>达到目标阈值时返回 <see cref="TerminationReason.TargetReached"/> 的停止条件。</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="target"/> 不是有限值。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="target"/> 为 <see cref="double.NaN"/>。</exception>
     public static IStoppingCondition TargetObjective(double target)
     {
-        if (!double.IsFinite(target))
+        if (double.IsNaN(target))
         {
             throw new ArgumentOutOfRangeException(nameof(target));
         }

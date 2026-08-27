@@ -7,6 +7,7 @@ namespace Anastasya.Metaheuristics.Core.Comparison;
 /// </summary>
 /// <remarks>
 /// 比较顺序为：可行解优先；两个不可行解比较总违背量；最后按目标优化方向比较目标值。
+/// 目标值与违背量中的 Infinity 使用 <see cref="double.CompareTo(double)"/> 的扩展实数顺序。
 /// </remarks>
 public static class EvaluationComparer
 {

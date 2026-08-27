@@ -7,14 +7,14 @@ namespace Anastasya.Metaheuristics.Core.Problems;
 public readonly record struct Evaluation
 {
     /// <summary>创建一次候选解评估结果。</summary>
-    /// <param name="objective">目标函数返回的有限目标值。</param>
+    /// <param name="objective">目标函数值；允许有限值与正负 Infinity。</param>
     /// <param name="constraints">候选位置的约束评估结果。</param>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="objective"/> 不是有限值。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="objective"/> 为 <see cref="double.NaN"/>。</exception>
     public Evaluation(double objective, ConstraintEvaluation constraints)
     {
-        if (!double.IsFinite(objective))
+        if (double.IsNaN(objective))
         {
-            throw new ArgumentOutOfRangeException(nameof(objective), "The objective value must be finite.");
+            throw new ArgumentOutOfRangeException(nameof(objective), "The objective value cannot be NaN.");
         }
 
         Objective = objective;
