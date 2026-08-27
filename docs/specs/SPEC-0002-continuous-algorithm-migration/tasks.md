@@ -7,7 +7,7 @@
 - 不迁入旧仓库的公共框架、位置边界、全局随机流、共享向量工具、泛型 Fitness/Solution 或兼容壳。
 - 正常 run 间可以复用 Optimizer 私有数组；异常后的实例继续复用由 Experiment 现有规则禁止。
 
-## T001：实现并验证 PSO Optimizer
+## T001: 实现并验证 PSO Optimizer
 
 - 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-006`、`NFR-001`、`NFR-002`
@@ -19,7 +19,7 @@
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Algorithms`
 - 验证结果：新增 7 项 PSO 契约测试；Algorithms 命名空间共 19 项测试通过，覆盖 Bat 回归与 PSO 的初始评估、比较、确定性、隔离、复用、Repair、最佳快照、参数边界和 Sphere fixture。
 
-## T002：实现并验证萤火虫 Optimizer
+## T002: 实现并验证萤火虫 Optimizer
 
 - 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-004`、`FR-006`、`NFR-001`、`NFR-002`
@@ -31,7 +31,7 @@
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Algorithms`
 - 验证结果：新增 7 项萤火虫契约测试；Algorithms 命名空间共 26 项测试通过，覆盖 Bat/PSO 回归与萤火虫的初始评估、比较、严格顺序移动、Repair、确定性、隔离、复用、参数边界和 Sphere fixture。
 
-## T003：实现并验证布谷鸟 Optimizer
+## T003: 实现并验证布谷鸟 Optimizer
 
 - 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-005`、`FR-006`、`NFR-001`、`NFR-002`
@@ -43,7 +43,7 @@
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Algorithms`
 - 验证结果：新增 8 项布谷鸟契约测试；Algorithms 命名空间共 34 项测试通过，覆盖 Bat/PSO/萤火虫回归与布谷鸟的初始评估、比较、候选数、Repair、单巢、显式尺度、确定性、隔离、复用、参数边界和 Sphere fixture。
 
-## T004：迁移示例与用户文档
+## T004: 迁移示例与用户文档
 
 - 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-007`
@@ -55,9 +55,9 @@
 - 验证命令：`dotnet build Metaheuristics.NET.slnx --configuration Release`; `dotnet docfx docfx.json --warningsAsErrors`
 - 验证结果：Release Build、示例烟雾与 DocFX 均通过（DocFX 为零警告）；文档一致性脚本仅因最终 Verification 尚未创建而延后至 T005 重新执行。
 
-## T005：完成追踪和工程验证
+## T005: 完成追踪和工程验证
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`FR-006`、`FR-007`、`NFR-001`、`NFR-002`
 - 依赖：`T004`
 - 影响区域：Verification、全仓库。
@@ -65,4 +65,4 @@
 - 明确不做：不在 Verification 阶段引入新行为、性能声明或兼容层。
 - 完成条件：所有需求有实现/测试/文档证据，残留审计通过，Spec 进入 `Implemented`。
 - 验证命令：按 `verification.md` 的完整命令集合执行。
-- 验证结果：尚未执行
+- 验证结果：新增 Verification 并完成 Release restore/build、100/100 测试、Example、DocFX、文档门禁、残留搜索和差异检查；新增 C# 文件格式验证通过。全仓格式命令仅报告未修改既有 CRLF checkout 文件的 ENDOFLINE 基线差异。
