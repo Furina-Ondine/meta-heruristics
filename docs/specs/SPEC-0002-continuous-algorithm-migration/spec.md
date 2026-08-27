@@ -3,10 +3,10 @@
 ## 元数据
 
 - 编号：`SPEC-0002`
-- 状态：`Approved`
+- 状态：`Clarifying`
 - 创建日期：2026-08-27
-- 批准人：项目作者
-- 批准日期：2026-08-27
+- 批准人：—
+- 批准日期：—
 - 替代：无
 - 被替代：无
 - 相关 ADR：[ADR-0009](../../decisions/0009-group-scoped-optimizer-execution.md)、[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0011](../../decisions/0011-bat-first-algorithm-migration.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0015](../../decisions/0015-ordered-extended-evaluation-values.md)
@@ -147,10 +147,10 @@
 - 旧仓库 `fix` 分支是算法行为与已知缺陷修复的参考，绝不作为可复制的架构或 API。
 - 布谷鸟的步长衰减由 `StepDecayIterations` 显式配置；它不与 Runner 的停止条件耦合。
 - 布谷鸟每轮产生的 Lévy 候选数由调用方传入 `LevyCandidateCount` 决定。
-- 没有未解决的公共行为问题。
+- 待澄清：旧实现分别用算法内位置边界宽度缩放 Lévy 步长和遗弃阶段随机扰动；新实现不得读取 Repair 的私有边界。必须明确这两个尺度由哪些独立 Options 表达及其默认关系，才能固定无边界 API 下的布谷鸟数值行为。
 
 ## 批准记录
 
-- 规格批准：项目作者
-- 批准日期：2026-08-27
-- 批准时明确接受的风险：三个新增公开 Optimizer 和 Options 以当前连续 `double` 表示及 RunGroup 独占模型为前提；不保证对历史原型逐随机数复现。
+- 规格批准：2026-08-27 的批准因布谷鸟尺度语义尚未确定而失效；澄清并修订后需要重新批准。
+- 批准日期：—
+- 批准时明确接受的风险：—
