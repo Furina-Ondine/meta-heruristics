@@ -134,4 +134,4 @@ Experiment 的目标统计可能无法定义：样本同时含正负 Infinity �
 - `IStoppingCondition`；
 - `IOptimizer`。
 
-具体入口关系见 [API Overview](../api/overview.md)。实现策略或新算法前阅读[开发者架构手册](../architecture/developer-guide.md)；参数、异常、所有权和成员生命周期以按 [API Overview 生成说明](../api/overview.md#生成-api-reference)构建的 API Reference 为准。
+具体入口关系见 [API Overview](../api/overview.md)。实现策略或新算法前阅读[开发者架构手册](../architecture/developer-guide.md)；参数、异常、所有权和成员生命周期以按 API Overview 中的生成说明构建的 API Reference 为准。

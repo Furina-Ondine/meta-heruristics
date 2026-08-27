@@ -63,4 +63,4 @@ Case 内用 `RunGroupCount` 表达用户掌握的并发拆分；所有 Group 再
 
 ## API 文档
 
-按任务寻找公共入口时使用 [API Overview](../api/overview.md)，参数、异常、所有权和成员生命周期以按 [API Overview 生成说明](../api/overview.md#生成-api-reference)构建的 XML 注释 API Reference 为准。可运行示例见 [`examples/Metaheuristics.Examples/Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
+按任务寻找公共入口时使用 [API Overview](../api/overview.md)，参数、异常、所有权和成员生命周期以按 API Overview 中的生成说明构建的 XML 注释 API Reference 为准。可运行示例见 [`examples/Metaheuristics.Examples/Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
