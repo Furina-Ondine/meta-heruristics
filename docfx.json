@@ -23,8 +23,7 @@
         "files": [
           "README.md",
           "ENGINEERING.md",
-          "docs/**/*.md",
-          "docs/reference/toc.yml"
+          "docs/**/*.md"
         ],
         "exclude": [
           "docs/reference/api/**",

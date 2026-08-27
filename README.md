@@ -29,7 +29,7 @@ ExperimentCase + ExperimentDefinition + ExecutionOptions
     → ExperimentResult
 ```
 
-第一次使用从[用户使用手册](docs/guides/user-guide.md)开始；寻找具体类型时使用 [API Overview](docs/api/overview.md) 和由 XML 注释生成的 [API Reference](docs/reference/index.md)。
+第一次使用从[用户使用手册](docs/guides/user-guide.md)开始；寻找具体类型时使用 [API Overview](docs/api/overview.md)，并按其中的[生成说明](docs/api/overview.md#生成-api-reference)构建和打开由 XML 注释生成的 API Reference。
 
 ## 运行示例
 
