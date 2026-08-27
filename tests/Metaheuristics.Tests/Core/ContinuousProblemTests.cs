@@ -146,7 +146,7 @@ public sealed class ContinuousProblemTests
     [Xunit.Fact]
     public void EvaluateRejectsInvalidObjectiveResult()
     {
-        var problem = new ContinuousProblem(1, new NonFiniteObjective(), CandidateRepairs.DoNothing);
+        var problem = new ContinuousProblem(1, new NaNObjective(), CandidateRepairs.DoNothing);
 
         Xunit.Assert.Throws<InvalidOperationException>(() => problem.Evaluate([0]));
     }
@@ -174,12 +174,12 @@ public sealed class ContinuousProblemTests
     }
 
     /// <summary>
-    /// 用于触发非有限目标值校验的测试替身。
+    /// 用于触发 NaN 目标值校验的测试替身。
     /// </summary>
-    private sealed class NonFiniteObjective : IObjectiveFunction
+    private sealed class NaNObjective : IObjectiveFunction
     {
         /// <summary>
-        /// 返回非有限值，用于验证问题拒绝无效目标结果。
+        /// 返回 NaN，用于验证问题拒绝无序目标结果。
         /// </summary>
         /// <param name="position">未使用的候选位置。</param>
         /// <returns>始终为 <see cref="double.NaN"/>。</returns>

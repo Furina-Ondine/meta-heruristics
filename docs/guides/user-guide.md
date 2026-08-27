@@ -94,9 +94,19 @@ dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.cs
 
 实现 `IConstraint` 返回非负违背量：零表示满足，大于零表示违反。候选比较先考虑可行性，再比较违背量，最后才比较目标值。
 
+### 理解 NaN 与 Infinity
+
+Objective 可以返回有限值或正负 Infinity；Infinity 会按最小化/最大化方向正常排序。Objective 返回 `NaN` 会立即失败，因为它不能形成可靠顺序。
+
+Constraint 可以返回非负有限值或 `+Infinity`；后者表示无界的不可行程度。负值、`-Infinity` 和 `NaN` 都是无效结果。这里的规则只约束评价结果，不会让 Core 扫描或修复候选位置。
+
+Experiment 的目标统计可能无法定义：样本同时含正负 Infinity 时 Mean 为 `null`，偶数样本的两个中间值为相反 Infinity 时 Median 为 `null`，多样本含任意 Infinity 时 StandardDeviation 为 `null`。Minimum 和 Maximum 始终保留。输出统计时应显式处理 `null`，不要把它显示成零或 `NaN`。
+
 ### 改变停止方式
 
 `StoppingConditions` 可以按最大迭代、最大评估、时限或目标值停止，也可以用 `Any` 组合多个条件。停止检查发生在初始化完成后和每次完整算法迭代后。
+
+目标阈值接受正负 Infinity、拒绝 `NaN`，比较方式与 Problem 的优化方向一致。
 
 ### 保持可复现
 

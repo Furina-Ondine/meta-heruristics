@@ -44,7 +44,7 @@
 
 ## T004: 迁移示例与文档契约
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`
 - 依赖：`T003`
 - 影响区域：Example、XML 注释、User Guide、Developer Guide、架构概览、API Reference。
@@ -52,11 +52,11 @@
 - 明确不做：不在 API Overview 复制成员参数和异常契约。
 - 完成条件：示例编译，DocFX 零警告，手写文档职责无重复。
 - 验证命令：`dotnet build Metaheuristics.NET.slnx --configuration Release`；`dotnet docfx docfx.json --warningsAsErrors`
-- 验证结果：尚未执行。
+- 验证结果：Release Build、示例运行、文档门禁和 DocFX 均通过；DocFX 零警告零错误，残留搜索只剩 ADR 历史说明与仍须有限的算法配置。
 
 ## T005: 完成追踪与工程验证
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
 - 依赖：`T004`
 - 影响区域：Verification、全仓库。

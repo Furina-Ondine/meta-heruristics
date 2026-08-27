@@ -10,9 +10,9 @@
 
 | 项目 | 实现现状 |
 | --- | --- |
-| `Metaheuristics.Core` | 已提供连续问题、标量评估与比较、有状态 Optimizer、run Context、停止、轨迹、结果和单次 Runner API。 |
+| `Metaheuristics.Core` | 已提供连续问题、有序扩展实数评估与比较、有状态 Optimizer、run Context、停止、轨迹、结果和单次 Runner API。 |
 | `Metaheuristics.Algorithms` | 已提供连续蝙蝠算法、强类型配置、双缓冲种群和顺序 run 工作区复用。 |
-| `Metaheuristics.Experiments` | 已提供强类型 Case、RunGroup 规划、有界并发、共享 seed、部分失败/取消结果和基本统计。 |
+| `Metaheuristics.Experiments` | 已提供强类型 Case、RunGroup 规划、有界并发、共享 seed、部分失败/取消结果，以及可显式表达 Infinity 未定义项的基本统计。 |
 | `Metaheuristics.Examples` | 已提供蝙蝠算法的单次运行和双 Case Experiment 示例。 |
 | `Metaheuristics.Tests` | 已包含目标运行时、Core、Experiment 以及蝙蝠算法的契约与行为测试。 |
 | `Metaheuristics.Benchmarks` | 已提供蝙蝠算法工作区复用基准，以及固定 Worker、Parallel API 和信号量 RunGroup 调度基准。 |

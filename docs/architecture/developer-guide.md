@@ -21,9 +21,11 @@ Core 定义最小协议和运行生命周期；调用方显式组装策略。不
 
 ## 实现 Objective 或 Constraint
 
-Objective 只根据位置计算目标值，不负责停止、比较、Repair 或随机数。Constraint 返回归一化的非负违背量，零表示满足。
+Objective 只根据位置计算目标值，不负责停止、比较、Repair 或随机数。它可以返回有限值或正负 Infinity，但不得返回 `NaN`。Constraint 返回归一化的非负违背量：零表示满足，`+Infinity` 表示无界违背；负值、`-Infinity` 和 `NaN` 违反契约。
 
 所有算法评价候选都必须通过 `OptimizationRunContext.Evaluate`，让执行上下文统一处理计数、取消以及当前公共数值契约。不要直接调用 Problem 或 Objective 绕过 Context。
+
+Core 只在每个策略结果的标量边界验证该数值域，不检查候选位置，也不要求算法或比较器重复验证。Infinity 的排序、停止和跨 run 统计规则见 [ADR-0015](../decisions/0015-ordered-extended-evaluation-values.md)；成员异常和 nullable 统计条件见生成式 API Reference。
 
 Objective 和 Constraint 是否能被多个 RunGroup 并发调用由实现者负责。如果共享底层数据，该数据必须不可变或自行同步。
 
@@ -86,6 +88,8 @@ ExperimentDefinition
 seed 只取决于 Experiment 计划和 repetition 下标，不依赖 Group 拆分、Worker 领取顺序或并发度。结果读取顺序同样不依赖任务完成顺序。
 
 Experiments 只依赖 Core，不能引用具体算法。具体算法由调用方在 typed Group factory 中组装。
+
+目标值统计覆盖所有成功 run，不过滤 Infinity。`NumericStatistics.Mean`、`Median` 和 `StandardDeviation` 可能为 `null`；Experiment 展示或导出层必须显式表达 undefined，不能用零或 `NaN` 代替。
 
 ## 修改现有职责
 

@@ -52,8 +52,12 @@ Console.WriteLine($"Experiment status: {experimentResult.Status}");
 foreach (var caseResult in experimentResult.Cases)
 {
     // 不同 Case 的相同 Repetition 使用 experimentResult.Seeds 中的同一个 seed。
-    Console.WriteLine(FormattableString.Invariant(
-        $"{caseResult.CaseId}: {caseResult.Statistics.Counts.Succeeded} succeeded; mean objective = {caseResult.Statistics.BestObjective?.Mean:F6}"));
+    var mean = caseResult.Statistics.BestObjective?.Mean;
+    var meanText = mean is double value
+        ? value.ToString("F6", CultureInfo.InvariantCulture)
+        : "undefined";
+    Console.WriteLine(
+        $"{caseResult.CaseId}: {caseResult.Statistics.Counts.Succeeded} succeeded; mean objective = {meanText}");
 }
 
 static ContinuousProblem CreateSphereProblem(int dimension)
