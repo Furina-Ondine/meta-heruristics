@@ -21,7 +21,7 @@
 
 ## T002：实现并验证萤火虫 Optimizer
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-004`、`FR-006`、`NFR-001`、`NFR-002`
 - 依赖：`T001`
 - 影响区域：Algorithms 的 Firefly 类型、Algorithms 测试。
@@ -29,11 +29,11 @@
 - 明确不做：不比较等价候选、不修改当前代、不添加位置边界或共享种群框架。
 - 完成条件：萤火虫的 API、参数验证、顺序移动、Repair、最佳快照、方向/约束、固定 seed、工作区复用和 Sphere fixture 全部有通过证据。
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Algorithms`
-- 验证结果：尚未执行
+- 验证结果：新增 7 项萤火虫契约测试；Algorithms 命名空间共 26 项测试通过，覆盖 Bat/PSO 回归与萤火虫的初始评估、比较、严格顺序移动、Repair、确定性、隔离、复用、参数边界和 Sphere fixture。
 
 ## T003：实现并验证布谷鸟 Optimizer
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-005`、`FR-006`、`NFR-001`、`NFR-002`
 - 依赖：`T002`
 - 影响区域：Algorithms 的 Cuckoo 类型、Algorithms 测试。
