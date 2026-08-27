@@ -3,13 +3,13 @@
 ## 元数据
 
 - 编号：`SPEC-0001`
-- 状态：`Clarifying`
+- 状态：`Approved`
 - 创建日期：2026-08-27
-- 批准人：—
-- 批准日期：—
+- 批准人：项目作者
+- 批准日期：2026-08-27
 - 替代：无
 - 被替代：无
-- 相关 ADR：[ADR-0012](../../decisions/0012-repair-owned-candidate-boundaries.md)（其“目标值和约束违背量必须有限”规则需要被新 ADR 替代）
+- 相关 ADR：[ADR-0012](../../decisions/0012-repair-owned-candidate-boundaries.md)（现行有限值规则的历史来源）、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)
 
 ## 问题与动机
 
@@ -28,11 +28,11 @@
 - 不验证或修复候选位置中的 `NaN`/Infinity；位置仍由 Initializer、Repair 和调用方负责。
 - 不引入泛型目标值、多目标优化或新的约束权重模型。
 - 不改变内置 Repair 对特殊位置值的现有语义。
-- 本 Clarifying 版本不授权任何运行时代码修改。
+- 不把 Spec 批准视为实现授权；运行时代码仍须等待技术 Plan 批准。
 
 ## 架构契合
 
-该规则只验证 Core 自身必须依赖的评估结果不变量：拒绝不能可靠比较的 `NaN`，接受有明确顺序的 Infinity。验证发生在评估边界，不扫描候选位置，也不在算法中重复。由于它替代 ADR-0012 的持续规则，实施前必须新增替代 ADR。
+该规则只验证 Core 自身必须依赖的评估结果不变量：拒绝不能可靠比较的 `NaN`，接受有明确顺序的 Infinity。验证发生在评估边界，不扫描候选位置，也不在算法中重复。由于它改变持续数值契约，实施前必须新增 ADR；ADR-0013 的 Repair 边界语义保持不变。
 
 ## 信任与责任边界
 
@@ -43,7 +43,8 @@
 | 直接构造的 `Evaluation.Objective` | 调用方 | 是，仅拒绝 `NaN` | `ArgumentOutOfRangeException` |
 | 单项约束违背量 | Constraint | 是，拒绝 `NaN`、负有限值和 `-Infinity` | `InvalidOperationException` |
 | 直接构造的约束汇总 | 调用方 | 是，验证数值域和汇总关系 | `ArgumentOutOfRangeException` 或 `ArgumentException` |
-| Infinity 的下游统计和停止语义 | Core / Experiments | 是 | 尚待下文问题决定 |
+| Infinity 的停止语义 | Core | 是，仅拒绝 `NaN` 阈值 | Infinity 阈值按优化方向比较 |
+| Infinity 的跨 run 统计 | Experiments | 是，禁止产生 `NaN` | 无定义的统计量表示为 `null` |
 
 ## 功能需求
 
@@ -76,16 +77,17 @@
 - 前置条件：一个或多个约束产生正有限值或 `+Infinity`。
 - 触发行为：计算 `TotalViolation`、`MaxViolation` 和 `ViolatedCount`。
 - 预期结果：有限和不溢出时保持现有结果；含 `+Infinity` 时汇总能够表达无界违背且不产生 `NaN`。
-- 边界情况：有限正值求和溢出到 `+Infinity` 时是否视同合法无界违背，尚待批准。
+- 边界情况：有限正值求和溢出到 `+Infinity` 时，结果同样是合法的无界总违背，不抛出溢出异常。
 - 验收标准：混合有限值与 `+Infinity`、多个 `+Infinity` 及有限和溢出均有明确测试。
 
 ### FR-005: 所有评估消费者定义 Infinity 行为
 
 - 前置条件：最佳目标值为 Infinity，或同一 Experiment 的成功 run 包含 Infinity。
 - 触发行为：目标停止判断、轨迹/汇总生成和 Experiment 统计。
-- 预期结果：任何路径都不得意外生成或静默传播未定义的 `NaN`；具体统计表示和 Infinity 目标阈值规则尚待批准。
+- 预期结果：`TargetObjective` 只拒绝 `NaN`，接受正负 Infinity，并直接按优化方向比较。`NumericStatistics.Minimum` 与 `Maximum` 保持非空扩展实数；`Mean`、`Median` 和 `StandardDeviation` 改为可空值，只用 `null` 表示下述无定义情况，绝不产生 `NaN`。
 - 边界情况：全为同号 Infinity、有限值与单侧 Infinity、同时含正负 Infinity、偶数样本中位数跨越正负 Infinity。
-- 验收标准：每个已批准组合都有自动化测试和 API 文档。
+- 统计规则：仅有有限值时保持现有结果；Mean 在只出现单侧 Infinity 时取该 Infinity、同时出现正负 Infinity 时为 `null`；Median 按扩展实数排序，偶数中间项为相反 Infinity 时为 `null`，否则取两者的扩展实数中点；StandardDeviation 在样本数为一时为零，在至少两个样本且含任意 Infinity 时为 `null`。
+- 验收标准：每个组合均有自动化测试和 API 文档，有限样本的统计结果与现行实现一致。
 
 ## 非功能需求
 
@@ -98,7 +100,7 @@
 ## 职责与替代关系
 
 - 新增的概念：评估结果的“有序扩展实数”域；约束域只取其中非负部分。
-- 被替代的概念：ADR-0012 和现有 XML 文档中的“目标值与约束违背量必须有限”。
+- 被替代的概念：现行实现、工程规范和 XML 文档中的“目标值与约束违背量必须有限”。
 - 必须删除的旧行为或公共入口：所有无差别拒绝 Infinity 的评估边界校验；不新增兼容开关。
 - 明确保留的旧概念及独立理由：候选位置的特殊值仍归策略负责；Repair 规则与本 Spec 无关。
 - 完成后每个概念的唯一所属层：Core 定义评估域与比较/停止语义；Experiments 只负责已定义评估域上的跨 run 统计。
@@ -109,16 +111,15 @@
 - Core、Experiments、测试、XML Reference 与手写指南不再同时存在“必须有限”和“允许 Infinity”的冲突。
 - 特殊值不会因算术组合在下游意外变成未处理的 `NaN`。
 
-## 假设与待澄清问题
+## 假设与已澄清决定
 
-1. Experiment 统计遇到 Infinity 时如何表示均值、中位数和标准差？需要在“扩展现有字段语义”“仅统计有限样本并另报 Infinity 数量”“调整 API 表示未定义统计”等方案中选择。
-2. `StoppingConditions.TargetObjective` 是否应像目标值一样只拒绝 `NaN`、接受正负 Infinity？接受时，比较结果将直接遵循优化方向和 IEEE 顺序。
-3. 多个有限正违背量求和溢出为 `+Infinity` 时，是否应接受为合法的无界总违背，而不是抛出溢出异常？
-
-上述问题影响公共行为，解决前状态保持 `Clarifying`。
+- Experiment 统计保留扩展实数的最小值和最大值；无定义的 Mean、Median 或 StandardDeviation 使用 `null`，不以 `NaN` 作为缺失标记。
+- `StoppingConditions.TargetObjective` 只拒绝 `NaN`，接受正负 Infinity，并按优化方向比较。
+- 有限正违背量求和溢出时接受 `+Infinity`，与约束直接返回无界违背具有相同汇总语义。
+- 没有未解决的公共行为问题。
 
 ## 批准记录
 
-- 规格批准：—
-- 批准日期：—
-- 批准时明确接受的风险：—
+- 规格批准：项目作者确认三项特殊值连带语义
+- 批准日期：2026-08-27
+- 批准时明确接受的风险：`NumericStatistics` 的三个属性将发生可空类型破坏性变化；不保留兼容壳。
