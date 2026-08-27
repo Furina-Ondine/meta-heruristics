@@ -9,7 +9,7 @@ Metaheuristics.NET 是面向 .NET 的连续单目标元启发式优化库。你�
 
 - 求连续 `double` 向量上的标量目标最小值或最大值；
 - 使用约束、Clamp/Reflect/RandomReset Repair 和组合停止条件；
-- 用内置蝙蝠算法执行一次优化；
+- 用内置蝙蝠、PSO、萤火虫或布谷鸟算法执行一次优化；
 - 用多个 Case、重复运行、显式 seed 和有界并发执行批量实验；
 - 通过强类型接口替换 Objective、Constraint、Initializer、Repair、Stopping Condition 或完整 Optimizer。
 

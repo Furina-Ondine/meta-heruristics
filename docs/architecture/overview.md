@@ -6,15 +6,15 @@
 
 ## 当前状态
 
-仓库已建立六个项目及其引用关系。第一波 Core 公共 API、单次运行生命周期、Experiment 执行和蝙蝠算法已经落地。
+仓库已建立六个项目及其引用关系。第一波 Core 公共 API、单次运行生命周期、Experiment 执行以及四种连续算法已经落地。
 
 | 项目 | 实现现状 |
 | --- | --- |
 | `Metaheuristics.Core` | 已提供连续问题、有序扩展实数评估与比较、有状态 Optimizer、run Context、停止、轨迹、结果和单次 Runner API。 |
-| `Metaheuristics.Algorithms` | 已提供连续蝙蝠算法、强类型配置、双缓冲种群和顺序 run 工作区复用。 |
+| `Metaheuristics.Algorithms` | 已提供连续蝙蝠、PSO、萤火虫和布谷鸟算法；每种算法都有强类型配置、RunGroup 私有工作区与顺序 run 复用。 |
 | `Metaheuristics.Experiments` | 已提供强类型 Case、RunGroup 规划、有界并发、共享 seed、部分失败/取消结果，以及可显式表达 Infinity 未定义项的基本统计。 |
-| `Metaheuristics.Examples` | 已提供蝙蝠算法的单次运行和双 Case Experiment 示例。 |
-| `Metaheuristics.Tests` | 已包含目标运行时、Core、Experiment 以及蝙蝠算法的契约与行为测试。 |
+| `Metaheuristics.Examples` | 已提供四种内置算法的单次运行和可替换 Optimizer 的 Experiment 示例。 |
+| `Metaheuristics.Tests` | 已包含目标运行时、Core、Experiment 以及四种内置算法的契约与行为测试。 |
 | `Metaheuristics.Benchmarks` | 已提供蝙蝠算法工作区复用基准，以及固定 Worker、Parallel API 和信号量 RunGroup 调度基准。 |
 
 ## 项目依赖
@@ -59,7 +59,7 @@ Case 内用 `RunGroupCount` 表达用户掌握的并发拆分；所有 Group 再
 
 ## 当前算法
 
-第一波算法为连续蝙蝠算法。它不读取 Problem 的逐维位置边界：调用方提供位置初始化器，算法在初始化和每次位置更新后通过 Context 调用 Problem 配置的 Repair。默认 Repair 为标量 `[0, 10]` Clamp，并在每个 RunGroup 独占的 Optimizer 中保存两组种群状态。迁移顺序和旧仓库修复来源见 [ADR-0011](../decisions/0011-bat-first-algorithm-migration.md)，候选边界职责见 [ADR-0013](../decisions/0013-tensor-shaped-repair-bounds.md)。
+内置连续算法为蝙蝠、PSO、萤火虫和布谷鸟。它们都不读取 Problem 的逐维位置边界：调用方提供位置初始化器，算法在初始化和每次位置更新后通过 Context 调用 Problem 配置的 Repair。默认 Repair 为标量 `[0, 10]` Clamp；每个 RunGroup 独占的 Optimizer 保存并复用自身种群及临时状态。布谷鸟的 Lévy 与遗弃尺度由显式 Options 表达，不从 Repair 提取边界。迁移顺序和旧仓库修复来源见 [ADR-0011](../decisions/0011-bat-first-algorithm-migration.md)，候选边界职责见 [ADR-0013](../decisions/0013-tensor-shaped-repair-bounds.md)。
 
 ## API 文档
 

@@ -45,7 +45,7 @@
 
 ## T004：迁移示例与用户文档
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-007`
 - 依赖：`T003`
 - 影响区域：Examples、README、API Overview、User Guide、架构概览和 XML 文档。
@@ -53,11 +53,11 @@
 - 明确不做：不在手写文档复制成员级异常/参数表，不把二进制遗传算法描述为已支持。
 - 完成条件：示例可编译运行，DocFX 无警告，所有用户入口准确列出四种连续算法。
 - 验证命令：`dotnet build Metaheuristics.NET.slnx --configuration Release`; `dotnet docfx docfx.json --warningsAsErrors`
-- 验证结果：尚未执行
+- 验证结果：Release Build、示例烟雾与 DocFX 均通过（DocFX 为零警告）；文档一致性脚本仅因最终 Verification 尚未创建而延后至 T005 重新执行。
 
 ## T005：完成追踪和工程验证
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`FR-006`、`FR-007`、`NFR-001`、`NFR-002`
 - 依赖：`T004`
 - 影响区域：Verification、全仓库。

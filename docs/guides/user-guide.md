@@ -42,7 +42,7 @@ ExperimentCase + ExperimentDefinition + ExperimentExecutionOptions
 | --- | --- |
 | Problem | 候选向量有多少维、目标函数是什么、是否需要约束或 Repair。 |
 | Objective | 给定一个位置，返回怎样的目标值。 |
-| Optimizer | 使用哪种搜索算法；当前内置实现是 `BatOptimizer`。 |
+| Optimizer | 使用哪种搜索算法；当前内置实现包括 `BatOptimizer`、`PsoOptimizer`、`FireflyOptimizer` 和 `CuckooOptimizer`。 |
 | Stopping Condition | 达到多少迭代、评估、时间或目标值时停止。 |
 | Result | 从 Summary 读取目标、迭代和停止原因；从 Optimizer 读取最佳位置。 |
 
@@ -66,7 +66,7 @@ var bestPosition = optimizer.BestPosition.ToArray();
 ```
 
 1. `ContinuousProblem` 描述要评价的问题。
-2. `BatOptimizer` 选择搜索算法和初始位置策略。
+2. `BatOptimizer` 是四种可替换内置算法之一；也可选择 `PsoOptimizer`、`FireflyOptimizer` 或 `CuckooOptimizer`，它们都接收同样的 Initializer 并遵循相同运行生命周期。
 3. `OptimizationRunOptions` 决定何时停止。
 4. `OptimizationRunner.Execute` 用显式 seed 执行一次完整生命周期。
 

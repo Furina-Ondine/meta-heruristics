@@ -37,6 +37,12 @@ Problem + Optimizer + OptimizationRunOptions
 - [StoppingConditions](xref:Anastasya.Metaheuristics.Core.Execution.StoppingConditions)
 - [BatOptimizer](xref:Anastasya.Metaheuristics.Algorithms.Bat.BatOptimizer)
 - [BatOptimizerOptions](xref:Anastasya.Metaheuristics.Algorithms.Bat.BatOptimizerOptions)
+- [PsoOptimizer](xref:Anastasya.Metaheuristics.Algorithms.Pso.PsoOptimizer)
+- [PsoOptimizerOptions](xref:Anastasya.Metaheuristics.Algorithms.Pso.PsoOptimizerOptions)
+- [FireflyOptimizer](xref:Anastasya.Metaheuristics.Algorithms.Firefly.FireflyOptimizer)
+- [FireflyOptimizerOptions](xref:Anastasya.Metaheuristics.Algorithms.Firefly.FireflyOptimizerOptions)
+- [CuckooOptimizer](xref:Anastasya.Metaheuristics.Algorithms.Cuckoo.CuckooOptimizer)
+- [CuckooOptimizerOptions](xref:Anastasya.Metaheuristics.Algorithms.Cuckoo.CuckooOptimizerOptions)
 
 ## 运行重复实验
 

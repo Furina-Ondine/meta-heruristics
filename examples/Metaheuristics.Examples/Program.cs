@@ -1,40 +1,53 @@
 using System.Globalization;
 using Anastasya.Metaheuristics.Algorithms.Bat;
+using Anastasya.Metaheuristics.Algorithms.Cuckoo;
+using Anastasya.Metaheuristics.Algorithms.Firefly;
+using Anastasya.Metaheuristics.Algorithms.Pso;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
 using Anastasya.Metaheuristics.Examples;
 using Anastasya.Metaheuristics.Experiments.Configuration;
 using Anastasya.Metaheuristics.Experiments.Execution;
 
-var problem = CreateSphereProblem(dimension: 2);
-var optimizer = new BatOptimizer(
-    new RandomPositionInitializer(),
-    new BatOptimizerOptions { PopulationSize = 40 });
 var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(100))
 {
     Trace = new OptimizationTraceOptions(OptimizationTraceMode.IterationProgress, progressIntervalRatio: 0.1),
 };
 
-var result = OptimizationRunner.Execute(problem, optimizer, options, seed: 20260820);
-var bestPosition = optimizer.BestPosition.ToArray();
-
-Console.WriteLine(FormattableString.Invariant($"Best objective: {result.BestEvaluation.Objective:F6}"));
-Console.WriteLine(
-    $"Best position: [{string.Join(", ", bestPosition.Select(
-        value => value.ToString("F4", CultureInfo.InvariantCulture)))}]");
-Console.WriteLine($"Iterations: {result.Iterations}; evaluations: {result.Evaluations}");
+foreach (var (name, optimizer) in CreateSingleRunOptimizers(populationSize: 40))
+{
+    var result = OptimizationRunner.Execute(CreateSphereProblem(dimension: 2), optimizer, options, seed: 20260820);
+    var bestPosition = optimizer.BestPosition.ToArray();
+    Console.WriteLine(FormattableString.Invariant($"{name}: best objective = {result.BestEvaluation.Objective:F6}"));
+    Console.WriteLine(
+        $"  Best position: [{string.Join(", ", bestPosition.Select(
+            value => value.ToString("F4", CultureInfo.InvariantCulture)))}]");
+    Console.WriteLine($"  Iterations: {result.Iterations}; evaluations: {result.Evaluations}");
+}
 
 var experiment = new ExperimentDefinition(
 [
-    new ExperimentCase<BatCaseConfiguration>(
-        id: "sphere-small",
-        configuration: new BatCaseConfiguration(2, 32, 50),
+    new ExperimentCase<AlgorithmCaseConfiguration>(
+        id: "sphere-bat",
+        configuration: new AlgorithmCaseConfiguration(OptimizerKind.Bat, 2, 32, 50),
         repetitions: 4,
         createGroup: static (configuration, _) => CreateGroup(configuration),
         runGroupCount: 1),
-    new ExperimentCase<BatCaseConfiguration>(
-        id: "sphere-large",
-        configuration: new BatCaseConfiguration(8, 40, 100),
+    new ExperimentCase<AlgorithmCaseConfiguration>(
+        id: "sphere-pso",
+        configuration: new AlgorithmCaseConfiguration(OptimizerKind.Pso, 2, 32, 50),
+        repetitions: 4,
+        createGroup: static (configuration, _) => CreateGroup(configuration),
+        runGroupCount: 1),
+    new ExperimentCase<AlgorithmCaseConfiguration>(
+        id: "sphere-firefly",
+        configuration: new AlgorithmCaseConfiguration(OptimizerKind.Firefly, 2, 32, 50),
+        repetitions: 4,
+        createGroup: static (configuration, _) => CreateGroup(configuration),
+        runGroupCount: 1),
+    new ExperimentCase<AlgorithmCaseConfiguration>(
+        id: "sphere-cuckoo",
+        configuration: new AlgorithmCaseConfiguration(OptimizerKind.Cuckoo, 2, 32, 50),
         repetitions: 4,
         createGroup: static (configuration, _) => CreateGroup(configuration),
         runGroupCount: 2),
@@ -65,28 +78,68 @@ static ContinuousProblem CreateSphereProblem(int dimension)
     return new ContinuousProblem(dimension, new SphereObjective(), CandidateRepairs.Clamp(-5, 5));
 }
 
-static ExperimentGroupSetup CreateGroup(BatCaseConfiguration configuration)
+static IReadOnlyList<(string Name, IOptimizer Optimizer)> CreateSingleRunOptimizers(int populationSize)
+{
+    return
+    [
+        ("Bat", CreateOptimizer(OptimizerKind.Bat, populationSize)),
+        ("PSO", CreateOptimizer(OptimizerKind.Pso, populationSize)),
+        ("Firefly", CreateOptimizer(OptimizerKind.Firefly, populationSize)),
+        ("Cuckoo", CreateOptimizer(OptimizerKind.Cuckoo, populationSize)),
+    ];
+}
+
+static ExperimentGroupSetup CreateGroup(AlgorithmCaseConfiguration configuration)
 {
     return new ExperimentGroupSetup(
         CreateSphereProblem(configuration.Dimension),
-        new BatOptimizer(
-            new RandomPositionInitializer(),
-            new BatOptimizerOptions
-            {
-                PopulationSize = configuration.PopulationSize,
-            }),
+        CreateOptimizer(configuration.OptimizerKind, configuration.PopulationSize),
         new OptimizationRunOptions(StoppingConditions.MaxIterations(configuration.Iterations)));
+}
+
+static IOptimizer CreateOptimizer(OptimizerKind optimizerKind, int populationSize)
+{
+    return optimizerKind switch
+    {
+        OptimizerKind.Bat => new BatOptimizer(
+            new RandomPositionInitializer(),
+            new BatOptimizerOptions { PopulationSize = populationSize }),
+        OptimizerKind.Pso => new PsoOptimizer(
+            new RandomPositionInitializer(),
+            new PsoOptimizerOptions { PopulationSize = populationSize }),
+        OptimizerKind.Firefly => new FireflyOptimizer(
+            new RandomPositionInitializer(),
+            new FireflyOptimizerOptions { PopulationSize = populationSize }),
+        OptimizerKind.Cuckoo => new CuckooOptimizer(
+            new RandomPositionInitializer(),
+            new CuckooOptimizerOptions { PopulationSize = populationSize }),
+        _ => throw new ArgumentOutOfRangeException(nameof(optimizerKind)),
+    };
 }
 
 namespace Anastasya.Metaheuristics.Examples
 {
     /// <summary>
-    /// 保存蝙蝠算法实验 Case 的不可变配置。
+    /// 标识 Example 中显式组装的内置连续优化器。
     /// </summary>
+    file enum OptimizerKind
+    {
+        Bat,
+        Pso,
+        Firefly,
+        Cuckoo,
+    }
+
+    /// <summary>保存可替换优化器实验 Case 的不可变配置。</summary>
+    /// <param name="OptimizerKind">显式选择的内置连续优化器。</param>
     /// <param name="Dimension">连续问题的维度。</param>
-    /// <param name="PopulationSize">每个 RunGroup 持有的蝙蝠数量。</param>
+    /// <param name="PopulationSize">每个 RunGroup 持有的候选数量。</param>
     /// <param name="Iterations">每次 run 的最大迭代次数。</param>
-    file sealed record BatCaseConfiguration(int Dimension, int PopulationSize, int Iterations);
+    file sealed record AlgorithmCaseConfiguration(
+        OptimizerKind OptimizerKind,
+        int Dimension,
+        int PopulationSize,
+        int Iterations);
 
     /// <summary>
     /// 计算连续位置平方和的最小化目标函数。
