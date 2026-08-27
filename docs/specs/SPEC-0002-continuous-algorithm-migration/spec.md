@@ -3,10 +3,10 @@
 ## 元数据
 
 - 编号：`SPEC-0002`
-- 状态：`Draft`
+- 状态：`Approved`
 - 创建日期：2026-08-27
-- 批准人：—
-- 批准日期：—
+- 批准人：项目作者
+- 批准日期：2026-08-27
 - 替代：无
 - 被替代：无
 - 相关 ADR：[ADR-0009](../../decisions/0009-group-scoped-optimizer-execution.md)、[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0011](../../decisions/0011-bat-first-algorithm-migration.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0015](../../decisions/0015-ordered-extended-evaluation-values.md)
@@ -151,6 +151,6 @@
 
 ## 批准记录
 
-- 规格批准：—
-- 批准日期：—
-- 批准时明确接受的风险：—
+- 规格批准：项目作者
+- 批准日期：2026-08-27
+- 批准时明确接受的风险：三个新增公开 Optimizer 和 Options 以当前连续 `double` 表示及 RunGroup 独占模型为前提；不保证对历史原型逐随机数复现。
