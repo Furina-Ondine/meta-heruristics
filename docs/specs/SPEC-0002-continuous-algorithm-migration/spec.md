@@ -3,10 +3,10 @@
 ## 元数据
 
 - 编号：`SPEC-0002`
-- 状态：`Clarifying`
+- 状态：`Approved`
 - 创建日期：2026-08-27
-- 批准人：—
-- 批准日期：—
+- 批准人：项目作者
+- 批准日期：2026-08-27
 - 替代：无
 - 被替代：无
 - 相关 ADR：[ADR-0009](../../decisions/0009-group-scoped-optimizer-execution.md)、[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0011](../../decisions/0011-bat-first-algorithm-migration.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0015](../../decisions/0015-ordered-extended-evaluation-values.md)
@@ -88,10 +88,10 @@
 
 ### FR-005：布谷鸟研究变体与显式时间尺度
 
-- 前置条件：`CuckooOptimizerOptions` 指定 `PopulationSize`、遗弃率、Lévy 指数、正态分布尺度、基础 Lévy 尺度、`LevyCandidateCount` 和 `StepDecayIterations`。
+- 前置条件：`CuckooOptimizerOptions` 指定 `PopulationSize`、遗弃率、Lévy 指数、正态分布尺度、基础 Lévy 尺度、遗弃扰动尺度、`LevyCandidateCount` 和 `StepDecayIterations`。
 - 触发行为：初始化并执行一次布谷鸟迭代。
-- 预期结果：每轮先对 `LevyCandidateCount` 个当前巢生成 Mantegna Lévy 候选，以当前最佳位置提供引导；候选经 Repair 和评估后仅在严格更优时替换对应巢。随后按 `floor(AbandonmentRate × PopulationSize)` 选择当前最差巢，以随机巢差和随机扰动生成替代候选，经 Repair、评估和择优替换。全局最佳始终为独立快照。
-- 时间尺度：本轮的 Lévy 尺度从基础尺度按已完成迭代数，在 `StepDecayIterations` 内线性衰减至其 10%；超过该数后维持 10%。该时间尺度只由 Options 定义，不读取或推断 Runner 的停止条件。
+- 预期结果：每轮先对 `LevyCandidateCount` 个当前巢生成 Mantegna Lévy 候选，以当前最佳位置提供引导；候选经 Repair 和评估后仅在严格更优时替换对应巢。随后按 `floor(AbandonmentRate × PopulationSize)` 选择当前最差巢，以随机巢差和按 `AbandonmentPerturbationScale` 缩放的随机扰动生成替代候选，经 Repair、评估和择优替换。全局最佳始终为独立快照。
+- 时间尺度：`BaseLevyScale` 与 `AbandonmentPerturbationScale` 都是独立的坐标单位参数，默认值分别为 `10` 和 `0.5`，对应旧实现默认位置范围 `[0, 10]` 下的幅度。前者按已完成迭代数，在 `StepDecayIterations` 内线性衰减至其 10%；超过该数后维持 10%。二者均只由 Options 定义，不读取或推断 Runner 的停止条件或 Repair 私有边界。
 - 边界情况：`LevyCandidateCount` 由调用方选择且不得超过种群数；遗弃率为零时不生成遗弃候选；种群为一时随机巢对允许指向同一巢，不得发生重试死循环。随机数、高斯样本和临时数组均为该 Optimizer 实例所有，不使用共享可变缓存。
 - 验收标准：用户传递的 Lévy 候选数、衰减边界、最差巢选择、遗弃率零、单巢、不同 Lévy 指数、最佳快照、方向/约束语义和固定 seed 复现均有测试。
 
@@ -99,7 +99,7 @@
 
 - 前置条件：调用方构造任一 Options 或在运行前/运行中请求取消。
 - 触发行为：Optimizer 构造、Reset 或 Advance。
-- 预期结果：种群数量必须为正；所有算法系数和内部速度边界必须为有限值；速度下界不得大于上界。PSO 的惯性和两个学习系数不得为负，最小惯性不得大于初始惯性，惯性衰减范围为 `(0, 1]`。萤火虫的吸引度、距离衰减和初始随机步长不得为负，随机步长衰减范围为 `(0, 1]`。布谷鸟的遗弃率范围为 `[0, 1]`，Lévy 指数范围为 `(0, 2)`，正态分布尺度和基础 Lévy 尺度必须为正，`LevyCandidateCount` 范围为 `[1, PopulationSize]`，`StepDecayIterations` 必须为正。
+- 预期结果：种群数量必须为正；所有算法系数和内部速度边界必须为有限值；速度下界不得大于上界。PSO 的惯性和两个学习系数不得为负，最小惯性不得大于初始惯性，惯性衰减范围为 `(0, 1]`。萤火虫的吸引度、距离衰减和初始随机步长不得为负，随机步长衰减范围为 `(0, 1]`。布谷鸟的遗弃率范围为 `[0, 1]`，Lévy 指数范围为 `(0, 2)`，正态分布尺度和基础 Lévy 尺度必须为正，遗弃扰动尺度不得为负，`LevyCandidateCount` 范围为 `[1, PopulationSize]`，`StepDecayIterations` 必须为正。
 - 边界情况：零速度范围、零吸引度、零随机步长、零学习系数、零遗弃率和达到衰减下限均有效；`NaN`、Infinity、倒置范围和未定义的 Lévy 参数必须在构造时失败。
 - 验收标准：每类 Options 的默认值可用；每个不等式边界与特殊浮点类别均有构造测试。算法通过 Context 的 Repair/Evaluate 传播取消，不自行吞没、转换或延迟 `OperationCanceledException`。
 
@@ -147,10 +147,11 @@
 - 旧仓库 `fix` 分支是算法行为与已知缺陷修复的参考，绝不作为可复制的架构或 API。
 - 布谷鸟的步长衰减由 `StepDecayIterations` 显式配置；它不与 Runner 的停止条件耦合。
 - 布谷鸟每轮产生的 Lévy 候选数由调用方传入 `LevyCandidateCount` 决定。
-- 待澄清：旧实现分别用算法内位置边界宽度缩放 Lévy 步长和遗弃阶段随机扰动；新实现不得读取 Repair 的私有边界。必须明确这两个尺度由哪些独立 Options 表达及其默认关系，才能固定无边界 API 下的布谷鸟数值行为。
+- 布谷鸟使用独立的 `BaseLevyScale`（默认 `10`）和 `AbandonmentPerturbationScale`（默认 `0.5`）；二者代替旧实现对算法内位置边界宽度的读取。
+- 没有未解决的公共行为问题。
 
 ## 批准记录
 
-- 规格批准：2026-08-27 的批准因布谷鸟尺度语义尚未确定而失效；澄清并修订后需要重新批准。
-- 批准日期：—
-- 批准时明确接受的风险：—
+- 规格批准：项目作者
+- 批准日期：2026-08-27
+- 批准时明确接受的风险：三个新增公开 Optimizer 和 Options 以当前连续 `double` 表示及 RunGroup 独占模型为前提；布谷鸟尺度由显式坐标单位配置，历史原型与自定义 Repair 范围不保证逐随机数复现。
