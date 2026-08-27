@@ -2,7 +2,7 @@
 
 ## 目标
 
-落实 [ADR-0012](../decisions/0012-repair-owned-candidate-boundaries.md) 与[设计规格](../specs/2026-08-26-repair-owned-boundaries-design.md)：算法不读取边界，所有 Position 在初始化和修改后交给 Repair，Core 不再验证位置。
+落实 [ADR-0012](../../decisions/0012-repair-owned-candidate-boundaries.md) 与[设计规格](../specs/2026-08-26-repair-owned-boundaries-design.md)：算法不读取边界，所有 Position 在初始化和修改后交给 Repair，Core 不再验证位置。
 
 ## 任务 1：重构 Core 位置契约
 

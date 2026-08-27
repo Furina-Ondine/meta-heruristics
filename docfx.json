@@ -1,0 +1,61 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [
+            "src/Metaheuristics.Core/Metaheuristics.Core.csproj",
+            "src/Metaheuristics.Algorithms/Metaheuristics.Algorithms.csproj",
+            "src/Metaheuristics.Experiments/Metaheuristics.Experiments.csproj"
+          ]
+        }
+      ],
+      "dest": "docs/reference/api",
+      "properties": {
+        "Configuration": "Release",
+        "TargetFramework": "net10.0"
+      }
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "README.md",
+          "ENGINEERING.md",
+          "docs/**/*.md",
+          "docs/reference/toc.yml"
+        ],
+        "exclude": [
+          "docs/reference/api/**",
+          "docs/reference/_site/**"
+        ]
+      },
+      {
+        "files": [
+          "docs/reference/api/**.yml",
+          "docs/reference/api/index.md"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "global.json",
+          "src/**/*.cs",
+          "examples/**/*.cs",
+          "benchmarks/**/*.cs"
+        ]
+      }
+    ],
+    "dest": "docs/reference/_site",
+    "template": [
+      "default",
+      "modern"
+    ],
+    "globalMetadata": {
+      "_appName": "Metaheuristics.NET",
+      "_appTitle": "Metaheuristics.NET API Reference"
+    }
+  }
+}

@@ -41,4 +41,4 @@
 - 默认有限边界和自定义无界初始化；
 - 固定 seed 的标准 Sphere 改善。
 
-最终公共用法以 [`docs/api/algorithms.md`](../../api/algorithms.md) 为准，迁移顺序理由见 [ADR-0011](../../decisions/0011-bat-first-algorithm-migration.md)。
+最终公共用法以 [API Overview](../../api/overview.md) 和生成式 API Reference 为准，迁移顺序理由见 [ADR-0011](../../decisions/0011-bat-first-algorithm-migration.md)。

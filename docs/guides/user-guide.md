@@ -1,71 +1,127 @@
+---
+uid: user-guide
+---
+
 # 用户使用手册
 
-Metaheuristics.NET 是一个仍在演进中的连续单目标优化 demo。你负责描述问题、选择算法与停止条件；库负责一次执行的生命周期，或把多次执行编排成可复现实验。
+本手册面向第一次使用 Metaheuristics.NET 解决优化问题的人。读完后，你应该知道库能解决什么、单次求解从哪里进入、怎样读取结果，以及什么时候需要转向批量实验。
 
-## 从单次执行开始
+## 这个库解决什么问题
 
-下面是完整的最小流程：定义有界问题、创建一个优化器、执行、然后在下一次执行前复制最佳位置。
+当你可以用一个函数评价“某个 `double` 向量有多好”，但无法直接写出最优向量时，可以使用元启发式算法搜索近似最优解。
+
+以 Sphere 函数为例：输入是位置 `[x₁, x₂, …]`，目标值是各分量平方和。最小值出现在零向量。你负责提供评价函数；Optimizer 负责生成和改进候选；Runner 负责停止、计数、取消和结果汇总。
+
+当前版本适合连续、单目标、同步评价问题。它不承诺找到数学上的全局最优值，也不支持多目标、二进制、排列、远程或 GPU 计算。
+
+## 两条使用路径
+
+### 求解一次
+
+```text
+ContinuousProblem + IOptimizer + OptimizationRunOptions
+    → OptimizationRunner.Execute
+    → OptimizationRunSummary + optimizer.BestPosition
+```
+
+适合求解一个问题、调试 Objective 或查看一次收敛过程。
+
+### 重复实验
+
+```text
+ExperimentCase + ExperimentDefinition + ExperimentExecutionOptions
+    → ExperimentRunner.RunAsync
+    → ExperimentResult
+```
+
+适合用多个 seed 重复运行、比较多个配置、限制总并发并汇总统计。
+
+## 第一次运行需要掌握的五个概念
+
+| 概念 | 你需要决定什么 |
+| --- | --- |
+| Problem | 候选向量有多少维、目标函数是什么、是否需要约束或 Repair。 |
+| Objective | 给定一个位置，返回怎样的目标值。 |
+| Optimizer | 使用哪种搜索算法；当前内置实现是 `BatOptimizer`。 |
+| Stopping Condition | 达到多少迭代、评估、时间或目标值时停止。 |
+| Result | 从 Summary 读取目标、迭代和停止原因；从 Optimizer 读取最佳位置。 |
+
+Initializer、Repair 和 Constraint 都是可替换策略，但第一次理解执行入口时不必先掌握全部细节。
+
+## 第一个完整例子
+
+仓库中的 [`Program.cs`](../../examples/Metaheuristics.Examples/Program.cs) 是经过项目构建验证的完整示例。它的单次路径完成四件事：
 
 ```csharp
-var problem = new ContinuousProblem(
-    dimension: 2,
-    objective: new SphereObjective(),
-    repair: CandidateRepairs.Clamp(-5, 5));
+var problem = CreateSphereProblem(dimension: 2);
 var optimizer = new BatOptimizer(
     new RandomPositionInitializer(),
     new BatOptimizerOptions { PopulationSize = 40 });
-var options = new OptimizationRunOptions(StoppingConditions.MaxIterations(200));
+var options = new OptimizationRunOptions(
+    StoppingConditions.MaxIterations(100));
 
-var summary = OptimizationRunner.Execute(problem, optimizer, options, seed: 42);
+var summary = OptimizationRunner.Execute(
+    problem, optimizer, options, seed: 20260820);
 var bestPosition = optimizer.BestPosition.ToArray();
-
-Console.WriteLine(summary.BestEvaluation.Objective);
 ```
 
-其中初始化器只负责写入 Position，并使用执行提供的随机流；默认 Clamp Repair 会在它返回后立即运行：
+1. `ContinuousProblem` 描述要评价的问题。
+2. `BatOptimizer` 选择搜索算法和初始位置策略。
+3. `OptimizationRunOptions` 决定何时停止。
+4. `OptimizationRunner.Execute` 用显式 seed 执行一次完整生命周期。
 
-```csharp
-sealed class RandomPositionInitializer : ICandidateInitializer
-{
-    public void Initialize(Span<double> position, Random random)
-    {
-        for (var index = 0; index < position.Length; index++)
-        {
-            position[index] = (random.NextDouble() * 10) - 5;
-        }
-    }
-}
+`summary.BestEvaluation.Objective` 是最佳目标值。最佳位置仍存放在 Optimizer 的可复用工作区，因此示例立即调用 `ToArray()` 保存副本；精确生命周期见生成式 API Reference 中的 `IOptimizer.BestPosition`。
+
+运行完整示例：
+
+```powershell
+dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.csproj --configuration Release
 ```
 
-`OptimizationRunSummary` 是不可变的，包含最佳评估、停止原因、迭代数、评估数、耗时、seed 和轨迹。`BestPosition` 由 `IOptimizer` 的可复用工作区拥有：在下一次 `ResetForRun` 或任何异常之后都不得继续引用它；需要长期保存时立即复制。
+## 常见变化
 
-## 描述问题
+### 最大化
 
-`ContinuousProblem` 需要维度与一个 `IObjectiveFunction`。未传 Repair 时，它使用标量 `[0, 10]` Clamp；算法实现不会读取 Repair 的端点。目标函数必须返回有限 `double`。默认方向为最小化；传入 `OptimizationDirection.Maximize` 可最大化。
+创建 Problem 时选择 `OptimizationDirection.Maximize`。Objective 仍只负责计算数值，比较方向由 Problem 决定。
 
-可选 `IConstraint` 返回已归一化的非负违背量，零表示满足。比较时始终先选可行解，再比较不可行解的总违背量，最后才按目标方向比较。位置本身由你的 `ICandidateInitializer` 和 `ICandidateRepair` 负责：算法在初始 Position 写入后、以及每次修改 Position 后都会调用 Repair；Core 不检查位置是否越界、非有限或包含 `NaN`。
+### 改变位置范围或恢复策略
 
-默认 Repair 是 `CandidateRepairs.Clamp(0, 10)`：越界值与正负无穷会被截断到端点，`NaN` 保持不变。Repair 的下界和上界可分别使用标量或逐维 `ReadOnlySpan<double>`；`-Infinity`/`+Infinity` 分别表示无下界/无上界。也可传入 `CandidateRepairs.Reflect(-5, 5)` 做双侧镜像，或 `CandidateRepairs.RandomReset(-5, 5)` 在双侧有限边界内随机回退。`CandidateRepairs.DoNothing` 完全跳过修复；除非你能自行保证初始化、每条位置更新路径及其数值后果，否则不要使用它。
+通过 `CandidateRepairs` 选择 Clamp、Reflect 或 RandomReset，并把策略传给 `ContinuousProblem`。算法不读取上下界；Initializer 写入初值后以及算法修改位置后，都会调用 Repair。
 
-## 控制执行
+未提供 Repair 时使用 `[0, 10]` Clamp。`DoNothing` 表示调用方自己承担位置合法性和数值后果，不是推荐的默认配置。
 
-使用 `StoppingConditions` 组合最大迭代、最大评估、时限或目标阈值。`OptimizationTraceOptions` 可关闭轨迹、逐迭代记录、按评估间隔记录，或按显式进度比例记录。取消使用标准 `CancellationToken`；单次 `Execute` 遇到取消会抛出 `OperationCanceledException`，不会返回部分汇总。
+### 增加约束
 
-每次执行都以显式 seed 创建独立 `Random`。相同库版本、运行时和执行设置下，相同 seed 会生成相同结果；不要在目标函数、约束、初始化器或修复器中使用 `Random.Shared` 或当前时间。
+实现 `IConstraint` 返回非负违背量：零表示满足，大于零表示违反。候选比较先考虑可行性，再比较违背量，最后才比较目标值。
 
-## 批量实验
+### 改变停止方式
 
-`ExperimentRunner.RunAsync` 接受 `ExperimentDefinition`。每个 `ExperimentCase<TConfiguration>` 用强类型配置和 Group 工厂创建隔离的 Problem、Optimizer 与运行选项。
+`StoppingConditions` 可以按最大迭代、最大评估、时限或目标值停止，也可以用 `Any` 组合多个条件。停止检查发生在初始化完成后和每次完整算法迭代后。
 
-`RunGroupCount` 把一个 Case 的 repetitions 均衡拆为若干 Group；同一 Group 内顺序复用 Optimizer 的工作区，多个 Group 受 `GlobalMaxConcurrency` 限制并发。不同 Group 不得共享可变 Problem、Optimizer、随机数或工作区。
+### 保持可复现
 
-实验结果始终按 Case 声明顺序和 repetition 下标排列。取消返回部分 `ExperimentResult`：已执行项为 `Succeeded`、`Failed` 或 `Canceled`，未投放项为 `NotStarted`。失败后库会丢弃该 Group 的 Optimizer，并为余下 repetitions 重新创建 Group。
+每次运行都传入显式 seed。不要在 Objective、Constraint、Initializer 或 Repair 中使用 `Random.Shared`、当前时间或跨运行共享的随机状态。
 
-## 自定义扩展时的安全规则
+## 什么时候使用 Experiment
 
-- `IOptimizer` 不线程安全；只能由一个 Group 顺序驱动，异常后必须丢弃。
-- `IStoppingCondition` 必须可重入，不能保存执行级可变状态。
-- `IObjectiveFunction`、`IConstraint`、`ICandidateInitializer` 和 `ICandidateRepair` 的线程安全由实现者负责；若多个 Group 共享它们依赖的底层数据，该数据必须不可变或自行同步。
-- `BatOptimizer` 必须传入 `ICandidateInitializer`。它只初始化 Position；速度、频率、响度和脉冲率仍由算法自己初始化。初始化器应使用传入的 `Random`，并让随后的 Repair 处理位置恢复。
+当问题从“求解一次”变成“用多个 seed 重复运行”“比较多组配置”或“限制整个批次的并发”时，使用 Experiments：
 
-可运行的单次与实验示例见 [`Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
+- `ExperimentCase<TConfiguration>` 保存一组强类型配置、重复次数和 Group 工厂；
+- `ExperimentDefinition` 收集一个或多个 Case；
+- `ExperimentExecutionOptions` 设置共享 seed 序列和全局并发上限；
+- `ExperimentRunner.RunAsync` 执行并返回按 Case 和 repetition 稳定排列的结果。
+
+`RunGroupCount` 决定一个 Case 拆成多少个独占 Optimizer 的 Group。同一 Group 内顺序复用工作区；不同 Group 不共享可变 Optimizer、Problem 或随机状态。取消会返回已完成的部分结果，而不是丢弃整个 Experiment。
+
+完整实验组装见同一份 [`Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
+
+## 替换策略
+
+不需要修改 Core 就能实现自己的：
+
+- `IObjectiveFunction` 和 `IConstraint`；
+- `ICandidateInitializer` 和 `ICandidateRepair`；
+- `IStoppingCondition`；
+- `IOptimizer`。
+
+具体入口关系见 [API Overview](../api/overview.md)。实现策略或新算法前阅读[开发者架构手册](../architecture/developer-guide.md)；参数、异常、所有权和成员生命周期以生成式 [API Reference](../reference/index.md) 为准。

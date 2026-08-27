@@ -4,7 +4,8 @@ namespace Anastasya.Metaheuristics.Algorithms.Bat;
 /// 配置连续蝙蝠优化器的种群规模、速度、频率、响度和脉冲发射率。
 /// </summary>
 /// <remarks>
-/// 候选位置范围由 <c>ContinuousProblem</c> 的逐维边界决定，不在算法配置中重复声明。
+/// 候选位置范围由调用方组合的 <c>ICandidateRepair</c> 持有，不在算法配置中重复声明。
+/// <see cref="BatOptimizer"/> 构造时复制并一次性验证配置；后续运行不会重新读取调用方记录。
 /// </remarks>
 public sealed record BatOptimizerOptions
 {

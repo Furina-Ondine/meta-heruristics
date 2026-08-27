@@ -4,7 +4,7 @@ using Anastasya.Metaheuristics.Core.Execution;
 namespace Anastasya.Metaheuristics.Experiments.Results;
 
 /// <summary>
-/// 指定 run、Case 或最终 Experiment 的执行状态。
+/// 统一表示 run、Case 和 Experiment 的完成、失败及取消传播结果。
 /// </summary>
 public enum ExperimentExecutionStatus
 {

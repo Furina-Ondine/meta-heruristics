@@ -1,6 +1,8 @@
 # 代理工作入口
 
 - 修改前阅读[工程规范](ENGINEERING.md)、[架构概览](docs/architecture/overview.md)和相关 [ADR](docs/decisions/README.md)。
+- 修改前按 `ENGINEERING.md` 判断风险：公共 API、行为、职责、抽象、数值、状态、随机性、性能或跨项目变化必须使用 `docs/specs/` 中经批准的完整 SDD；局部内部修改也要先给出短设计并获得批准。
+- 完整 SDD 必须依次完成 Spec、澄清、用户批准、Plan、用户批准、Tasks、实现和 Verification；实施中发现未批准行为、重复概念或连带影响时停止并退回上游产物。
 - 保护用户修改，不覆盖或回退不属于当前任务的变更。
 - 行为变化由自动化测试定义；不绕过项目依赖、状态隔离和数值规则。
 - 公共行为或架构变化先形成设计，必要时新增或替代 ADR。

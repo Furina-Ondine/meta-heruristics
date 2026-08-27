@@ -1,7 +1,7 @@
 namespace Anastasya.Metaheuristics.Core.Problems;
 
 /// <summary>
-/// 指定目标函数的优化方向。
+/// 指定可行性和约束违背量相同时，目标值之间的优劣顺序。
 /// </summary>
 public enum OptimizationDirection
 {

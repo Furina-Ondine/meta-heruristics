@@ -7,3 +7,5 @@ obj/
 TestResults/
 BenchmarkDotNet.Artifacts/
 .superpowers/
+docs/reference/api/
+docs/reference/_site/

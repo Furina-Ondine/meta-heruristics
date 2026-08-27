@@ -27,6 +27,7 @@
 | [0011](0011-bat-first-algorithm-migration.md) | 首个算法迁移选择蝙蝠算法 | `Accepted` |
 | [0012](0012-repair-owned-candidate-boundaries.md) | Repair 拥有候选位置边界 | `Superseded` |
 | [0013](0013-tensor-shaped-repair-bounds.md) | Tensor 形状的 Repair 边界 | `Accepted` |
+| [0014](0014-spec-driven-change-governance.md) | Spec-Driven 变更治理 | `Accepted` |
 
 ## ADR 模板
 

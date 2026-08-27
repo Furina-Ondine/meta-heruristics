@@ -1,60 +1,124 @@
+---
+uid: developer-guide
+---
+
 # 开发者架构手册
 
-本手册说明当前实现如何组合。工程约束以 [工程规范](../../ENGINEERING.md) 为准，决策理由以 [ADR](../decisions/README.md) 为准；本文解释开发时应从哪里进入与如何安全扩展。
+本手册面向实现新策略、算法或修改现有职责的人。持续有效的规则以 [`ENGINEERING.md`](../../ENGINEERING.md) 为准，选择理由以 [ADR](../decisions/README.md) 为准，具体功能行为以 [Approved/Implemented Spec](../specs/README.md) 为准。
 
-## 项目职责
-
-```text
-Algorithms ──→ Core
-Experiments ─→ Core
-Examples ───→ Core + Algorithms + Experiments
-Tests ──────→ Core + Algorithms + Experiments
-Benchmarks ─→ Core + Algorithms
-```
-
-- `Core` 定义连续问题、评估/比较、优化器执行契约、停止、轨迹与汇总。
-- `Algorithms` 实现 `IOptimizer`；当前为使用双缓冲种群工作区的 `BatOptimizer`。
-- `Experiments` 用强类型 Case 和 Group factory 规划、调度和汇总多次执行。
-- `Examples` 展示用户组合；`Tests` 锁定可观察行为；`Benchmarks` 为工作区复用与调度策略提供性能证据。
-
-## 组件组合与生命周期
-
-单次执行由用户组装：
+## 先选择扩展点
 
 ```text
-ContinuousProblem + IOptimizer + OptimizationRunOptions
-  → OptimizationRunner.Execute
-  → OptimizationRunContext
-  → ResetForRun → Advance* → OptimizationRunSummary
+只改变评价             → IObjectiveFunction / IConstraint
+只改变初始位置         → ICandidateInitializer
+只改变位置恢复         → ICandidateRepair
+只改变停止规则         → IStoppingCondition
+改变完整搜索过程       → IOptimizer
+组织多配置和重复运行   → Experiments 的 typed Case + Group factory
 ```
 
-`OptimizationRunContext` 为每次执行新建，拥有 `Random(seed)`、评估计数与取消令牌。所有算法评估必须调用 `context.Evaluate`，以保持计数、取消与目标/约束结果验证一致；所有位置初始化与修改后必须调用 `context.Repair`。停止检查发生在初始化完成后和每次完整 `Advance` 后；因此评估阈值是迭代边界预算。
+Core 定义最小协议和运行生命周期；调用方显式组装策略。不要为扩展建立字符串注册中心、服务定位器或运行时程序集扫描。
 
-实验路径为：
+## 实现 Objective 或 Constraint
+
+Objective 只根据位置计算目标值，不负责停止、比较、Repair 或随机数。Constraint 返回归一化的非负违背量，零表示满足。
+
+所有算法评价候选都必须通过 `OptimizationRunContext.Evaluate`，让执行上下文统一处理计数、取消以及当前公共数值契约。不要直接调用 Problem 或 Objective 绕过 Context。
+
+Objective 和 Constraint 是否能被多个 RunGroup 并发调用由实现者负责。如果共享底层数据，该数据必须不可变或自行同步。
+
+## 实现 Initializer 或 Repair
+
+Initializer 只写入传入的位置并使用运行提供的 `Random`。算法在 Initializer 返回后立即调用 `context.Repair`。
+
+Repair 拥有自己的边界或其他恢复数据。算法和 Problem 不读取这些数据；算法每次修改候选位置后都必须调用 `context.Repair`。向量端点等构造输入应在策略创建时复制和验证，避免在热路径重复处理配置。
+
+策略失职造成的位置后果由策略和调用方负责；Core 不重新实现位置合法性判断或静默修复。
+
+## 实现 Stopping Condition
+
+`IStoppingCondition` 接收不可变的 `OptimizationState` 并返回可选停止原因。实现必须可重入，不能保存 run 级可变状态，因为同一实例可能被不同 Group 并发调用。
+
+停止条件观察迭代边界状态。需要更细粒度预算时，应先形成新的公共行为 Spec，而不是从算法内部绕开 Runner。
+
+## 实现 Optimizer
+
+一次单次运行的调用顺序为：
 
 ```text
-ExperimentDefinition → RunGroup plans → fixed workers
-  → group factory → sequential Execute within a Group → ExperimentResult
+OptimizationRunner.Execute
+  → new OptimizationRunContext(seed, cancellation)
+  → optimizer.ResetForRun(context)
+  → check stop
+  → optimizer.Advance()
+  → check stop
+  → ...
+  → OptimizationRunSummary
 ```
 
-计划按 Case 和 Group 下标稳定生成；seed 仅取决于 repetition 下标，因而不受 Group 数量、Worker 领取顺序或并发度影响。
+实现必须满足：
 
-## 所有权与线程安全
+- `ResetForRun` 完整覆盖上一 run 的逻辑状态，并产生有效的最佳状态；
+- 初次 reset 可以按问题维度分配主要工作区，正常的后续 run 应复用它；
+- 每个初始位置以及每次位置修改后调用 `context.Repair`；
+- 每次评价只调用 `context.Evaluate`；
+- `Advance` 完成一个不可拆分的算法迭代；
+- 不使用全局随机流、当前时间播种或跨 run 逻辑状态；
+- 不读取 Repair 的边界，不把算法专属表示放进 Core。
 
-`ContinuousProblem` 防御性复制约束集合，并在未提供 Repair 时使用标量 `[0, 10]` Clamp。自定义 Repair 自己拥有边界；向量边界会在 Repair 创建时防御性复制，Problem 不公开它们。其用户提供的目标、约束、初始化器和修复策略是否可并发调用由用户决定。`IOptimizer` 拥有种群、临时数组与 `BestPosition`，不保证线程安全；一个实例只能属于一个 Group。正常的顺序执行可以复用数组，异常后必须丢弃实例。
+`IOptimizer` 拥有种群、临时缓冲区和 `BestPosition`，不保证线程安全。一个实例只能由一个 RunGroup 顺序驱动；执行异常后不得复用。返回的最佳位置是借用工作区而不是快照，精确成员契约见生成式 API Reference。
 
-`OptimizationRunSummary`、`Evaluation`、`ConstraintEvaluation` 和最终 Experiment 结果均为不可变快照。`BestPosition` 不是快照；它在下一次 reset 前才有效。`IStoppingCondition` 必须可重入，因此可从多个 Group 并发调用。
+至少覆盖固定 seed、最小化/最大化、约束比较、取消、并发隔离、异常后不复用以及工作区复用测试。性能主张必须有端到端 BenchmarkDotNet 或分配证据。
 
-Experiment 的每个 Group 都创建独占的 Problem、Optimizer 和运行选项。跨 Group 只能共享调用方明确提供的不可变数据。`BestPositionMatrix` 的构造过程受 Case 内部锁保护，完成后只读。
+## 接入 Experiments
 
-## 错误、取消与确定性
+```text
+ExperimentDefinition
+  → stable RunGroup plans
+  → bounded fixed workers
+  → typed group factory
+  → sequential runs in each Group
+  → ExperimentResult
+```
 
-目标值、约束违背和关键配置都会验证有限性与范围。候选位置不由 Core 验证：`ICandidateInitializer` 写入初值，算法每次修改后通过 `context.Repair` 委托 `ICandidateRepair`。内置 Clamp 是默认策略；DoNothing 是调用方明确承担后果的风险选择。非取消异常使当前 repetition 失败；Experiment 为同 Group 的后续 repetition 新建环境。取消停止投放新的 Group，已经开始的执行通过 Context 协作取消，最后返回部分结果。
+每个 Group 创建独占 Problem、Optimizer 和 RunOptions。同一 Group 的正常 run 可以复用物理工作区；异常后 Runner 丢弃环境并为后续 repetition 重建。不同 Group 只能共享调用方明确提供的不可变底层数据。
 
-禁止全局随机流、时间播种和跨执行共享逻辑状态。不要为优化方便改变随机调用顺序、数组布局、候选比较或 seed 派生；这些都是确定性契约的一部分。
+seed 只取决于 Experiment 计划和 repetition 下标，不依赖 Group 拆分、Worker 领取顺序或并发度。结果读取顺序同样不依赖任务完成顺序。
 
-## 新增算法
+Experiments 只依赖 Core，不能引用具体算法。具体算法由调用方在 typed Group factory 中组装。
 
-实现 `IOptimizer` 时，`ResetForRun` 必须完整初始化逻辑状态、在每个初始位置写入后调用 `context.Repair`、完成初始评估并建立最佳状态；`Advance` 必须完成一个完整迭代，并在每条修改位置的路径结束后调用 `context.Repair`。首次 reset 可按维度分配工作区；后续正常执行应复用它。算法不应读取变量上下界，不应把论文专用模型带入 Core，也不应直接依赖 Experiments。
+## 修改现有职责
 
-至少补充固定 seed、最小化/最大化、约束比较、取消、并发隔离、异常后不复用及工作区复用测试。若声称性能收益，使用 BenchmarkDotNet 测量实际算法、约束处理和布局转换的端到端路径。
+公共 API、行为、项目职责、策略或执行抽象、状态、随机性、数值语义、性能或跨项目变化必须先建立完整 [change package](../specs/README.md)。Plan 在提出方案前必须调查：
+
+- 当前类型、入口和调用链；
+- 其他层是否已有相似概念；
+- 新设计替代哪些旧类型、测试和文档；
+- Core、Algorithms、Experiments、Examples、Tests、Benchmarks、XML 和用户文档的连带影响；
+- 哪些检查位于热路径，以及它们保护哪个库不变量。
+
+职责迁移默认删除失去独立价值的旧入口、转发层和兼容壳。需要保留时必须记录真实消费者、期限和删除条件。
+
+## 项目边界与验证
+
+```text
+Algorithms   ──→ Core
+Experiments  ──→ Core
+Examples     ──→ Core + Algorithms + Experiments
+Tests        ──→ Core + Algorithms + Experiments
+Benchmarks   ──→ Core + Algorithms
+```
+
+完成变更前至少执行：
+
+```powershell
+dotnet tool restore
+dotnet restore Metaheuristics.NET.slnx --property:NuGetAudit=false
+dotnet build Metaheuristics.NET.slnx --configuration Release --no-restore
+dotnet test Metaheuristics.NET.slnx --configuration Release --no-build
+pwsh ./eng/verify-documentation.ps1
+dotnet docfx docfx.json --warningsAsErrors
+dotnet format Metaheuristics.NET.slnx --verify-no-changes --no-restore
+```
+
+当前项目结构和运行流程见[架构概览](overview.md)，具体类型入口见 [API Overview](../api/overview.md)。

@@ -7,7 +7,7 @@ namespace Anastasya.Metaheuristics.Core.Execution;
 /// 驱动单次优化运行的生命周期。
 /// </summary>
 /// <remarks>
-/// Runner 负责创建 run 级上下文、检查取消和停止条件、复制可选结果以及收集轨迹；
+/// Runner 负责创建 run 级上下文、检查取消和停止条件、构造标量汇总以及收集轨迹；
 /// Optimizer 由调用方创建并拥有，可以在多次正常的顺序运行之间复用工作区。
 /// </remarks>
 public static class OptimizationRunner

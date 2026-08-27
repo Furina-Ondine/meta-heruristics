@@ -55,9 +55,9 @@ docs/
       verification.md
   api/
     overview.md
-  reference/                  # DocFX 配置和手写入口，不提交生成产物
-    docfx.json
+  reference/                  # DocFX 手写入口，不提交生成产物
     toc.yml
+docfx.json                    # 根配置，保持仓库 Markdown 的相对链接语义
 eng/
   verify-documentation.ps1
 .config/
@@ -150,7 +150,7 @@ eng/
 ### 影响文件
 
 - 新增或更新 `.config/dotnet-tools.json`，固定 DocFX `2.78.5`
-- 新增 `docs/reference/docfx.json` 与 `docs/reference/toc.yml`
+- 新增根目录 `docfx.json` 与 `docs/reference/toc.yml`；配置位于根目录以保持仓库 Markdown 相对链接不变
 - 更新 `.gitignore`
 - 新增 `docs/api/overview.md`
 - 删除被替代的 `docs/api/core.md`、`docs/api/algorithms.md`、`docs/api/experiments.md`
@@ -253,7 +253,7 @@ dotnet restore Metaheuristics.NET.slnx --property:NuGetAudit=false
 dotnet build Metaheuristics.NET.slnx --configuration Release --no-restore
 dotnet test Metaheuristics.NET.slnx --configuration Release --no-build
 pwsh ./eng/verify-documentation.ps1
-dotnet docfx docs/reference/docfx.json --warningsAsErrors
+dotnet docfx docfx.json --warningsAsErrors
 dotnet format Metaheuristics.NET.slnx --verify-no-changes --no-restore
 git diff --check
 ```

@@ -3,7 +3,7 @@ using Anastasya.Metaheuristics.Core.Problems;
 namespace Anastasya.Metaheuristics.Core.Execution;
 
 /// <summary>
-/// 指定优化轨迹记录的触发策略。
+/// 指定初始化基线之后，优化执行在何种进度事件上追加轨迹点。
 /// </summary>
 public enum OptimizationTraceMode
 {

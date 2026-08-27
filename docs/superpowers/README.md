@@ -7,11 +7,12 @@
 
 `superpowers` 是创建这些文档时沿用的工作流目录名；这里的文件不参与项目编译或运行，也不是使用库时必须安装的组件。
 
-两类文档都是过程/历史档案，不是现行工程规范。发生冲突时，依次以以下资料为准：
+两类文档都是过程/历史档案，不是现行工程规范。新的权威功能规格保存在 [`docs/specs/`](../specs/README.md)。发生冲突时，依次以以下资料为准：
 
 1. [`ENGINEERING.md`](../../ENGINEERING.md)：持续有效的工程契约；
 2. [`docs/decisions/`](../decisions/README.md) 中状态为 `Accepted` 的 ADR：解释当前决策的背景、理由和替代关系；
-3. [`docs/architecture/overview.md`](../architecture/overview.md) 与当前实现：报告和体现系统现状。
+3. [`docs/specs/`](../specs/README.md) 中 Approved 或 Implemented 的 Spec：定义对应功能的公共意图和行为；
+4. [`docs/architecture/overview.md`](../architecture/overview.md) 与当前实现：报告和体现系统现状。
 
 ## 设计规格（specs）
 

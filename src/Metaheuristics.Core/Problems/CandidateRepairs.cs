@@ -1,36 +1,69 @@
 namespace Anastasya.Metaheuristics.Core.Problems;
 
-/// <summary>创建由自身持有标量或逐维边界的内置候选 Repair。</summary>
+/// <summary>创建在算法每次写入位置后就地恢复候选分量的内置策略。</summary>
+/// <remarks>
+/// 下界和上界可分别为标量或逐维向量；向量在创建时复制，并在 Repair 时要求长度与位置一致。
+/// 端点不能为 <see cref="double.NaN"/>，每一维下界不能大于上界；
+/// <see cref="double.NegativeInfinity"/> 和 <see cref="double.PositiveInfinity"/> 分别表示无下界和无上界。
+/// 所有策略保留位置中的 <see cref="double.NaN"/>，且不承担约束判定职责。
+/// </remarks>
 public static class CandidateRepairs
 {
-    /// <summary>创建使用标量下界和上界的 Clamp Repair。</summary>
+    /// <summary>创建把每个越界分量截到最近标量端点的 Repair。</summary>
+    /// <param name="lower">应用于所有分量的包含式下界。</param>
+    /// <param name="upper">应用于所有分量的包含式上界。</param>
+    /// <returns>不持有 Problem 引用、可重复调用的就地 Repair。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">任一端点为 <see cref="double.NaN"/>。</exception>
+    /// <exception cref="ArgumentException"><paramref name="lower"/> 大于 <paramref name="upper"/>。</exception>
     public static ICandidateRepair Clamp(double lower, double upper) => new ClampCandidateRepair(lower, upper);
-    /// <summary>创建使用逐维下界和标量上界的 Clamp Repair。</summary>
+    /// <inheritdoc cref="Clamp(double, double)"/>
+    /// <remarks>逐维下界在创建时复制；Repair 时其长度必须与位置一致。</remarks>
     public static ICandidateRepair Clamp(ReadOnlySpan<double> lower, double upper) => new ClampCandidateRepair(lower, upper);
-    /// <summary>创建使用标量下界和逐维上界的 Clamp Repair。</summary>
+    /// <inheritdoc cref="Clamp(double, double)"/>
+    /// <remarks>逐维上界在创建时复制；Repair 时其长度必须与位置一致。</remarks>
     public static ICandidateRepair Clamp(double lower, ReadOnlySpan<double> upper) => new ClampCandidateRepair(lower, upper);
-    /// <summary>创建使用逐维下界和上界的 Clamp Repair。</summary>
+    /// <inheritdoc cref="Clamp(double, double)"/>
+    /// <remarks>两个端点向量在创建时复制且长度必须相等；Repair 时该长度必须与位置一致。</remarks>
     public static ICandidateRepair Clamp(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) => new ClampCandidateRepair(lower, upper);
 
-    /// <summary>创建使用标量下界和上界的 Reflect Repair。</summary>
+    /// <summary>创建把有限区间外的有限分量镜像回区间内的 Repair。</summary>
+    /// <remarks>单侧无界、双侧无界或位置为无穷时退化为 Clamp；位置中的 <see cref="double.NaN"/> 保持不变。</remarks>
+    /// <param name="lower">应用于所有分量的包含式下界。</param>
+    /// <param name="upper">应用于所有分量的包含式上界。</param>
+    /// <returns>不持有 Problem 引用、可重复调用的就地 Repair。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">任一端点为 <see cref="double.NaN"/>。</exception>
+    /// <exception cref="ArgumentException"><paramref name="lower"/> 大于 <paramref name="upper"/>。</exception>
     public static ICandidateRepair Reflect(double lower, double upper) => new ReflectCandidateRepair(lower, upper);
-    /// <summary>创建使用逐维下界和标量上界的 Reflect Repair。</summary>
+    /// <inheritdoc cref="Reflect(double, double)"/>
+    /// <remarks>逐维下界在创建时复制；Repair 时其长度必须与位置一致。</remarks>
     public static ICandidateRepair Reflect(ReadOnlySpan<double> lower, double upper) => new ReflectCandidateRepair(lower, upper);
-    /// <summary>创建使用标量下界和逐维上界的 Reflect Repair。</summary>
+    /// <inheritdoc cref="Reflect(double, double)"/>
+    /// <remarks>逐维上界在创建时复制；Repair 时其长度必须与位置一致。</remarks>
     public static ICandidateRepair Reflect(double lower, ReadOnlySpan<double> upper) => new ReflectCandidateRepair(lower, upper);
-    /// <summary>创建使用逐维下界和上界的 Reflect Repair。</summary>
+    /// <inheritdoc cref="Reflect(double, double)"/>
+    /// <remarks>两个端点向量在创建时复制且长度必须相等；Repair 时该长度必须与位置一致。</remarks>
     public static ICandidateRepair Reflect(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) => new ReflectCandidateRepair(lower, upper);
 
-    /// <summary>创建使用标量下界和上界的 RandomReset Repair。</summary>
+    /// <summary>创建把有限区间外的分量重新均匀采样到区间内的 Repair。</summary>
+    /// <remarks>只有双侧有限区间使用随机流；无界端点退化为 Clamp，位置中的 <see cref="double.NaN"/> 保持不变。</remarks>
+    /// <param name="lower">应用于所有分量的包含式下界。</param>
+    /// <param name="upper">应用于所有分量的包含式上界。</param>
+    /// <returns>使用调用方随机流、可由固定 seed 重现的就地 Repair。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">任一端点为 <see cref="double.NaN"/>。</exception>
+    /// <exception cref="ArgumentException"><paramref name="lower"/> 大于 <paramref name="upper"/>。</exception>
     public static ICandidateRepair RandomReset(double lower, double upper) => new RandomResetCandidateRepair(lower, upper);
-    /// <summary>创建使用逐维下界和标量上界的 RandomReset Repair。</summary>
+    /// <inheritdoc cref="RandomReset(double, double)"/>
+    /// <remarks>逐维下界在创建时复制；Repair 时其长度必须与位置一致。</remarks>
     public static ICandidateRepair RandomReset(ReadOnlySpan<double> lower, double upper) => new RandomResetCandidateRepair(lower, upper);
-    /// <summary>创建使用标量下界和逐维上界的 RandomReset Repair。</summary>
+    /// <inheritdoc cref="RandomReset(double, double)"/>
+    /// <remarks>逐维上界在创建时复制；Repair 时其长度必须与位置一致。</remarks>
     public static ICandidateRepair RandomReset(double lower, ReadOnlySpan<double> upper) => new RandomResetCandidateRepair(lower, upper);
-    /// <summary>创建使用逐维下界和上界的 RandomReset Repair。</summary>
+    /// <inheritdoc cref="RandomReset(double, double)"/>
+    /// <remarks>两个端点向量在创建时复制且长度必须相等；Repair 时该长度必须与位置一致。</remarks>
     public static ICandidateRepair RandomReset(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) => new RandomResetCandidateRepair(lower, upper);
 
     /// <summary>获取完全不修改位置的 Repair。</summary>
+    /// <remarks>这是显式风险选择：Core 不会替它验证位置，调用方必须自行承担越界和非有限位置的后果。</remarks>
     public static ICandidateRepair DoNothing { get; } = new DoNothingCandidateRepair();
 
     private abstract class BoundedCandidateRepair : ICandidateRepair

@@ -14,11 +14,13 @@ public interface IOptimizer
     /// <summary>
     /// 获取当前运行发现的最优候选位置。
     /// </summary>
+    /// <remarks>返回值借用 Optimizer 的工作区，不是快照；下一次 <see cref="ResetForRun"/> 或运行异常后失效。</remarks>
     ReadOnlySpan<double> BestPosition { get; }
 
     /// <summary>
     /// 获取当前最优候选位置的评估结果。
     /// </summary>
+    /// <remarks>这是不可变值快照，不随下一次运行改变。</remarks>
     Evaluation BestEvaluation { get; }
 
     /// <summary>
@@ -97,8 +99,8 @@ public sealed class OptimizationRunContext
         return evaluation;
     }
 
-    /// <summary>使用问题配置的 Repair 就地修复候选位置。</summary>
-    /// <param name="position">要就地修复的候选位置。</param>
+    /// <summary>使用当前问题的策略和本 run 随机流，在评价前就地恢复候选位置。</summary>
+    /// <param name="position">本次调用独占且可以原位修改的候选缓冲区。</param>
     /// <exception cref="OperationCanceledException">取消令牌在修复前已请求取消。</exception>
     public void Repair(Span<double> position)
     {

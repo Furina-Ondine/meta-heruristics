@@ -1,59 +1,58 @@
 # Metaheuristics.NET
 
-面向 .NET 的通用、高性能元启发式优化算法库。
+Metaheuristics.NET 是面向 .NET 的连续单目标元启发式优化库。你提供目标函数、候选初始化方式和停止条件，库用选定算法搜索更优的 `double` 向量，并可把同一类配置重复运行成可复现实验。
 
 > [!IMPORTANT]
-> 项目处于早期开发阶段，公共 API 尚未稳定，不建议用于生产环境。
+> 项目仍处于早期开发阶段，公共 API 尚未稳定，不建议用于生产环境。
 
-## 首版范围
+## 当前能做什么
 
-首版聚焦连续单目标优化：候选位置为 `double` 向量，目标值为标量 `double`，支持最小化、最大化、变量边界及约束。目标评估采用单点同步接口；运行之间保持随机状态隔离和可复现性。
+- 求连续 `double` 向量上的标量目标最小值或最大值；
+- 使用约束、Clamp/Reflect/RandomReset Repair 和组合停止条件；
+- 用内置蝙蝠算法执行一次优化；
+- 用多个 Case、重复运行、显式 seed 和有界并发执行批量实验；
+- 通过强类型接口替换 Objective、Constraint、Initializer、Repair、Stopping Condition 或完整 Optimizer。
 
-首版不包含远程、集群、GPU、多目标、二进制或排列表示，也不提供运行时插件发现。
+当前不支持多目标、二进制或排列表示、远程/集群/GPU 执行，也不提供运行时程序集扫描或字符串插件注册。
 
-## 快速开始
+## 两个入口
 
-先运行可构建示例，再阅读使用手册：
+```text
+求解一次
+Problem + Optimizer + RunOptions
+    → OptimizationRunner.Execute
+    → Summary + BestPosition
+
+重复实验
+ExperimentCase + ExperimentDefinition + ExecutionOptions
+    → ExperimentRunner.RunAsync
+    → ExperimentResult
+```
+
+第一次使用从[用户使用手册](docs/guides/user-guide.md)开始；寻找具体类型时使用 [API Overview](docs/api/overview.md) 和由 XML 注释生成的 [API Reference](docs/reference/index.md)。
+
+## 运行示例
+
+需要与 [`global.json`](global.json) 兼容的 .NET SDK 10.0.400：
 
 ```powershell
 dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.csproj --configuration Release
 ```
 
-`Core` 定义问题与执行契约，`Algorithms` 提供算法，`Experiments` 编排批量实验。首次使用请从[用户使用手册](docs/guides/user-guide.md)开始；开发或扩展时阅读[开发者架构手册](docs/architecture/developer-guide.md)。
+完整示例同时演示单次求解和两个实验 Case，源码见 [`Program.cs`](examples/Metaheuristics.Examples/Program.cs)。
 
-## 路线图
-
-- `v0.1`：Core、运行模型、结果模型、实验管理和蝙蝠算法；
-- `v0.2`：约束体系、PSO 和连续遗传算法；
-- `v0.3`：布谷鸟搜索；
-- `v0.4`：萤火虫算法、扩展示例和基准；
-- `v1.0`：统一质量门槛。
-
-后续按“泛型单目标值 → 多目标 → 二进制/排列表示”演进，详见[ADR 索引](docs/decisions/README.md)。
-
-## 开发
-
-环境要求：与 `global.json` 兼容的 .NET SDK 10.0.400。
+## 开发与验证
 
 ```powershell
-dotnet restore Metaheuristics.NET.slnx
+dotnet tool restore
+dotnet restore Metaheuristics.NET.slnx --property:NuGetAudit=false
 dotnet build Metaheuristics.NET.slnx --configuration Release --no-restore
 dotnet test Metaheuristics.NET.slnx --configuration Release --no-build
-dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.csproj --configuration Release --no-build
+pwsh ./eng/verify-documentation.ps1
+dotnet docfx docfx.json --warningsAsErrors
 ```
 
-## 文档
-
-- [用户使用手册](docs/guides/user-guide.md)：从单次执行、结果复制到实验和扩展点的完整路径；
-- [开发者架构手册](docs/architecture/developer-guide.md)：模块职责、组合、生命周期、线程安全和扩展规则；
-- [工程规范](ENGINEERING.md)：长期有效的代码、架构、测试和发布规则；
-- [架构概览](docs/architecture/overview.md)：当前项目职责、依赖和运行流程；
-- [Core API](docs/api/core.md)：连续问题、执行模型和扩展契约参考；
-- [Algorithms API](docs/api/algorithms.md)：蝙蝠算法配置、生命周期、迁移来源和边界；
-- [Experiments API](docs/api/experiments.md)：Case、RunGroup、并发调度、失败与结果统计；
-- [RunGroup 调度基准](docs/benchmarks/run-group-scheduling.md)：固定 Worker、Parallel API 与信号量方案在长短计划下的对照；
-- [Superpowers 设计与实施档案](docs/superpowers/README.md)：按变更保存设计规格和实施计划，不作为长期工程规范；
-- [ADR 索引](docs/decisions/README.md)：决策背景、替代方案和重新评估条件。
+扩展策略或算法前阅读[开发者架构手册](docs/architecture/developer-guide.md)；持续工程规则见 [`ENGINEERING.md`](ENGINEERING.md)，当前实现见[架构概览](docs/architecture/overview.md)，决策理由见 [ADR](docs/decisions/README.md)，新功能变更流程见[功能规格](docs/specs/README.md)。
 
 ## 项目来源
 

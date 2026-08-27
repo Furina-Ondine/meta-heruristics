@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore local tools
+        run: dotnet tool restore
+
+      - name: Restore solution
+        run: dotnet restore Metaheuristics.NET.slnx --property:NuGetAudit=false
+
+      - name: Build Release
+        run: dotnet build Metaheuristics.NET.slnx --configuration Release --no-restore
+
+      - name: Test Release
+        run: dotnet test Metaheuristics.NET.slnx --configuration Release --no-build
+
+      - name: Verify documentation contracts
+        shell: pwsh
+        run: |
+          ./eng/test-documentation-verifier.ps1
+          ./eng/verify-documentation.ps1
+
+      - name: Build API Reference
+        run: dotnet docfx docfx.json --warningsAsErrors
+
+      - name: Verify formatting
+        run: dotnet format Metaheuristics.NET.slnx --verify-no-changes --no-restore

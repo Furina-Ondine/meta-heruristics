@@ -6,7 +6,7 @@
 
 本文固定 `Metaheuristics.Experiments` 第一波实现的详细设计，包括 Case、RunGroup、调度、内存复用、种子、失败、取消、结果和聚合语义。持续有效的工程契约见 [`ENGINEERING.md`](../../../ENGINEERING.md)，最新执行与评估决策见 [ADR-0009](../../decisions/0009-group-scoped-optimizer-execution.md) 和 [ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)。
 
-本文保存设计阶段确认的职责和数据流；最终公共类型、签名与用法以 [`docs/api/experiments.md`](../../../docs/api/experiments.md) 为准。
+本文保存设计阶段确认的职责和数据流；最终公共类型、签名与用法以 [API Overview](../../api/overview.md) 和生成式 API Reference 为准。
 
 ## 目标
 
@@ -383,7 +383,7 @@ public sealed class BestPositionMatrix
 
 第一版实现已同步：
 
-- `docs/api/core.md`：撤销 Session 和批量评估，并记录有状态 Optimizer 的重用契约；
-- `docs/api/experiments.md`：记录最终公共类型、示例和边界行为；
+- API Overview 与生成式 Reference：撤销 Session 和批量评估，并记录有状态 Optimizer 的重用契约；
+- `docs/api/overview.md` 与生成式 API Reference：记录最终公共入口、类型和成员契约；
 - `docs/architecture/overview.md`：把 Experiment 从“已决策、尚未实现”更新为实际状态；
 - 示例和测试文档：提供多个 Case、共享 seed、不同 Group 数量和部分失败的用法。
