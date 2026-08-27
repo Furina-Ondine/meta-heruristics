@@ -56,7 +56,7 @@
 
 ## T005: 完成追踪与工程验证
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
 - 依赖：`T004`
 - 影响区域：Verification、全仓库。
@@ -64,4 +64,4 @@
 - 明确不做：不以 Verification 阶段引入新行为。
 - 完成条件：所有需求有实现、测试和文档证据，工作区无意外变更，Spec 进入 Implemented。
 - 验证命令：按 Verification 的完整命令集合执行。
-- 验证结果：尚未执行。
+- 验证结果：工具还原、Release Build、78 项测试、门禁及负向自测、DocFX、变更文件格式和差异检查全部通过；Verification 已记录逐需求证据。
