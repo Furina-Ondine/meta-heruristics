@@ -33,7 +33,7 @@
 
 ## T003：实现并验证布谷鸟 Optimizer
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-005`、`FR-006`、`NFR-001`、`NFR-002`
 - 依赖：`T002`
 - 影响区域：Algorithms 的 Cuckoo 类型、Algorithms 测试。
@@ -41,11 +41,11 @@
 - 明确不做：不读取 Repair 边界、不复用旧静态幂缓存、不使用 `Random.Shared`、不引入公共 Gamma/随机工具或性能优化。
 - 完成条件：布谷鸟的 API、参数验证、候选数、尺度、衰减、遗弃、单巢、方向/约束、固定 seed、最佳快照、工作区复用和 Sphere fixture 全部有通过证据。
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Algorithms`
-- 验证结果：尚未执行
+- 验证结果：新增 8 项布谷鸟契约测试；Algorithms 命名空间共 34 项测试通过，覆盖 Bat/PSO/萤火虫回归与布谷鸟的初始评估、比较、候选数、Repair、单巢、显式尺度、确定性、隔离、复用、参数边界和 Sphere fixture。
 
 ## T004：迁移示例与用户文档
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-001`、`FR-007`
 - 依赖：`T003`
 - 影响区域：Examples、README、API Overview、User Guide、架构概览和 XML 文档。
