@@ -9,7 +9,7 @@
 - 批准日期：2026-08-27
 - 替代：无
 - 被替代：无
-- 相关 ADR：[ADR-0012](../../decisions/0012-repair-owned-candidate-boundaries.md)（现行有限值规则的历史来源）、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)
+- 相关 ADR：[ADR-0012](../../decisions/0012-repair-owned-candidate-boundaries.md)（现行有限值规则的历史来源）、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0015](../../decisions/0015-ordered-extended-evaluation-values.md)
 
 ## 问题与动机
 

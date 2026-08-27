@@ -8,7 +8,7 @@
 
 ## T001: 固化长期数值决策
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
 - 依赖：无
 - 影响区域：ADR、ENGINEERING、Spec 元数据。
@@ -16,11 +16,11 @@
 - 明确不做：不修改运行时代码。
 - 完成条件：ADR 状态与索引一致，Spec 指向新 ADR，文档门禁通过。
 - 验证命令：`pwsh ./eng/verify-documentation.ps1`
-- 验证结果：尚未执行。
+- 验证结果：ADR-0015、索引、ENGINEERING 与 Spec 链接已更新；文档门禁通过。
 
 ## T002: 实现 Core 特殊值契约
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
 - 依赖：`T001`
 - 影响区域：Core 的 Evaluation、ConstraintEvaluation、ContinuousProblem、EvaluationComparer、StoppingConditions 与 Core 测试。

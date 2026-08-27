@@ -44,7 +44,7 @@
 
 ## 数值正确性
 
-- 明确验证构造配置、边界定义、目标值和约束结果；无效范围和容差不得静默传播。
+- 明确验证构造配置、边界定义、目标值和约束结果；无效范围和容差不得静默传播。目标值接受有限值与正负 Infinity、拒绝 `NaN`；约束违背量接受非负有限值与 `+Infinity`、拒绝负值和 `NaN`。Infinity 的比较、停止与统计语义见 [ADR-0015](docs/decisions/0015-ordered-extended-evaluation-values.md)。
 - 候选位置的合法性由调用方组合的 `ICandidateInitializer` 与 `ICandidateRepair` 负责。算法在初始化位置后及每次修改位置后必须调用 Repair；Core 不验证候选位置，也不向算法公开变量上下界。
 - 内置 Repair 的特殊数值语义必须由文档和测试定义：`NaN` 保持不变，`-Infinity`/`+Infinity` 分别表示无下界/无上界；默认 Clamp 使用 `[0, 10]`。`DoNothing` 只能作为调用方明确承担后果的风险选择。
 - 等式约束使用显式绝对容差和相对容差；约束判定、候选比较和候选修复保持独立职责。
