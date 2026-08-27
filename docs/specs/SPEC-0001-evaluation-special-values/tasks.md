@@ -6,7 +6,7 @@
 - 一个时间只能有一项任务处于 `InProgress`，每项任务同时完成测试、注释和对应证据。
 - 不保留有限值旧语义的兼容属性、包装类型或配置开关。
 
-## T001：固化长期数值决策
+## T001: 固化长期数值决策
 
 - 状态：`InProgress`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
@@ -18,7 +18,7 @@
 - 验证命令：`pwsh ./eng/verify-documentation.ps1`
 - 验证结果：尚未执行。
 
-## T002：实现 Core 特殊值契约
+## T002: 实现 Core 特殊值契约
 
 - 状态：`Pending`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
@@ -30,7 +30,7 @@
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release --filter "FullyQualifiedName~Core"`
 - 验证结果：尚未执行。
 
-## T003：实现 Experiment 可空统计
+## T003: 实现 Experiment 可空统计
 
 - 状态：`Pending`
 - 覆盖需求：`FR-005`、`NFR-001`
@@ -42,7 +42,7 @@
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release --filter "FullyQualifiedName~Experiments"`
 - 验证结果：尚未执行。
 
-## T004：迁移示例与文档契约
+## T004: 迁移示例与文档契约
 
 - 状态：`Pending`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`
@@ -54,7 +54,7 @@
 - 验证命令：`dotnet build Metaheuristics.NET.slnx --configuration Release`；`dotnet docfx docfx.json --warningsAsErrors`
 - 验证结果：尚未执行。
 
-## T005：完成追踪与工程验证
+## T005: 完成追踪与工程验证
 
 - 状态：`Pending`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
