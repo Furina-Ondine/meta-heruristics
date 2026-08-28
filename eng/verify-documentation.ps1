@@ -159,6 +159,23 @@ function Test-SpecPackages {
         return
     }
 
+    $specIndexPath = Join-Path $specRoot 'README.md'
+    $specIndexContent = Get-Content -LiteralPath $specIndexPath -Raw
+    $specIndexPattern = [regex]'(?m)^\| \[SPEC-(?<number>\d{4})\]\((?<target>[^)]+)\) \|.*\| `(?<status>Draft|Clarifying|Approved|Implementing|Verifying|Implemented|Superseded)` \|\r?$'
+    $specIndexEntries = @{}
+    foreach ($match in $specIndexPattern.Matches($specIndexContent)) {
+        $indexNumber = $match.Groups['number'].Value
+        if ($specIndexEntries.ContainsKey($indexNumber)) {
+            Add-VerificationError "docs/specs/README.md contains duplicate SPEC-$indexNumber."
+            continue
+        }
+
+        $specIndexEntries[$indexNumber] = @{
+            Target = $match.Groups['target'].Value
+            Status = $match.Groups['status'].Value
+        }
+    }
+
     $packageDirectories = Get-ChildItem -LiteralPath $specRoot -Directory |
         Where-Object { $_.Name -ne '_templates' }
     $seenNumbers = @{}
@@ -207,11 +224,27 @@ function Test-SpecPackages {
         if (-not $specStatusMatch.Success -or $specStatusMatch.Groups['status'].Value -notin $specStatuses) {
             Add-VerificationError "docs/specs/$($package.Name)/spec.md has an invalid Spec status."
         }
+        $specStatus = if ($specStatusMatch.Success) { $specStatusMatch.Groups['status'].Value } else { $null }
+
+        if (-not $specIndexEntries.ContainsKey($number)) {
+            Add-VerificationError "docs/specs/$($package.Name) is missing from the Spec index."
+        }
+        else {
+            $indexEntry = $specIndexEntries[$number]
+            $expectedTarget = "./$($package.Name)/spec.md"
+            if ($indexEntry.Target -ne $expectedTarget) {
+                Add-VerificationError "Spec index target for SPEC-$number does not match '$expectedTarget'."
+            }
+            if ($null -ne $specStatus -and $indexEntry.Status -ne $specStatus) {
+                Add-VerificationError "Spec index status does not match package status for SPEC-$number."
+            }
+        }
 
         $planStatusMatch = [regex]::Match($planContent, '(?m)^- 状态：`(?<status>[^`]+)`$')
         if (-not $planStatusMatch.Success -or $planStatusMatch.Groups['status'].Value -notin $planStatuses) {
             Add-VerificationError "docs/specs/$($package.Name)/plan.md has an invalid Plan status."
         }
+        $planStatus = if ($planStatusMatch.Success) { $planStatusMatch.Groups['status'].Value } else { $null }
 
         $requirementMatches = [regex]::Matches($specContent, '(?m)^### (?<id>(?:FR|NFR)-\d{3})：')
         foreach ($match in [regex]::Matches($specContent, '(?m)^### (?<id>(?:FR|NFR)-\d{3}):')) {
@@ -237,18 +270,6 @@ function Test-SpecPackages {
             }
         }
 
-        foreach ($requirement in $requirements) {
-            if ($planContent -notmatch "\b$([regex]::Escape($requirement))\b") {
-                Add-VerificationError "docs/specs/$($package.Name)/plan.md does not cover declared requirement $requirement."
-            }
-            if ($tasksContent -notmatch "\b$([regex]::Escape($requirement))\b") {
-                Add-VerificationError "docs/specs/$($package.Name)/tasks.md has no task for declared requirement $requirement."
-            }
-            if ($verificationContent -notmatch "\b$([regex]::Escape($requirement))\b") {
-                Add-VerificationError "docs/specs/$($package.Name)/verification.md has no evidence row for declared requirement $requirement."
-            }
-        }
-
         $taskIdMatches = [regex]::Matches($tasksContent, '(?m)^## (?<id>T\d{3})：')
         foreach ($match in [regex]::Matches($tasksContent, '(?m)^## (?<id>T\d{3}):')) {
             Add-VerificationError "docs/specs/$($package.Name)/tasks.md task $($match.Groups['id'].Value) must use the full-width colon '：'."
@@ -259,14 +280,28 @@ function Test-SpecPackages {
         }
 
         $taskSections = [regex]::Matches($tasksContent, '(?ms)^## (?<id>T\d{3})：.*?(?=^## T\d{3}：|\z)')
+        $taskRequirementReferences = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
         foreach ($taskSection in $taskSections) {
-            if ($taskSection.Value -notmatch '\b(?:FR|NFR)-\d{3}\b') {
+            $coverageMatch = [regex]::Match($taskSection.Value, '(?m)^- 覆盖需求：(?<value>.+)$')
+            $taskRequirements = if ($coverageMatch.Success) {
+                [regex]::Matches($coverageMatch.Groups['value'].Value, '\b(?:FR|NFR)-\d{3}\b') |
+                ForEach-Object { $_.Value } |
+                Sort-Object -Unique
+            }
+            else {
+                @()
+            }
+            if (@($taskRequirements).Count -eq 0) {
                 Add-VerificationError "docs/specs/$($package.Name)/tasks.md task $($taskSection.Groups['id'].Value) has no requirement source."
+            }
+            foreach ($taskRequirement in $taskRequirements) {
+                [void]$taskRequirementReferences.Add($taskRequirement)
             }
         }
 
         $statusMatches = [regex]::Matches($tasksContent, '(?m)^- 状态：`(?<status>[^`]+)`$')
         $inProgressCount = 0
+        $allTasksCompleted = $statusMatches.Count -gt 0
         foreach ($statusMatch in $statusMatches) {
             $status = $statusMatch.Groups['status'].Value
             if ($status -notin $taskStatuses) {
@@ -274,6 +309,9 @@ function Test-SpecPackages {
             }
             if ($status -eq 'InProgress') {
                 $inProgressCount++
+            }
+            if ($status -ne 'Completed') {
+                $allTasksCompleted = $false
             }
         }
         if ($inProgressCount -gt 1) {
@@ -291,6 +329,89 @@ function Test-SpecPackages {
             }
         }
 
+        $verificationResultMatch = [regex]::Match($verificationContent, '(?m)^- 最终结果：`(?<result>Pending|Passed|Failed)`$')
+        if (-not $verificationResultMatch.Success) {
+            Add-VerificationError "docs/specs/$($package.Name)/verification.md has a missing or invalid final result."
+        }
+        $verificationResult = if ($verificationResultMatch.Success) { $verificationResultMatch.Groups['result'].Value } else { $null }
+
+        $verificationRowPattern = [regex]'(?m)^\|\s*(?<requirement>(?:FR|NFR)-\d{3})\s*\|\s*(?<implementation>[^|]*)\|\s*(?<tests>[^|]*)\|\s*(?<documentation>[^|]*)\|\s*(?<result>[^|]*)\|\s*$'
+        $verificationRows = @{}
+        foreach ($verificationRowMatch in $verificationRowPattern.Matches($verificationContent)) {
+            $requirementId = $verificationRowMatch.Groups['requirement'].Value
+            if ($verificationRows.ContainsKey($requirementId)) {
+                Add-VerificationError "docs/specs/$($package.Name)/verification.md contains duplicate evidence rows for $requirementId."
+                continue
+            }
+
+            $verificationRows[$requirementId] = @{
+                Implementation = $verificationRowMatch.Groups['implementation'].Value.Trim()
+                Tests = $verificationRowMatch.Groups['tests'].Value.Trim()
+                Documentation = $verificationRowMatch.Groups['documentation'].Value.Trim()
+                Result = $verificationRowMatch.Groups['result'].Value.Trim()
+            }
+        }
+
+        foreach ($requirement in $requirements) {
+            if ($planContent -notmatch "\b$([regex]::Escape($requirement))\b") {
+                Add-VerificationError "docs/specs/$($package.Name)/plan.md does not cover declared requirement $requirement."
+            }
+            if (-not $taskRequirementReferences.Contains($requirement)) {
+                Add-VerificationError "docs/specs/$($package.Name)/tasks.md has no task for declared requirement $requirement."
+            }
+            if (-not $verificationRows.ContainsKey($requirement)) {
+                Add-VerificationError "docs/specs/$($package.Name)/verification.md has no evidence row for declared requirement $requirement."
+                continue
+            }
+
+            $evidence = $verificationRows[$requirement]
+            if ($evidence.Result -notin @('Pending', 'Passed', 'Failed')) {
+                Add-VerificationError "docs/specs/$($package.Name)/verification.md has an invalid evidence result for $requirement."
+            }
+            if ($specStatus -eq 'Implemented' -and
+                ($evidence.Result -ne 'Passed' -or
+                    [string]::IsNullOrWhiteSpace($evidence.Implementation) -or
+                    [string]::IsNullOrWhiteSpace($evidence.Tests) -or
+                    [string]::IsNullOrWhiteSpace($evidence.Documentation))) {
+                Add-VerificationError "docs/specs/$($package.Name)/verification.md has incomplete Passed evidence for requirement $requirement."
+            }
+        }
+
+        if ($planStatus -in @('Approved', 'Superseded')) {
+            $planApprover = [regex]::Match($planContent, '(?m)^- 批准人：(?<value>.+)$')
+            $planApprovalDate = [regex]::Match($planContent, '(?m)^- 批准日期：(?<value>.+)$')
+            if (-not $planApprover.Success -or $planApprover.Groups['value'].Value.Trim() -eq '—' -or
+                -not $planApprovalDate.Success -or $planApprovalDate.Groups['value'].Value.Trim() -eq '—') {
+                Add-VerificationError "docs/specs/$($package.Name)/plan.md Approved Plan lacks approval metadata."
+            }
+
+            $baselineMatch = [regex]::Match($planContent, '(?m)^- Spec 基线提交：`(?<commit>[0-9a-fA-F]{7,40})`$')
+            if (-not $baselineMatch.Success) {
+                Add-VerificationError "docs/specs/$($package.Name)/plan.md Approved Plan lacks a Spec baseline commit."
+            }
+            else {
+                $baselineCommit = $baselineMatch.Groups['commit'].Value
+                $relativeSpecPath = Get-RepositoryRelativePath (Join-Path $package.FullName 'spec.md')
+                $baselineSpec = & git -C $repositoryRoot show "${baselineCommit}:$relativeSpecPath" 2>$null | Out-String
+                if ($LASTEXITCODE -ne 0) {
+                    Add-VerificationError "docs/specs/$($package.Name)/plan.md Spec baseline commit '$baselineCommit' cannot be resolved."
+                }
+                elseif ($baselineSpec -notmatch '(?m)^- 状态：`Approved`\r?$') {
+                    Add-VerificationError "docs/specs/$($package.Name)/plan.md Spec baseline does not contain an Approved Spec."
+                }
+            }
+        }
+
+        if ($specStatus -in @('Implementing', 'Verifying', 'Implemented') -and $planStatus -ne 'Approved') {
+            Add-VerificationError "docs/specs/$($package.Name) $specStatus Spec requires an Approved Plan."
+        }
+        if ($specStatus -in @('Verifying', 'Implemented') -and -not $allTasksCompleted) {
+            Add-VerificationError "docs/specs/$($package.Name) $specStatus Spec requires every Task to be Completed."
+        }
+        if ($specStatus -eq 'Implemented' -and $verificationResult -ne 'Passed') {
+            Add-VerificationError "docs/specs/$($package.Name) Implemented Spec requires Verification to be Passed."
+        }
+
         if ($specStatusMatch.Success -and $specStatusMatch.Groups['status'].Value -in @('Approved', 'Implementing', 'Verifying', 'Implemented')) {
             if ($specContent -match '(?im)\b(TODO|TBD)\b|待定|尚未决定') {
                 Add-VerificationError "docs/specs/$($package.Name)/spec.md is approved or later but still contains a placeholder."
@@ -298,6 +419,12 @@ function Test-SpecPackages {
             if ($specContent -match '(?m)^- 规格批准：—$|^- 批准日期：—$') {
                 Add-VerificationError "docs/specs/$($package.Name)/spec.md is approved or later but lacks approval metadata."
             }
+        }
+    }
+
+    foreach ($indexNumber in $specIndexEntries.Keys) {
+        if (-not $seenNumbers.ContainsKey($indexNumber)) {
+            Add-VerificationError "Spec index entry SPEC-$indexNumber has no matching package."
         }
     }
 }
