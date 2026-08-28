@@ -62,6 +62,27 @@ public sealed class CandidateRepairsTensorTests
         AssertBitwiseEqual(expected, actual);
     }
 
+    /// <summary>验证异常 lane 不会改变同一位置数组中其它正常 lane 的数值契约。</summary>
+    [Xunit.Fact]
+    public void ReflectMatchesTheReferenceForMixedFiniteAndFallbackLanes()
+    {
+        foreach (var length in TestedLengths)
+        {
+            var (lower, upper) = CreateBounds(length);
+            foreach (var shape in Enum.GetValues<BoundaryShape>())
+            {
+                var actual = CreateMixedReflectPosition(length, lower, upper, shape);
+                var source = (double[])actual.Clone();
+                var expected = (double[])actual.Clone();
+                ReflectReference(expected, lower, upper, shape);
+
+                CreateReflect(lower, upper, shape).Repair(actual, new Random(1));
+
+                AssertReflectCompatible(expected, actual, source, lower, upper, shape);
+            }
+        }
+    }
+
     private static (double[] Lower, double[] Upper) CreateBounds(int length)
     {
         var lower = new double[length];
@@ -104,6 +125,34 @@ public sealed class CandidateRepairsTensorTests
             var (minimum, maximum) = GetBounds(lower, upper, shape, index);
             var width = maximum - minimum;
             values[index] = minimum + (width * ((index % 7) - 3.25));
+        }
+
+        return values;
+    }
+
+    private static double[] CreateMixedReflectPosition(
+        int length,
+        double[] lower,
+        double[] upper,
+        BoundaryShape shape)
+    {
+        var values = new double[length];
+        for (var index = 0; index < values.Length; index++)
+        {
+            var (minimum, maximum) = GetBounds(lower, upper, shape, index);
+            var width = maximum - minimum;
+            values[index] = index % 9 switch
+            {
+                0 => double.NaN,
+                1 => double.NegativeInfinity,
+                2 => double.PositiveInfinity,
+                3 => minimum,
+                4 => maximum,
+                5 => minimum - (width * 0.75),
+                6 => maximum + (width * 0.75),
+                7 => minimum + (width * 0.25),
+                _ => minimum - (width * 2.25),
+            };
         }
 
         return values;
@@ -230,6 +279,48 @@ public sealed class CandidateRepairsTensorTests
                 || actualValue == double.BitIncrement(expectedValue)
                 || actualValue == double.BitDecrement(expectedValue),
                 $"Expected {expectedValue:R} and actual {actualValue:R} to be within one ULP at index {index}.");
+        }
+    }
+
+    private static void AssertReflectCompatible(
+        double[] expected,
+        double[] actual,
+        double[] source,
+        double[] lower,
+        double[] upper,
+        BoundaryShape shape)
+    {
+        Xunit.Assert.Equal(expected.Length, actual.Length);
+        for (var index = 0; index < expected.Length; index++)
+        {
+            var (minimum, maximum) = GetBounds(lower, upper, shape, index);
+            var width = maximum - minimum;
+            var period = width * 2;
+            var offset = source[index] - minimum;
+            var requiresBitwiseResult = !double.IsFinite(source[index])
+                || !double.IsFinite(minimum)
+                || !double.IsFinite(maximum)
+                || !double.IsFinite(width)
+                || !double.IsFinite(period)
+                || !double.IsFinite(offset)
+                || !double.IsFinite(minimum + width)
+                || width <= 0
+                || source[index] == minimum
+                || source[index] == maximum;
+
+            if (requiresBitwiseResult)
+            {
+                Xunit.Assert.Equal(
+                    BitConverter.DoubleToInt64Bits(expected[index]),
+                    BitConverter.DoubleToInt64Bits(actual[index]));
+                continue;
+            }
+
+            Xunit.Assert.True(
+                actual[index] == expected[index]
+                || actual[index] == double.BitIncrement(expected[index])
+                || actual[index] == double.BitDecrement(expected[index]),
+                $"Expected {expected[index]:R} and actual {actual[index]:R} to be within one ULP at index {index}.");
         }
     }
 

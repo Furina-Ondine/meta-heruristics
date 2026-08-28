@@ -1,3 +1,4 @@
+using System.Numerics.Tensors;
 using Anastasya.Metaheuristics.Algorithms.Bat;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
@@ -18,6 +19,10 @@ public class RepairBenchmarks
     private ICandidateRepair _clamp = null!;
     private ICandidateRepair _reflect = null!;
     private Random _random = null!;
+    private double _legacyScalarWidth;
+    private double _legacyScalarPeriod;
+    private double[]? _legacyWidths;
+    private double[]? _legacyPeriods;
 
     /// <summary>获取或设置 Position 的维度，包含对齐与非对齐的尾部案例。</summary>
     [Params(2, 7, 8, 31, 32, 33, 127, 128, 129, 1024)]
@@ -54,6 +59,7 @@ public class RepairBenchmarks
 
         _clamp = CreateClamp();
         _reflect = CreateReflect();
+        CreateLegacyReflectionParameters();
         _random = new Random(1);
     }
 
@@ -66,7 +72,7 @@ public class RepairBenchmarks
     }
 
     /// <summary>测量与既有实现相同的 Clamp 标量参考。</summary>
-    [Benchmark(Baseline = true)]
+    [Benchmark]
     public void ScalarClamp()
     {
         for (var index = 0; index < _clampPosition.Length; index++)
@@ -91,9 +97,13 @@ public class RepairBenchmarks
         }
     }
 
+    /// <summary>测量提交 21804bd 中的整段 Tensor Reflect 分派，作为候选内核的同机基线。</summary>
+    [Benchmark(Baseline = true)]
+    public void LegacyTensorReflect() => RepairWithLegacyTensorReflect(_reflectPosition);
+
     /// <summary>测量实际内置 Reflect Repair。</summary>
     [Benchmark]
-    public void TensorReflect() => _reflect.Repair(_reflectPosition, _random);
+    public void Reflect() => _reflect.Repair(_reflectPosition, _random);
 
     private ICandidateRepair CreateClamp() => BoundaryShape switch
     {
@@ -121,6 +131,121 @@ public class RepairBenchmarks
         RepairBoundaryShape.VectorVector => (_lower[index], _upper[index]),
         _ => throw new InvalidOperationException("The configured boundary shape is unsupported."),
     };
+
+    private void CreateLegacyReflectionParameters()
+    {
+        if (BoundaryShape == RepairBoundaryShape.ScalarScalar)
+        {
+            _legacyScalarWidth = _upper[0] - _lower[0];
+            _legacyScalarPeriod = _legacyScalarWidth * 2;
+            return;
+        }
+
+        _legacyWidths = new double[Dimension];
+        _legacyPeriods = new double[Dimension];
+        for (var index = 0; index < Dimension; index++)
+        {
+            var (lower, upper) = GetBounds(index);
+            _legacyWidths[index] = upper - lower;
+            _legacyPeriods[index] = _legacyWidths[index] * 2;
+        }
+    }
+
+    private void RepairWithLegacyTensorReflect(Span<double> position)
+    {
+        if (CanUseLegacyTensorPath(position))
+        {
+            ApplyLegacyTensorReflection(position);
+            return;
+        }
+
+        for (var index = 0; index < position.Length; index++)
+        {
+            var (lower, upper) = GetBounds(index);
+            position[index] = Reflect(position[index], lower, upper);
+        }
+    }
+
+    private bool CanUseLegacyTensorPath(ReadOnlySpan<double> position)
+    {
+        for (var index = 0; index < position.Length; index++)
+        {
+            var value = position[index];
+            var (lower, upper) = GetBounds(index);
+            var width = GetLegacyWidth(index);
+            var period = GetLegacyPeriod(index);
+            var offset = value - lower;
+            if (!double.IsFinite(value)
+                || !double.IsFinite(lower)
+                || !double.IsFinite(upper)
+                || !double.IsFinite(width)
+                || !double.IsFinite(period)
+                || !double.IsFinite(offset)
+                || !double.IsFinite(lower + width)
+                || width <= 0
+                || value == lower
+                || value == upper)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private double GetLegacyWidth(int index) => _legacyWidths is null ? _legacyScalarWidth : _legacyWidths[index];
+
+    private double GetLegacyPeriod(int index) => _legacyPeriods is null ? _legacyScalarPeriod : _legacyPeriods[index];
+
+    private void ApplyLegacyTensorReflection(Span<double> position)
+    {
+        if (BoundaryShape is RepairBoundaryShape.VectorScalar or RepairBoundaryShape.VectorVector)
+        {
+            TensorPrimitives.Subtract(position, _lower, position);
+        }
+        else
+        {
+            TensorPrimitives.Subtract(position, _lower[0], position);
+        }
+
+        if (_legacyPeriods is null)
+        {
+            TensorPrimitives.Remainder(position, _legacyScalarPeriod, position);
+        }
+        else
+        {
+            TensorPrimitives.Remainder(position, _legacyPeriods, position);
+        }
+
+        TensorPrimitives.Abs(position, position);
+        if (_legacyWidths is null)
+        {
+            TensorPrimitives.Subtract(position, _legacyScalarWidth, position);
+        }
+        else
+        {
+            TensorPrimitives.Subtract(position, _legacyWidths, position);
+        }
+
+        TensorPrimitives.Abs(position, position);
+        if (_legacyWidths is null)
+        {
+            TensorPrimitives.Subtract(_legacyScalarWidth, position, position);
+        }
+        else
+        {
+            TensorPrimitives.Subtract(_legacyWidths, position, position);
+        }
+
+        if (BoundaryShape is RepairBoundaryShape.VectorScalar or RepairBoundaryShape.VectorVector)
+        {
+            TensorPrimitives.Add(position, _lower, position);
+        }
+        else
+        {
+            TensorPrimitives.Add(position, _lower[0], position);
+        }
+    }
 
     private static double Clamp(double value, double lower, double upper)
     {

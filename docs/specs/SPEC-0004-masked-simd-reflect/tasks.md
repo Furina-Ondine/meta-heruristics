@@ -10,7 +10,7 @@
 
 ## T001：建立混合 lane 契约与旧实现性能基线
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
 - 依赖：无
 - 影响区域：Core 测试、Repair 基准。
@@ -18,11 +18,11 @@
 - 明确不做：不修改 Core Reflect 的生产实现、不改变 API 或算法、不以基准辅助类型作为运行时抽象。
 - 完成条件：新测试可在旧实现上通过；基准可在四种边界形状和全部指定长度运行，且 MemoryDiagnoser 可见分配。
 - 验证命令：`dotnet test Metaheuristics.NET.slnx -c Release --no-restore`；`dotnet run -c Release --project benchmarks/Metaheuristics.Benchmarks -- --filter *RepairBenchmarks* --job Dry`。
-- 验证结果：尚未执行。
+- 验证结果：2026-08-28 通过；`CandidateRepairsTensorTests` 4 项测试通过，BenchmarkDotNet DryRun 成功发现 `LegacyTensorReflect` 基线。一次过宽筛选启动无关矩阵后已终止其专属进程，未将结果作为性能证据。
 
 ## T002：实现自适应掩码 Reflect 内核
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`NFR-001`、`NFR-002`
 - 依赖：`T001`
 - 影响区域：Core 私有 `CandidateRepairs.ReflectCandidateRepair`、Core 测试。
