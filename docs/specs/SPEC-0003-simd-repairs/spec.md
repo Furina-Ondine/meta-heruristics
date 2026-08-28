@@ -52,7 +52,7 @@ ADR-0013 已明确此依赖归属及未来 SIMD 空间；本变更不改变长�
 
 ## 功能需求
 
-### FR-001：Core Tensor 依赖
+### FR-001: Core Tensor 依赖
 
 - 前置条件：仓库继续以 `net10.0` 为目标框架并使用集中包版本管理。
 - 触发行为：构建 `Metaheuristics.Core`。
@@ -60,7 +60,7 @@ ADR-0013 已明确此依赖归属及未来 SIMD 空间；本变更不改变长�
 - 边界情况：包无法还原或类型不可用时，构建必须失败，不能以隐式、未锁定的包版本继续。
 - 验收标准：Release restore/build 显示 Core 可使用 `TensorPrimitives`；项目依赖图不变。
 
-### FR-002：SIMD Clamp
+### FR-002: SIMD Clamp
 
 - 前置条件：调用方由任一 `CandidateRepairs.Clamp` 工厂创建 Repair，并传入长度有效的 Position。
 - 触发行为：调用 `Repair(Span<double>, Random)`。
@@ -68,7 +68,7 @@ ADR-0013 已明确此依赖归属及未来 SIMD 空间；本变更不改变长�
 - 边界情况：Position 的 `NaN` 保持 `NaN`；`-Infinity`/`+Infinity` 端点继续表示无下界/无上界；有限和无限 Position 按包含式端点截断；向量长度不匹配与构造参数异常完全保持既有语义。
 - 验收标准：现有 Clamp 契约测试继续通过；新增所有边界形状、特殊值、长度 2、7、8、31、32、33、127、128、129、1024 的测试均与独立标量参考逐位一致。
 
-### FR-003：SIMD Reflect 与标量回退
+### FR-003: SIMD Reflect 与标量回退
 
 - 前置条件：调用方由任一 `CandidateRepairs.Reflect` 工厂创建 Repair，并传入长度有效的 Position。
 - 触发行为：调用 `Repair(Span<double>, Random)`。
@@ -77,7 +77,7 @@ ADR-0013 已明确此依赖归属及未来 SIMD 空间；本变更不改变长�
 - 数值兼容性：安全 SIMD 路径的有限结果相对独立标量参考允许最多 1 ULP 差异；`NaN` 类别、无穷符号、端点命中、异常和回退路径结果必须与参考逐位一致。此有限值末位风险由项目作者在 2026-08-28 明确接受。
 - 验收标准：四种端点形状和上述所有长度覆盖安全、回退与混合输入；随机有限样本、边界命中、极值以及 width/period/offset 溢出均有自动化测试，且满足数值兼容性规则。
 
-### FR-004：RandomReset 与其他 Repair 保持不变
+### FR-004: RandomReset 与其他 Repair 保持不变
 
 - 前置条件：调用方选择 RandomReset 或 DoNothing。
 - 触发行为：调用相应 Repair。
@@ -85,7 +85,7 @@ ADR-0013 已明确此依赖归属及未来 SIMD 空间；本变更不改变长�
 - 边界情况：RandomReset 对无界端点的 Clamp 退化及固定 seed 可复现性保持不变。
 - 验收标准：现有 RandomReset/DoNothing 测试通过；新增更改不触及其实现逻辑。
 
-### FR-005：性能证据
+### FR-005: 性能证据
 
 - 前置条件：Release 构建可执行 BenchmarkDotNet。
 - 触发行为：运行 Repair 基准和 Bat 端到端基准。
@@ -95,13 +95,13 @@ ADR-0013 已明确此依赖归属及未来 SIMD 空间；本变更不改变长�
 
 ## 非功能需求
 
-### NFR-001：契约保持与数值安全
+### NFR-001: 契约保持与数值安全
 
 - 测量方式：单元测试把实际 Clamp/Reflect 与独立标量参考逐元素比较，并覆盖工厂验证、运行时长度验证、特殊值和溢出回退。
 - 可接受阈值：Clamp 和 Reflect 回退路径逐位相同；Reflect 安全 SIMD 路径仅允许有限正常值最多 1 ULP 差异；无新增异常、分配或随机数调用。
 - 证据类型：自动化测试、代码审查。
 
-### NFR-002：性能证据而非普遍性能承诺
+### NFR-002: 性能证据而非普遍性能承诺
 
 - 测量方式：BenchmarkDotNet 在 Release 下报告微基准及 Bat 端到端结果，并由 MemoryDiagnoser 记录分配。
 - 可接受阈值：每个正常 Repair 调用不分配临时数组；结果必须覆盖已定义的边界形状与对齐/尾部长度。结果可因运行时和硬件而不同，不设跨环境统一加速倍数。
