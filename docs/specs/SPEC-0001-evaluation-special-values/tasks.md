@@ -6,7 +6,7 @@
 - 一个时间只能有一项任务处于 `InProgress`，每项任务同时完成测试、注释和对应证据。
 - 不保留有限值旧语义的兼容属性、包装类型或配置开关。
 
-## T001: 固化长期数值决策
+## T001：固化长期数值决策
 
 - 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
@@ -18,7 +18,7 @@
 - 验证命令：`pwsh ./eng/verify-documentation.ps1`
 - 验证结果：ADR-0015、索引、ENGINEERING 与 Spec 链接已更新；文档门禁通过。
 
-## T002: 实现 Core 特殊值契约
+## T002：实现 Core 特殊值契约
 
 - 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`
@@ -30,7 +30,7 @@
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Core`
 - 验证结果：新增 29 个特殊值契约用例；Core 命名空间共 49 项测试通过，Release Build 零警告零错误。
 
-## T003: 实现 Experiment 可空统计
+## T003：实现 Experiment 可空统计
 
 - 状态：`Completed`
 - 覆盖需求：`FR-005`、`NFR-001`
@@ -42,7 +42,7 @@
 - 验证命令：`dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj --configuration Release -- --filter-namespace Anastasya.Metaheuristics.Tests.Experiments`
 - 验证结果：新增 7 个 Infinity/极端有限统计用例；Experiments 16 项测试和全仓 78 项测试通过，Release Build 零警告零错误。
 
-## T004: 迁移示例与文档契约
+## T004：迁移示例与文档契约
 
 - 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`
@@ -54,7 +54,7 @@
 - 验证命令：`dotnet build Metaheuristics.NET.slnx --configuration Release`；`dotnet docfx docfx.json --warningsAsErrors`
 - 验证结果：Release Build、示例运行、文档门禁和 DocFX 均通过；DocFX 零警告零错误，残留搜索只剩 ADR 历史说明与仍须有限的算法配置。
 
-## T005: 完成追踪与工程验证
+## T005：完成追踪与工程验证
 
 - 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`

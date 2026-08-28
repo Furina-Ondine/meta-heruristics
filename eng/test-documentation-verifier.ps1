@@ -72,7 +72,7 @@ Accepted
 - 编号：`SPEC-0001`
 - 状态：`Draft`
 
-### FR-001: 可验证行为
+### FR-001：可验证行为
 '@
     Write-Utf8File -Path (Join-Path $package 'plan.md') -Content @'
 # Plan

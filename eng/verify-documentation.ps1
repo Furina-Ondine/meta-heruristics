@@ -213,7 +213,10 @@ function Test-SpecPackages {
             Add-VerificationError "docs/specs/$($package.Name)/plan.md has an invalid Plan status."
         }
 
-        $requirementMatches = [regex]::Matches($specContent, '(?m)^### (?<id>(?:FR|NFR)-\d{3}):')
+        $requirementMatches = [regex]::Matches($specContent, '(?m)^### (?<id>(?:FR|NFR)-\d{3})：')
+        foreach ($match in [regex]::Matches($specContent, '(?m)^### (?<id>(?:FR|NFR)-\d{3}):')) {
+            Add-VerificationError "docs/specs/$($package.Name)/spec.md requirement $($match.Groups['id'].Value) must use the full-width colon '：'."
+        }
         $requirements = @($requirementMatches | ForEach-Object { $_.Groups['id'].Value } | Sort-Object -Unique)
         if ($requirements.Count -eq 0) {
             Add-VerificationError "docs/specs/$($package.Name)/spec.md defines no FR/NFR requirements."
@@ -246,13 +249,16 @@ function Test-SpecPackages {
             }
         }
 
-        $taskIdMatches = [regex]::Matches($tasksContent, '(?m)^## (?<id>T\d{3}):')
+        $taskIdMatches = [regex]::Matches($tasksContent, '(?m)^## (?<id>T\d{3})：')
+        foreach ($match in [regex]::Matches($tasksContent, '(?m)^## (?<id>T\d{3}):')) {
+            Add-VerificationError "docs/specs/$($package.Name)/tasks.md task $($match.Groups['id'].Value) must use the full-width colon '：'."
+        }
         $taskIds = @($taskIdMatches | ForEach-Object { $_.Groups['id'].Value })
         if (@($taskIds | Sort-Object -Unique).Count -ne $taskIds.Count) {
             Add-VerificationError "docs/specs/$($package.Name)/tasks.md contains duplicate task IDs."
         }
 
-        $taskSections = [regex]::Matches($tasksContent, '(?ms)^## (?<id>T\d{3}):.*?(?=^## T\d{3}:|\z)')
+        $taskSections = [regex]::Matches($tasksContent, '(?ms)^## (?<id>T\d{3})：.*?(?=^## T\d{3}：|\z)')
         foreach ($taskSection in $taskSections) {
             if ($taskSection.Value -notmatch '\b(?:FR|NFR)-\d{3}\b') {
                 Add-VerificationError "docs/specs/$($package.Name)/tasks.md task $($taskSection.Groups['id'].Value) has no requirement source."
