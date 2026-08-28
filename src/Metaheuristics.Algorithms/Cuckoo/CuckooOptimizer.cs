@@ -29,6 +29,7 @@ public sealed class CuckooOptimizer : IOptimizer
     /// <summary>创建布谷鸟优化器。</summary>
     /// <param name="initializer">为每个候选 Position 写入初始值的必需初始化器；返回后会立即调用 Repair。</param>
     /// <param name="options">算法参数；为 <see langword="null"/> 时使用默认配置。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="initializer"/> 为 <see langword="null"/>。</exception>
     /// <exception cref="ArgumentOutOfRangeException">种群数量或任一数值参数不在允许范围内。</exception>
     /// <exception cref="ArgumentException">Lévy 候选数与种群数量不相容。</exception>
     public CuckooOptimizer(ICandidateInitializer initializer, CuckooOptimizerOptions? options = null)
@@ -40,21 +41,19 @@ public sealed class CuckooOptimizer : IOptimizer
         _initializer = initializer;
     }
 
-    /// <summary>获取当前 run 发现的历史最佳位置。</summary>
+    /// <inheritdoc cref="IOptimizer.BestPosition"/>
     /// <exception cref="InvalidOperationException">尚未成功完成 <see cref="ResetForRun"/>。</exception>
     public ReadOnlySpan<double> BestPosition => _runInitialized
         ? _bestPosition
         : throw new InvalidOperationException("The optimizer has not been reset for a run.");
 
-    /// <summary>获取当前 run 发现的历史最佳评估结果。</summary>
+    /// <inheritdoc cref="IOptimizer.BestEvaluation"/>
     /// <exception cref="InvalidOperationException">尚未成功完成 <see cref="ResetForRun"/>。</exception>
     public Evaluation BestEvaluation => _runInitialized
         ? _bestEvaluation
         : throw new InvalidOperationException("The optimizer has not been reset for a run.");
 
-    /// <summary>复用或创建工作区，并初始化、修复和评估完整初始种群。</summary>
-    /// <param name="context">当前 run 独占的问题、随机数、取消和评估上下文。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="context"/> 为 <see langword="null"/>。</exception>
+    /// <inheritdoc cref="IOptimizer.ResetForRun(OptimizationRunContext)"/>
     /// <exception cref="InvalidOperationException">当前实例被用于不同维度的问题。</exception>
     public void ResetForRun(OptimizationRunContext context)
     {
@@ -85,7 +84,7 @@ public sealed class CuckooOptimizer : IOptimizer
         _runInitialized = true;
     }
 
-    /// <summary>执行 Lévy 候选与遗弃最差巢两个阶段，并保留独立的历史最佳快照。</summary>
+    /// <inheritdoc cref="IOptimizer.Advance"/>
     /// <exception cref="InvalidOperationException">尚未成功完成 <see cref="ResetForRun"/>。</exception>
     public void Advance()
     {

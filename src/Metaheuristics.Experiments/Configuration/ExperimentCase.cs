@@ -69,7 +69,7 @@ public sealed class ExperimentCase<TConfiguration> : ExperimentCase
     /// <param name="id">在所属 Experiment 内唯一的案例标识。</param>
     /// <param name="configuration">传给每次 Group 工厂调用的强类型配置。</param>
     /// <param name="repetitions">独立运行次数。</param>
-    /// <param name="createGroup">为每个 RunGroup 创建独立 Problem、Optimizer 和运行选项的工厂。</param>
+    /// <param name="createGroup">遵循 <see cref="ExperimentGroupFactory{TConfiguration}"/> 契约的 Group 工厂。</param>
     /// <param name="runGroupCount">RunGroup 数量；默认值一表示案例内顺序运行。</param>
     /// <exception cref="ArgumentNullException">配置或工厂为 <see langword="null"/>。</exception>
     public ExperimentCase(
@@ -100,6 +100,12 @@ public sealed class ExperimentCase<TConfiguration> : ExperimentCase
 /// <summary>
 /// 为一个 RunGroup 创建独立 Problem、Optimizer 和运行选项。
 /// </summary>
+/// <remarks>
+/// 每个 RunGroup 首次执行时调用一次；某个 run 以非取消异常失败后，还会为该 Group 的剩余 repetition 再次调用。
+/// 每次调用都必须返回一组新的 Group 独占组件，尤其不能返回发生异常的 Optimizer，也不能让不同 Group 共享可变组件。
+/// 除 Experiment 取消引起的取消异常外，工厂抛出的异常会记录为受影响 repetition 的 <c>Failed</c> 结果：
+/// 首次创建失败影响整个 Group，失败后重建失败则影响尚未执行的剩余 repetition。
+/// </remarks>
 /// <typeparam name="TConfiguration">强类型案例配置。</typeparam>
 /// <param name="configuration">案例配置。</param>
 /// <param name="context">当前 Group 的稳定编号、Repetition 和 seed。</param>

@@ -26,6 +26,10 @@ public static class OptimizationRunner
     /// <param name="cancellationToken">用于取消运行的令牌。</param>
     /// <returns>不包含最佳位置副本的不可变运行汇总。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="problem"/>、<paramref name="optimizer"/>、<paramref name="options"/> 或轨迹配置为 <see langword="null"/>。</exception>
+    /// <exception cref="ArgumentException">
+    /// 轨迹模式为 <see cref="OptimizationTraceMode.IterationProgress"/>，但既未显式提供正的总迭代数，
+    /// 也无法从停止条件中找到最大迭代数。
+    /// </exception>
     /// <exception cref="OperationCanceledException">运行开始前、重置后或迭代后收到取消请求。</exception>
     /// <exception cref="InvalidOperationException">停止条件返回未定义的终止原因。</exception>
     public static OptimizationRunSummary Execute(

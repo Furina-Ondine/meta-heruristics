@@ -36,26 +36,35 @@ ExperimentCase + ExperimentDefinition + ExperimentExecutionOptions
 
 适合用多个 seed 重复运行、比较多个配置、限制总并发并汇总统计。
 
-## 第一次运行需要掌握的五个概念
+## 第一次运行需要掌握的六个概念
 
 | 概念 | 你需要决定什么 |
 | --- | --- |
-| Problem | 候选向量有多少维、目标函数是什么、是否需要约束或 Repair。 |
+| Problem | 候选向量有多少维，以及如何组合 Objective 和可选的 Repair、Constraint。 |
 | Objective | 给定一个位置，返回怎样的目标值。 |
+| Initializer | 如何使用当前 run 的随机流写入每个初始候选位置。 |
 | Optimizer | 使用哪种搜索算法；当前内置实现包括 `BatOptimizer`、`PsoOptimizer`、`FireflyOptimizer` 和 `CuckooOptimizer`。 |
 | Stopping Condition | 达到多少迭代、评估、时间或目标值时停止。 |
 | Result | 从 Summary 读取目标、迭代和停止原因；从 Optimizer 读取最佳位置。 |
 
-Initializer、Repair 和 Constraint 都是可替换策略，但第一次理解执行入口时不必先掌握全部细节。
+Initializer 是所有内置 Optimizer 的必需依赖。当前库中没有可直接实例化的通用随机 Initializer；调用方需要实现 `ICandidateInitializer`，明确初值的分布。Repair 和 Constraint 是按问题需要组合的可选策略。
 
 ## 第一个完整例子
 
-仓库中的 [`Program.cs`](../../examples/Metaheuristics.Examples/Program.cs) 是经过项目构建验证的完整示例。它的单次路径完成四件事：
+下面是一份可作为顶层 `Program.cs` 编译的单次求解示例：
 
 ```csharp
-var problem = CreateSphereProblem(dimension: 2);
+using Anastasya.Metaheuristics.Algorithms.Bat;
+using Anastasya.Metaheuristics.Core.Execution;
+using Anastasya.Metaheuristics.Core.Problems;
+
+var problem = new ContinuousProblem(
+    dimension: 2,
+    objective: new SphereObjective(),
+    repair: CandidateRepairs.Clamp(-5, 5));
+
 var optimizer = new BatOptimizer(
-    new RandomPositionInitializer(),
+    new UniformInitializer(-5, 5),
     new BatOptimizerOptions { PopulationSize = 40 });
 var options = new OptimizationRunOptions(
     StoppingConditions.MaxIterations(100));
@@ -63,14 +72,62 @@ var options = new OptimizationRunOptions(
 var summary = OptimizationRunner.Execute(
     problem, optimizer, options, seed: 20260820);
 var bestPosition = optimizer.BestPosition.ToArray();
+
+Console.WriteLine($"Best objective: {summary.BestEvaluation.Objective}");
+Console.WriteLine($"Best position: [{string.Join(", ", bestPosition)}]");
+
+file sealed class SphereObjective : IObjectiveFunction
+{
+    public double Evaluate(ReadOnlySpan<double> position)
+    {
+        var sum = 0.0;
+        foreach (var value in position)
+        {
+            sum += value * value;
+        }
+
+        return sum;
+    }
+}
+
+file sealed class UniformInitializer : ICandidateInitializer
+{
+    private readonly double _lowerBound;
+    private readonly double _width;
+
+    public UniformInitializer(double lowerBound, double upperBound)
+    {
+        var width = upperBound - lowerBound;
+        if (!double.IsFinite(lowerBound)
+            || !double.IsFinite(upperBound)
+            || lowerBound > upperBound
+            || !double.IsFinite(width))
+        {
+            throw new ArgumentException("Initializer bounds must define a finite ordered interval.");
+        }
+
+        _lowerBound = lowerBound;
+        _width = width;
+    }
+
+    public void Initialize(Span<double> position, Random random)
+    {
+        for (var index = 0; index < position.Length; index++)
+        {
+            position[index] = _lowerBound + (_width * random.NextDouble());
+        }
+    }
+}
 ```
 
-1. `ContinuousProblem` 描述要评价的问题。
-2. `BatOptimizer` 是四种可替换内置算法之一；也可选择 `PsoOptimizer`、`FireflyOptimizer` 或 `CuckooOptimizer`，它们都接收同样的 Initializer 并遵循相同运行生命周期。
-3. `OptimizationRunOptions` 决定何时停止。
-4. `OptimizationRunner.Execute` 用显式 seed 执行一次完整生命周期。
+1. `ContinuousProblem` 组合维度、Sphere Objective 和位置 Repair。
+2. `UniformInitializer` 是调用方在示例中实现的策略，只用当前 run 传入的 `Random` 产生 `[-5, 5)` 初值；它不是库的内置契约。
+3. `BatOptimizer` 使用 Initializer 创建种群并执行搜索；也可换成 `PsoOptimizer`、`FireflyOptimizer` 或 `CuckooOptimizer`。
+4. `OptimizationRunOptions` 组合 Stopping Condition，决定何时停止。
+5. `OptimizationRunner.Execute` 用显式 seed 执行一次完整生命周期，并返回 Summary。
+6. Summary 保存最佳评估、迭代数和停止原因；最佳位置则从 Optimizer 读取。
 
-`summary.BestEvaluation.Objective` 是最佳目标值。最佳位置仍存放在 Optimizer 的可复用工作区，因此示例立即调用 `ToArray()` 保存副本；精确生命周期见生成式 API Reference 中的 `IOptimizer.BestPosition`。
+`summary.BestEvaluation.Objective` 是最佳目标值。最佳位置仍存放在 Optimizer 的可复用工作区，因此示例在 `Execute` 返回后立即调用 `ToArray()` 保存副本；精确生命周期见生成式 API Reference 中的 `IOptimizer.BestPosition`。包含四种算法和 Experiment 组装的项目级示例见 [`Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
 
 运行完整示例：
 

@@ -4,7 +4,7 @@ uid: api-overview
 
 # API Overview
 
-本页只提供能力和入口地图。生成网页后，下面的类型名称通过 `xref:` 链接跳转到成员级 API Reference；Markdown 源文件无法直接解析这些链接。请先按[下方生成说明](#生成-api-reference)构建并打开网页。第一次使用请从[用户使用手册](../guides/user-guide.md)开始。
+本页只提供能力和入口地图。生成网页后，下面的类型名称通过 `xref:` 链接跳转到成员级 API Reference；Markdown 源文件无法直接解析这些链接。请先按本页末尾的“生成 API Reference”说明构建并打开网页。第一次使用请从[用户使用手册](../guides/user-guide.md)开始。
 
 ## 定义优化问题
 

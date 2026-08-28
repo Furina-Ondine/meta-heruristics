@@ -47,7 +47,7 @@ Cases  →  plan RunGroups  →  bounded scheduler
        →  group factories  →  reusable Optimizers  →  aggregate
 ```
 
-Case 内用 `RunGroupCount` 表达用户掌握的并发拆分；所有 Group 再由单一全局并发上限调度。详细设计见 [Experiment 执行架构与接口设计](../superpowers/specs/2026-08-22-experiment-execution-design.md)。
+Case 内用 `RunGroupCount` 表达用户掌握的并发拆分；所有 Group 再由单一全局并发上限调度。RunGroup 的生命周期和状态所有权决策见 [ADR-0009](../decisions/0009-group-scoped-optimizer-execution.md)，当前的扩展和组装约束见[开发者架构手册](developer-guide.md)。
 
 当前调度器使用固定数量的长期 Worker 动态领取 RunGroupPlan，不为每个计划创建 Task。它与 `Parallel.ForEachAsync` 的 worker-loop 结构接近；不同计划时长下的实现对照和线程池指标见 [RunGroup 调度基准](../benchmarks/run-group-scheduling.md)。
 
