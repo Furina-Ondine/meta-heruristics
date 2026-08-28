@@ -1,4 +1,6 @@
 using System.Numerics.Tensors;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace Anastasya.Metaheuristics.Core.Problems;
 
@@ -209,6 +211,7 @@ public static class CandidateRepairs
 
     private sealed class ReflectCandidateRepair : BoundedCandidateRepair
     {
+        private const double MaxVectorizedRemainderQuotient = 2;
         private readonly double _scalarWidth;
         private readonly double _scalarPeriod;
         private readonly double[]? _vectorWidths;
@@ -238,13 +241,35 @@ public static class CandidateRepairs
         public override void Repair(Span<double> position, Random random)
         {
             ValidatePositionLength(position);
-            if (CanUseTensorPath(position))
+            var index = 0;
+            if (Vector512.IsHardwareAccelerated)
             {
-                ApplyTensorReflection(position);
-                return;
+                while (index <= position.Length - Vector512<double>.Count)
+                {
+                    RepairVector512(position, index);
+                    index += Vector512<double>.Count;
+                }
             }
 
-            for (var index = 0; index < position.Length; index++)
+            if (Vector256.IsHardwareAccelerated)
+            {
+                while (index <= position.Length - Vector256<double>.Count)
+                {
+                    RepairVector256(position, index);
+                    index += Vector256<double>.Count;
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                while (index <= position.Length - Vector128<double>.Count)
+                {
+                    RepairVector128(position, index);
+                    index += Vector128<double>.Count;
+                }
+            }
+
+            for (; index < position.Length; index++)
             {
                 position[index] = Reflect(position[index], GetLower(index), GetUpper(index));
             }
@@ -263,105 +288,254 @@ public static class CandidateRepairs
             return (widths, periods);
         }
 
-        private bool CanUseTensorPath(ReadOnlySpan<double> position)
-        {
-            for (var index = 0; index < position.Length; index++)
-            {
-                var value = position[index];
-                var lower = GetLower(index);
-                var upper = GetUpper(index);
-                var width = GetWidth(index);
-                var period = GetPeriod(index);
-                var offset = value - lower;
-                if (!double.IsFinite(value)
-                    || !double.IsFinite(lower)
-                    || !double.IsFinite(upper)
-                    || !double.IsFinite(width)
-                    || !double.IsFinite(period)
-                    || !double.IsFinite(offset)
-                    || !double.IsFinite(lower + width)
-                    || width <= 0
-                    || value == lower
-                    || value == upper)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         private double GetWidth(int index) => _vectorWidths is null ? _scalarWidth : _vectorWidths[index];
 
         private double GetPeriod(int index) => _vectorPeriods is null ? _scalarPeriod : _vectorPeriods[index];
 
-        private void ApplyTensorReflection(Span<double> position)
+        private void RepairVector512(Span<double> position, int index)
         {
-            Subtract(position, isLower: true);
-            if (_vectorPeriods is null)
-            {
-                TensorPrimitives.Remainder(position, _scalarPeriod, position);
-            }
-            else
-            {
-                TensorPrimitives.Remainder(position, _vectorPeriods, position);
-            }
-
-            TensorPrimitives.Abs(position, position);
-            Subtract(position, isLower: false);
-            TensorPrimitives.Abs(position, position);
-            SubtractFromWidth(position);
-            AddLower(position);
+            ref var positionStart = ref MemoryMarshal.GetReference(position);
+            var value = Vector512.LoadUnsafe(ref positionStart, (nuint)index);
+            var lower = LoadLower512(index);
+            var upper = LoadUpper512(index);
+            var result = ReflectVector512(value, lower, upper, LoadWidth512(index), LoadPeriod512(index), out var scalarRepairMask);
+            result.StoreUnsafe(ref positionStart, (nuint)index);
+            RepairLargeOffsetLanes(position, index, value, lower, upper, scalarRepairMask);
         }
 
-        private void Subtract(Span<double> position, bool isLower)
+        private void RepairVector256(Span<double> position, int index)
         {
-            if (isLower)
+            ref var positionStart = ref MemoryMarshal.GetReference(position);
+            var value = Vector256.LoadUnsafe(ref positionStart, (nuint)index);
+            var lower = LoadLower256(index);
+            var upper = LoadUpper256(index);
+            var result = ReflectVector256(value, lower, upper, LoadWidth256(index), LoadPeriod256(index), out var scalarRepairMask);
+            result.StoreUnsafe(ref positionStart, (nuint)index);
+            RepairLargeOffsetLanes(position, index, value, lower, upper, scalarRepairMask);
+        }
+
+        private void RepairVector128(Span<double> position, int index)
+        {
+            ref var positionStart = ref MemoryMarshal.GetReference(position);
+            var value = Vector128.LoadUnsafe(ref positionStart, (nuint)index);
+            var lower = LoadLower128(index);
+            var upper = LoadUpper128(index);
+            var result = ReflectVector128(value, lower, upper, LoadWidth128(index), LoadPeriod128(index), out var scalarRepairMask);
+            result.StoreUnsafe(ref positionStart, (nuint)index);
+            RepairLargeOffsetLanes(position, index, value, lower, upper, scalarRepairMask);
+        }
+
+        private static void RepairLargeOffsetLanes(
+            Span<double> position,
+            int index,
+            Vector512<double> value,
+            Vector512<double> lower,
+            Vector512<double> upper,
+            ulong scalarRepairMask)
+        {
+            for (var lane = 0; lane < Vector512<double>.Count; lane++)
             {
-                if (LowerIsVector)
+                if ((scalarRepairMask & (1UL << lane)) != 0)
                 {
-                    TensorPrimitives.Subtract(position, LowerValues, position);
+                    position[index + lane] = Reflect(value.GetElement(lane), lower.GetElement(lane), upper.GetElement(lane));
                 }
-                else
+            }
+        }
+
+        private static void RepairLargeOffsetLanes(
+            Span<double> position,
+            int index,
+            Vector256<double> value,
+            Vector256<double> lower,
+            Vector256<double> upper,
+            ulong scalarRepairMask)
+        {
+            for (var lane = 0; lane < Vector256<double>.Count; lane++)
+            {
+                if ((scalarRepairMask & (1UL << lane)) != 0)
                 {
-                    TensorPrimitives.Subtract(position, LowerScalar, position);
+                    position[index + lane] = Reflect(value.GetElement(lane), lower.GetElement(lane), upper.GetElement(lane));
                 }
-
-                return;
-            }
-
-            if (_vectorWidths is null)
-            {
-                TensorPrimitives.Subtract(position, _scalarWidth, position);
-            }
-            else
-            {
-                TensorPrimitives.Subtract(position, _vectorWidths, position);
             }
         }
 
-        private void SubtractFromWidth(Span<double> position)
+        private static void RepairLargeOffsetLanes(
+            Span<double> position,
+            int index,
+            Vector128<double> value,
+            Vector128<double> lower,
+            Vector128<double> upper,
+            ulong scalarRepairMask)
         {
-            if (_vectorWidths is null)
+            for (var lane = 0; lane < Vector128<double>.Count; lane++)
             {
-                TensorPrimitives.Subtract(_scalarWidth, position, position);
-            }
-            else
-            {
-                TensorPrimitives.Subtract(_vectorWidths, position, position);
+                if ((scalarRepairMask & (1UL << lane)) != 0)
+                {
+                    position[index + lane] = Reflect(value.GetElement(lane), lower.GetElement(lane), upper.GetElement(lane));
+                }
             }
         }
 
-        private void AddLower(Span<double> position)
+        private Vector512<double> LoadLower512(int index) => LowerIsVector
+            ? Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(LowerValues), (nuint)index)
+            : Vector512.Create(LowerScalar);
+
+        private Vector512<double> LoadUpper512(int index) => UpperIsVector
+            ? Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(UpperValues), (nuint)index)
+            : Vector512.Create(UpperScalar);
+
+        private Vector512<double> LoadWidth512(int index) => _vectorWidths is null
+            ? Vector512.Create(_scalarWidth)
+            : Vector512.LoadUnsafe(ref MemoryMarshal.GetArrayDataReference(_vectorWidths), (nuint)index);
+
+        private Vector512<double> LoadPeriod512(int index) => _vectorPeriods is null
+            ? Vector512.Create(_scalarPeriod)
+            : Vector512.LoadUnsafe(ref MemoryMarshal.GetArrayDataReference(_vectorPeriods), (nuint)index);
+
+        private Vector256<double> LoadLower256(int index) => LowerIsVector
+            ? Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(LowerValues), (nuint)index)
+            : Vector256.Create(LowerScalar);
+
+        private Vector256<double> LoadUpper256(int index) => UpperIsVector
+            ? Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(UpperValues), (nuint)index)
+            : Vector256.Create(UpperScalar);
+
+        private Vector256<double> LoadWidth256(int index) => _vectorWidths is null
+            ? Vector256.Create(_scalarWidth)
+            : Vector256.LoadUnsafe(ref MemoryMarshal.GetArrayDataReference(_vectorWidths), (nuint)index);
+
+        private Vector256<double> LoadPeriod256(int index) => _vectorPeriods is null
+            ? Vector256.Create(_scalarPeriod)
+            : Vector256.LoadUnsafe(ref MemoryMarshal.GetArrayDataReference(_vectorPeriods), (nuint)index);
+
+        private Vector128<double> LoadLower128(int index) => LowerIsVector
+            ? Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(LowerValues), (nuint)index)
+            : Vector128.Create(LowerScalar);
+
+        private Vector128<double> LoadUpper128(int index) => UpperIsVector
+            ? Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(UpperValues), (nuint)index)
+            : Vector128.Create(UpperScalar);
+
+        private Vector128<double> LoadWidth128(int index) => _vectorWidths is null
+            ? Vector128.Create(_scalarWidth)
+            : Vector128.LoadUnsafe(ref MemoryMarshal.GetArrayDataReference(_vectorWidths), (nuint)index);
+
+        private Vector128<double> LoadPeriod128(int index) => _vectorPeriods is null
+            ? Vector128.Create(_scalarPeriod)
+            : Vector128.LoadUnsafe(ref MemoryMarshal.GetArrayDataReference(_vectorPeriods), (nuint)index);
+
+        private static Vector512<double> ReflectVector512(
+            Vector512<double> value,
+            Vector512<double> lower,
+            Vector512<double> upper,
+            Vector512<double> width,
+            Vector512<double> period,
+            out ulong scalarRepairMask)
         {
-            if (LowerIsVector)
-            {
-                TensorPrimitives.Add(position, LowerValues, position);
-            }
-            else
-            {
-                TensorPrimitives.Add(position, LowerScalar, position);
-            }
+            var zero = Vector512<double>.Zero;
+            var clamped = Vector512.ConditionalSelect(
+                Vector512.LessThan(value, lower),
+                lower,
+                Vector512.ConditionalSelect(Vector512.GreaterThan(value, upper), upper, value));
+            var offset = value - lower;
+            var finite = Vector512.BitwiseAnd(Vector512.IsFinite(value), Vector512.IsFinite(lower));
+            finite = Vector512.BitwiseAnd(finite, Vector512.IsFinite(upper));
+            finite = Vector512.BitwiseAnd(finite, Vector512.IsFinite(width));
+            finite = Vector512.BitwiseAnd(finite, Vector512.IsFinite(period));
+            finite = Vector512.BitwiseAnd(finite, Vector512.IsFinite(offset));
+            var canReflect = Vector512.BitwiseAnd(finite, Vector512.GreaterThan(width, zero));
+            var requiresScalarRepair = Vector512.BitwiseAnd(
+                canReflect,
+                Vector512.GreaterThan(Vector512.Abs(offset), period * Vector512.Create(MaxVectorizedRemainderQuotient)));
+            scalarRepairMask = Vector512.ExtractMostSignificantBits(requiresScalarRepair);
+            var quotient = Vector512.Truncate(Vector512.Divide(offset, period));
+            var remainder = offset - (period * quotient);
+            remainder = Vector512.ConditionalSelect(Vector512.LessThan(remainder, zero), remainder + period, remainder);
+            var reflected = Vector512.ConditionalSelect(
+                Vector512.LessThanOrEqual(remainder, width),
+                lower + remainder,
+                upper - (remainder - width));
+            var result = Vector512.ConditionalSelect(canReflect, reflected, clamped);
+            var keepOriginal = Vector512.BitwiseOr(
+                Vector512.BitwiseAnd(Vector512.GreaterThan(value, lower), Vector512.LessThan(value, upper)),
+                Vector512.BitwiseOr(Vector512.Equals(value, lower), Vector512.Equals(value, upper)));
+            return Vector512.ConditionalSelect(keepOriginal, value, result);
+        }
+
+        private static Vector256<double> ReflectVector256(
+            Vector256<double> value,
+            Vector256<double> lower,
+            Vector256<double> upper,
+            Vector256<double> width,
+            Vector256<double> period,
+            out ulong scalarRepairMask)
+        {
+            var zero = Vector256<double>.Zero;
+            var clamped = Vector256.ConditionalSelect(
+                Vector256.LessThan(value, lower),
+                lower,
+                Vector256.ConditionalSelect(Vector256.GreaterThan(value, upper), upper, value));
+            var offset = value - lower;
+            var finite = Vector256.BitwiseAnd(Vector256.IsFinite(value), Vector256.IsFinite(lower));
+            finite = Vector256.BitwiseAnd(finite, Vector256.IsFinite(upper));
+            finite = Vector256.BitwiseAnd(finite, Vector256.IsFinite(width));
+            finite = Vector256.BitwiseAnd(finite, Vector256.IsFinite(period));
+            finite = Vector256.BitwiseAnd(finite, Vector256.IsFinite(offset));
+            var canReflect = Vector256.BitwiseAnd(finite, Vector256.GreaterThan(width, zero));
+            var requiresScalarRepair = Vector256.BitwiseAnd(
+                canReflect,
+                Vector256.GreaterThan(Vector256.Abs(offset), period * Vector256.Create(MaxVectorizedRemainderQuotient)));
+            scalarRepairMask = Vector256.ExtractMostSignificantBits(requiresScalarRepair);
+            var quotient = Vector256.Truncate(Vector256.Divide(offset, period));
+            var remainder = offset - (period * quotient);
+            remainder = Vector256.ConditionalSelect(Vector256.LessThan(remainder, zero), remainder + period, remainder);
+            var reflected = Vector256.ConditionalSelect(
+                Vector256.LessThanOrEqual(remainder, width),
+                lower + remainder,
+                upper - (remainder - width));
+            var result = Vector256.ConditionalSelect(canReflect, reflected, clamped);
+            var keepOriginal = Vector256.BitwiseOr(
+                Vector256.BitwiseAnd(Vector256.GreaterThan(value, lower), Vector256.LessThan(value, upper)),
+                Vector256.BitwiseOr(Vector256.Equals(value, lower), Vector256.Equals(value, upper)));
+            return Vector256.ConditionalSelect(keepOriginal, value, result);
+        }
+
+        private static Vector128<double> ReflectVector128(
+            Vector128<double> value,
+            Vector128<double> lower,
+            Vector128<double> upper,
+            Vector128<double> width,
+            Vector128<double> period,
+            out ulong scalarRepairMask)
+        {
+            var zero = Vector128<double>.Zero;
+            var clamped = Vector128.ConditionalSelect(
+                Vector128.LessThan(value, lower),
+                lower,
+                Vector128.ConditionalSelect(Vector128.GreaterThan(value, upper), upper, value));
+            var offset = value - lower;
+            var finite = Vector128.BitwiseAnd(Vector128.IsFinite(value), Vector128.IsFinite(lower));
+            finite = Vector128.BitwiseAnd(finite, Vector128.IsFinite(upper));
+            finite = Vector128.BitwiseAnd(finite, Vector128.IsFinite(width));
+            finite = Vector128.BitwiseAnd(finite, Vector128.IsFinite(period));
+            finite = Vector128.BitwiseAnd(finite, Vector128.IsFinite(offset));
+            var canReflect = Vector128.BitwiseAnd(finite, Vector128.GreaterThan(width, zero));
+            var requiresScalarRepair = Vector128.BitwiseAnd(
+                canReflect,
+                Vector128.GreaterThan(Vector128.Abs(offset), period * Vector128.Create(MaxVectorizedRemainderQuotient)));
+            scalarRepairMask = Vector128.ExtractMostSignificantBits(requiresScalarRepair);
+            var quotient = Vector128.Truncate(Vector128.Divide(offset, period));
+            var remainder = offset - (period * quotient);
+            remainder = Vector128.ConditionalSelect(Vector128.LessThan(remainder, zero), remainder + period, remainder);
+            var reflected = Vector128.ConditionalSelect(
+                Vector128.LessThanOrEqual(remainder, width),
+                lower + remainder,
+                upper - (remainder - width));
+            var result = Vector128.ConditionalSelect(canReflect, reflected, clamped);
+            var keepOriginal = Vector128.BitwiseOr(
+                Vector128.BitwiseAnd(Vector128.GreaterThan(value, lower), Vector128.LessThan(value, upper)),
+                Vector128.BitwiseOr(Vector128.Equals(value, lower), Vector128.Equals(value, upper)));
+            return Vector128.ConditionalSelect(keepOriginal, value, result);
         }
 
         private static double Reflect(double value, double lower, double upper)

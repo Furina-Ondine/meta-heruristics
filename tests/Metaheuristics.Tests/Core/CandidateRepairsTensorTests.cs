@@ -83,6 +83,33 @@ public sealed class CandidateRepairsTensorTests
         }
     }
 
+    /// <summary>验证大但有限的偏移不会因向量 remainder 的中间舍入偏离标量参考。</summary>
+    [Xunit.Fact]
+    public void ReflectMatchesTheReferenceWithinOneUlpForLargeFiniteOffsets()
+    {
+        foreach (var (minimum, maximum) in new[] { (-10.0, 10.0), (0.1, 0.3), (-123.456, 789.123) })
+        {
+            var width = maximum - minimum;
+            var actual = new[]
+            {
+                -1e100,
+                -1e50,
+                minimum - (width * 4095.25),
+                minimum - (width * 3.75),
+                maximum + (width * 3.75),
+                maximum + (width * 4095.25),
+                1e50,
+                1e100,
+            };
+            var expected = (double[])actual.Clone();
+
+            ReflectReference(expected, [minimum], [maximum], BoundaryShape.ScalarScalar);
+            CandidateRepairs.Reflect(minimum, maximum).Repair(actual, new Random(1));
+
+            AssertWithinOneUlp(expected, actual);
+        }
+    }
+
     private static (double[] Lower, double[] Upper) CreateBounds(int length)
     {
         var lower = new double[length];

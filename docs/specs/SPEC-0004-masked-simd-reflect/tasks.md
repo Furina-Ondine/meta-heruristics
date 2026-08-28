@@ -22,7 +22,7 @@
 
 ## T002：实现自适应掩码 Reflect 内核
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`NFR-001`、`NFR-002`
 - 依赖：`T001`
 - 影响区域：Core 私有 `CandidateRepairs.ReflectCandidateRepair`、Core 测试。
@@ -30,11 +30,11 @@
 - 明确不做：不改 Clamp、RandomReset、DoNothing、公开接口、项目依赖、状态所有权或 Algorithms。
 - 完成条件：T001 差分测试通过；不存在整段安全扫描或全段回退；正常 Repair 无调用级托管分配。
 - 验证命令：`dotnet build Metaheuristics.NET.slnx -c Release --no-restore`；`dotnet test Metaheuristics.NET.slnx -c Release --no-build`。
-- 验证结果：尚未执行。
+- 验证结果：2026-08-28 通过；Release build 0 warning/0 error，完整测试 105 项通过。大有限偏移差分测试发现直接向量余数会失真，已由超过 2 个 period 的逐 lane 标量修补处理，不恢复整段回退。
 
 ## T003：执行性能门槛与完成验证
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-005`、`NFR-001`、`NFR-002`
 - 依赖：`T002`
 - 影响区域：Benchmarks、Specs、architecture overview。
