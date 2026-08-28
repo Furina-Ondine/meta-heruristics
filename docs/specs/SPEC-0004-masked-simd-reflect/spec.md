@@ -3,10 +3,10 @@
 ## 元数据
 
 - 编号：`SPEC-0004`
-- 状态：`Clarifying`
+- 状态：`Approved`
 - 创建日期：2026-08-28
-- 批准人：—
-- 批准日期：—
+- 批准人：项目作者
+- 批准日期：2026-08-28
 - 替代：`SPEC-0003` 的 FR-003 内部 Reflect 分派规则（整段安全预扫描与整段标量回退）
 - 被替代：无
 - 相关 ADR：[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)
@@ -128,10 +128,10 @@ ADR-0013 没有规定 Reflect 的具体 SIMD 后端；该 ADR 已将 Repair 优�
 - 已确认：长度适配采用可用向量宽度的逐级缩窄；例如 512 位机器上的长度 7 必须使用 4-lane 与 2-lane SIMD 子块，只允许最后 1 个元素标量处理。
 - 已确认：可以使用 `System.Runtime.Intrinsics` 的私有掩码内核；Clamp 保持 `TensorPrimitives` 实现。
 - 已确认：候选实现必须在定义的主要有限负载上快于当前实现，否则不替换。
-- 待确认：本规格只替代 `SPEC-0003` 的内部 Reflect 分派细节；Clamp、公开 API、特殊值和数值兼容边界仍以 `SPEC-0003` 为共同约束。
+- 已确认：本规格只替代 `SPEC-0003` 的内部 Reflect 分派细节；Clamp、公开 API、特殊值和数值兼容边界仍以 `SPEC-0003` 为共同约束。
 
 ## 批准记录
 
-- 规格批准：—
-- 批准日期：—
-- 批准时明确接受的风险：—
+- 规格批准：项目作者
+- 批准日期：2026-08-28
+- 批准时明确接受的风险：掩码内核可能在有限可反射 lane 上带来最多 1 ULP 的末位差异；只有目标机器基准能证明性能改善，不能外推为所有硬件或输入均加速。
