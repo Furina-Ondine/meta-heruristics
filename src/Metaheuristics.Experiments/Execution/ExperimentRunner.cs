@@ -31,17 +31,18 @@ public static class ExperimentRunner
 
         var maximumRepetitions = experiment.Cases.Max(static experimentCase => experimentCase.Repetitions);
         var seeds = ResolveSeeds(options, maximumRepetitions);
+        var executionPlan = CreatePlans(experiment.Cases, seeds);
         var builders = experiment.Cases
-            .Select(experimentCase => new CaseResultBuilder(experimentCase, seeds))
+            .Select((experimentCase, caseIndex) =>
+                new CaseResultBuilder(experimentCase, executionPlan.GroupIndices[caseIndex], seeds))
             .ToArray();
         var executionState = new ExperimentExecutionState();
         var stopwatch = Stopwatch.StartNew();
 
         if (!cancellationToken.IsCancellationRequested)
         {
-            var groupCount = experiment.Cases.Sum(static experimentCase => experimentCase.RunGroupCount);
-            var workerCount = Math.Min(options.GlobalMaxConcurrency, groupCount);
-            using var plans = CreatePlans(experiment.Cases, seeds).GetEnumerator();
+            var workerCount = Math.Min(options.GlobalMaxConcurrency, executionPlan.Groups.Count);
+            using var plans = executionPlan.Groups.GetEnumerator();
             var planGate = new object();
             var workers = new Task[workerCount];
             for (var workerIndex = 0; workerIndex < workers.Length; workerIndex++)
@@ -194,9 +195,13 @@ public static class ExperimentRunner
         return setup;
     }
 
-    private static IEnumerable<RunGroupPlan> CreatePlans(IReadOnlyList<ExperimentCase> cases, int[] seeds)
+    private static ExperimentPlan CreatePlans(IReadOnlyList<ExperimentCase> cases, int[] seeds)
     {
         var maximumGroupCount = cases.Max(static experimentCase => experimentCase.RunGroupCount);
+        var groups = new List<RunGroupPlan>(cases.Sum(static experimentCase => experimentCase.RunGroupCount));
+        var groupIndices = cases
+            .Select(static experimentCase => new int[experimentCase.Repetitions])
+            .ToArray();
         for (var groupIndex = 0; groupIndex < maximumGroupCount; groupIndex++)
         {
             for (var caseIndex = 0; caseIndex < cases.Count; caseIndex++)
@@ -218,11 +223,14 @@ public static class ExperimentRunner
                     var repetitionIndex = start + offset;
                     repetitionIndices[offset] = repetitionIndex;
                     groupSeeds[offset] = seeds[repetitionIndex];
+                    groupIndices[caseIndex][repetitionIndex] = groupIndex;
                 }
 
-                yield return new RunGroupPlan(caseIndex, experimentCase, groupIndex, repetitionIndices, groupSeeds);
+                groups.Add(new RunGroupPlan(caseIndex, experimentCase, groupIndex, repetitionIndices, groupSeeds));
             }
         }
+
+        return new ExperimentPlan(groups, groupIndices);
     }
 
     private static int[] ResolveSeeds(ExperimentExecutionOptions options, int requiredCount)
@@ -287,12 +295,15 @@ public static class ExperimentRunner
         private BestPositionMatrix? _bestPositions;
         private int _startedGroupCount;
 
-        public CaseResultBuilder(ExperimentCase experimentCase, IReadOnlyList<int> seeds)
+        public CaseResultBuilder(
+            ExperimentCase experimentCase,
+            int[] groupIndices,
+            IReadOnlyList<int> seeds)
         {
             _case = experimentCase;
+            _groupIndices = groupIndices;
             _seeds = seeds;
             _runs = new ExperimentRunResult?[experimentCase.Repetitions];
-            _groupIndices = CreateGroupIndices(experimentCase);
         }
 
         public void MarkGroupStarted()
@@ -406,21 +417,9 @@ public static class ExperimentRunner
                 ? ExperimentExecutionStatus.Failed
                 : ExperimentExecutionStatus.Succeeded;
         }
-
-        private static int[] CreateGroupIndices(ExperimentCase experimentCase)
-        {
-            var result = new int[experimentCase.Repetitions];
-            var baseSize = experimentCase.Repetitions / experimentCase.RunGroupCount;
-            var remainder = experimentCase.Repetitions % experimentCase.RunGroupCount;
-            var start = 0;
-            for (var groupIndex = 0; groupIndex < experimentCase.RunGroupCount; groupIndex++)
-            {
-                var size = baseSize + (groupIndex < remainder ? 1 : 0);
-                Array.Fill(result, groupIndex, start, size);
-                start += size;
-            }
-
-            return result;
-        }
     }
+
+    private sealed record ExperimentPlan(
+        IReadOnlyList<RunGroupPlan> Groups,
+        IReadOnlyList<int[]> GroupIndices);
 }

@@ -37,6 +37,11 @@ public sealed class ExperimentRunnerTests
         Xunit.Assert.Equal(["first:0:0,1,2", "second:0:0,1,2", "first:1:3,4", "second:1:3,4"], creationOrder);
         Xunit.Assert.Equal([2, 2, 3, 3], optimizers.Select(static optimizer => optimizer.ResetCount).Order());
         Xunit.Assert.Equal(result.Cases[0].Runs.Select(static run => run.Seed), result.Cases[1].Runs.Select(static run => run.Seed));
+        Xunit.Assert.All(
+            result.Cases,
+            static caseResult => Xunit.Assert.Equal(
+                [0, 0, 0, 1, 1],
+                caseResult.Runs.Select(static run => run.GroupIndex)));
         Xunit.Assert.Equal(11, result.Cases[0].BestPositions![0, 0]);
         Xunit.Assert.Equal(55, result.Cases[1].BestPositions![4, 0]);
     }
@@ -172,8 +177,8 @@ public sealed class ExperimentRunnerTests
         cancellation.Cancel();
         var experimentCase = CreateRecordingCase(
             "not-started",
+            5,
             2,
-            1,
             new ConcurrentQueue<string>(),
             new ConcurrentBag<SeedValueOptimizer>());
 
@@ -185,6 +190,9 @@ public sealed class ExperimentRunnerTests
         Xunit.Assert.All(
             result.Cases[0].Runs,
             static run => Xunit.Assert.Equal(ExperimentExecutionStatus.NotStarted, run.Status));
+        Xunit.Assert.Equal(
+            [0, 0, 0, 1, 1],
+            result.Cases[0].Runs.Select(static run => run.GroupIndex));
     }
 
     /// <summary>
