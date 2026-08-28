@@ -66,4 +66,4 @@ Plan 使用 `Draft`、`Approved`、`Superseded`；Tasks 使用 `Pending`、`InPr
 | [SPEC-0001](./SPEC-0001-evaluation-special-values/spec.md) | 评估结果的特殊数值语义 | `Implemented` |
 | [SPEC-0002](./SPEC-0002-continuous-algorithm-migration/spec.md) | 连续集中式算法迁移 | `Implemented` |
 | [SPEC-0003](./SPEC-0003-simd-repairs/spec.md) | SIMD 内置 Repair | `Implemented` |
-| [SPEC-0004](./SPEC-0004-masked-simd-reflect/spec.md) | 掩码 SIMD Reflect Repair | `Draft` |
+| [SPEC-0004](./SPEC-0004-masked-simd-reflect/spec.md) | 掩码 SIMD Reflect Repair | `Implemented` |

@@ -34,7 +34,7 @@
 
 ## T003：执行性能门槛与完成验证
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-005`、`NFR-001`、`NFR-002`
 - 依赖：`T002`
 - 影响区域：Benchmarks、Specs、architecture overview。
@@ -42,4 +42,4 @@
 - 明确不做：不把单机数据宣传为所有硬件的性能结论；不在门槛失败时保留较慢实现或开关。
 - 完成条件：所有要求具有验证证据；Spec/Tasks 状态与实际结果一致。
 - 验证命令：`dotnet restore Metaheuristics.NET.slnx`; `dotnet build Metaheuristics.NET.slnx -c Release --no-restore`; `dotnet test Metaheuristics.NET.slnx -c Release --no-build`; `dotnet tool run docfx docfx.json`; `dotnet run -c Release --project benchmarks/Metaheuristics.Benchmarks -- --filter *RepairBenchmarks*`。
-- 验证结果：尚未执行。
+- 验证结果：2026-08-28 通过；80 项 Reflect ShortRun 对比中四个主要门槛均改善，完整 Release restore/build/test、DocFX、格式和残留检查均通过。详情见 `verification.md`。
