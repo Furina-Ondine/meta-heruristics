@@ -3,10 +3,10 @@
 ## 元数据
 
 - 编号：`SPEC-0003`
-- 状态：`Clarifying`
+- 状态：`Approved`
 - 创建日期：2026-08-28
-- 批准人：—
-- 批准日期：—
+- 批准人：项目作者
+- 批准日期：2026-08-28
 - 替代：无
 - 被替代：无
 - 相关 ADR：[ADR-0001](../../decisions/0001-platform-and-toolchain.md)、[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)
@@ -128,10 +128,10 @@ ADR-0013 已明确此依赖归属及未来 SIMD 空间；本变更不改变长�
 - Reflect 选择 TensorPrimitives 管线（方案 B），不使用手写向量 intrinsic 路径。
 - 用户已接受安全有限 Reflect 输入最多 1 ULP 的末位差异；特殊值与回退结果仍要求逐位兼容。
 - 非对齐长度 7 是必须覆盖的显式案例，并与前后相邻长度一起测试与基准。
-- 没有未解决的公共行为问题；等待项目作者审阅本规格后方可进入 `Approved`。
+- 没有未解决的公共行为问题。
 
 ## 批准记录
 
-- 规格批准：—
-- 批准日期：—
+- 规格批准：项目作者
+- 批准日期：2026-08-28
 - 批准时明确接受的风险：Reflect 的 TensorPrimitives 计算链会改变部分有限值的最后一位；性能收益只由目标机器上的基准证明，不外推为通用承诺。
