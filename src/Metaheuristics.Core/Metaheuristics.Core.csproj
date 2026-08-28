@@ -3,4 +3,7 @@
     <Description>Core abstractions and execution primitives for Metaheuristics.NET.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Numerics.Tensors" />
+  </ItemGroup>
 </Project>

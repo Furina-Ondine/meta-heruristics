@@ -1,3 +1,5 @@
+using System.Numerics.Tensors;
+
 namespace Anastasya.Metaheuristics.Core.Problems;
 
 /// <summary>创建在算法每次写入位置后就地恢复候选分量的内置策略。</summary>
@@ -89,6 +91,13 @@ public static class CandidateRepairs
 
         protected double GetLower(int index) => _lower.GetValue(index);
         protected double GetUpper(int index) => _upper.GetValue(index);
+        protected bool LowerIsVector => _lower.IsVector;
+        protected bool UpperIsVector => _upper.IsVector;
+        protected int VectorBoundaryLength => _lower.IsVector ? _lower.Length : _upper.Length;
+        protected double LowerScalar => _lower.Scalar;
+        protected double UpperScalar => _upper.Scalar;
+        protected ReadOnlySpan<double> LowerValues => _lower.Values;
+        protected ReadOnlySpan<double> UpperValues => _upper.Values;
 
         protected static double Clamp(double value, double lower, double upper)
         {
@@ -158,6 +167,8 @@ public static class CandidateRepairs
 
             public bool IsVector => _values is not null;
             public int Length => _values?.Length ?? 0;
+            public double Scalar => _scalar;
+            public ReadOnlySpan<double> Values => _values is null ? [] : _values;
             public double GetValue(int index) => _values is null ? _scalar : _values[index];
             public static Boundary Create(double scalar) => new(scalar);
             public static Boundary Create(ReadOnlySpan<double> values) => new(values);
@@ -174,26 +185,182 @@ public static class CandidateRepairs
         public override void Repair(Span<double> position, Random random)
         {
             ValidatePositionLength(position);
-            for (var index = 0; index < position.Length; index++)
+            if (LowerIsVector)
             {
-                position[index] = Clamp(position[index], GetLower(index), GetUpper(index));
+                if (UpperIsVector)
+                {
+                    TensorPrimitives.Clamp(position, LowerValues, UpperValues, position);
+                }
+                else
+                {
+                    TensorPrimitives.Clamp(position, LowerValues, UpperScalar, position);
+                }
+            }
+            else if (UpperIsVector)
+            {
+                TensorPrimitives.Clamp(position, LowerScalar, UpperValues, position);
+            }
+            else
+            {
+                TensorPrimitives.Clamp(position, LowerScalar, UpperScalar, position);
             }
         }
     }
 
     private sealed class ReflectCandidateRepair : BoundedCandidateRepair
     {
-        public ReflectCandidateRepair(double lower, double upper) : base(lower, upper) { }
-        public ReflectCandidateRepair(ReadOnlySpan<double> lower, double upper) : base(lower, upper) { }
-        public ReflectCandidateRepair(double lower, ReadOnlySpan<double> upper) : base(lower, upper) { }
-        public ReflectCandidateRepair(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) : base(lower, upper) { }
+        private readonly double _scalarWidth;
+        private readonly double _scalarPeriod;
+        private readonly double[]? _vectorWidths;
+        private readonly double[]? _vectorPeriods;
+
+        public ReflectCandidateRepair(double lower, double upper) : base(lower, upper)
+        {
+            _scalarWidth = upper - lower;
+            _scalarPeriod = _scalarWidth * 2;
+        }
+
+        public ReflectCandidateRepair(ReadOnlySpan<double> lower, double upper) : base(lower, upper)
+        {
+            (_vectorWidths, _vectorPeriods) = CreateReflectionParameters();
+        }
+
+        public ReflectCandidateRepair(double lower, ReadOnlySpan<double> upper) : base(lower, upper)
+        {
+            (_vectorWidths, _vectorPeriods) = CreateReflectionParameters();
+        }
+
+        public ReflectCandidateRepair(ReadOnlySpan<double> lower, ReadOnlySpan<double> upper) : base(lower, upper)
+        {
+            (_vectorWidths, _vectorPeriods) = CreateReflectionParameters();
+        }
 
         public override void Repair(Span<double> position, Random random)
         {
             ValidatePositionLength(position);
+            if (CanUseTensorPath(position))
+            {
+                ApplyTensorReflection(position);
+                return;
+            }
+
             for (var index = 0; index < position.Length; index++)
             {
                 position[index] = Reflect(position[index], GetLower(index), GetUpper(index));
+            }
+        }
+
+        private (double[] Widths, double[] Periods) CreateReflectionParameters()
+        {
+            var widths = new double[VectorBoundaryLength];
+            var periods = new double[widths.Length];
+            for (var index = 0; index < widths.Length; index++)
+            {
+                widths[index] = GetUpper(index) - GetLower(index);
+                periods[index] = widths[index] * 2;
+            }
+
+            return (widths, periods);
+        }
+
+        private bool CanUseTensorPath(ReadOnlySpan<double> position)
+        {
+            for (var index = 0; index < position.Length; index++)
+            {
+                var value = position[index];
+                var lower = GetLower(index);
+                var upper = GetUpper(index);
+                var width = GetWidth(index);
+                var period = GetPeriod(index);
+                var offset = value - lower;
+                if (!double.IsFinite(value)
+                    || !double.IsFinite(lower)
+                    || !double.IsFinite(upper)
+                    || !double.IsFinite(width)
+                    || !double.IsFinite(period)
+                    || !double.IsFinite(offset)
+                    || !double.IsFinite(lower + width)
+                    || width <= 0
+                    || value == lower
+                    || value == upper)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private double GetWidth(int index) => _vectorWidths is null ? _scalarWidth : _vectorWidths[index];
+
+        private double GetPeriod(int index) => _vectorPeriods is null ? _scalarPeriod : _vectorPeriods[index];
+
+        private void ApplyTensorReflection(Span<double> position)
+        {
+            Subtract(position, isLower: true);
+            if (_vectorPeriods is null)
+            {
+                TensorPrimitives.Remainder(position, _scalarPeriod, position);
+            }
+            else
+            {
+                TensorPrimitives.Remainder(position, _vectorPeriods, position);
+            }
+
+            TensorPrimitives.Abs(position, position);
+            Subtract(position, isLower: false);
+            TensorPrimitives.Abs(position, position);
+            SubtractFromWidth(position);
+            AddLower(position);
+        }
+
+        private void Subtract(Span<double> position, bool isLower)
+        {
+            if (isLower)
+            {
+                if (LowerIsVector)
+                {
+                    TensorPrimitives.Subtract(position, LowerValues, position);
+                }
+                else
+                {
+                    TensorPrimitives.Subtract(position, LowerScalar, position);
+                }
+
+                return;
+            }
+
+            if (_vectorWidths is null)
+            {
+                TensorPrimitives.Subtract(position, _scalarWidth, position);
+            }
+            else
+            {
+                TensorPrimitives.Subtract(position, _vectorWidths, position);
+            }
+        }
+
+        private void SubtractFromWidth(Span<double> position)
+        {
+            if (_vectorWidths is null)
+            {
+                TensorPrimitives.Subtract(_scalarWidth, position, position);
+            }
+            else
+            {
+                TensorPrimitives.Subtract(_vectorWidths, position, position);
+            }
+        }
+
+        private void AddLower(Span<double> position)
+        {
+            if (LowerIsVector)
+            {
+                TensorPrimitives.Add(position, LowerValues, position);
+            }
+            else
+            {
+                TensorPrimitives.Add(position, LowerScalar, position);
             }
         }
 
