@@ -7,7 +7,7 @@
 - 创建日期：2026-08-28
 - 批准人：项目作者
 - 批准日期：2026-08-28
-- 替代：`SPEC-0003` 的 FR-003 内部 Reflect 分派规则（整段安全预扫描与整段标量回退）
+- 替代：[SPEC-0003](../SPEC-0003-simd-repairs/spec.md) 的 FR-003 内部 Reflect 分派规则（整段安全预扫描与任一 lane 不安全即整段标量回退）
 - 被替代：无
 - 相关 ADR：[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)
 
