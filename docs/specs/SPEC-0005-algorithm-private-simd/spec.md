@@ -3,13 +3,13 @@
 ## 元数据
 
 - 编号：`SPEC-0005`
-- 状态：`Approved`
+- 状态：`Implemented`
 - 创建日期：2026-08-29
 - 批准人：项目作者
 - 批准日期：2026-08-29
 - 替代：[SPEC-0003](../SPEC-0003-simd-repairs/spec.md) 的 FR-001 中“只有 Core 直接引用 `System.Numerics.Tensors`”的项目引用限制；不替代其 Repair 行为或 Core 对内置 Repair 的实现所有权。
 - 被替代：无
-- 相关 ADR：[ADR-0009](../../decisions/0009-group-scoped-optimizer-execution.md)、[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)
+- 相关 ADR：[ADR-0009](../../decisions/0009-group-scoped-optimizer-execution.md)、[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0016](../../decisions/0016-algorithm-fixed-width-simd-cascade.md)
 
 ## 问题与动机
 
@@ -31,8 +31,8 @@
 
 - 不新增 `IOptimizer`、`OptimizationRunContext`、`ContinuousProblem`、`IObjectiveFunction` 或批量评估 API；Core 继续只提供标量单点评估。
 - 不改变 AoS 工作区布局，不引入 SoA、共享种群基类、公共 SIMD 开关、后端接口、数组池或跨 Optimizer 缓冲区。
-- 不引入公开或 Core 级 `VectorOps`。Algorithms 包内的 `internal` `VectorOps` 只可封装经证明无法由直接 `TensorPrimitives` 或无分配组合表达的、被实际算法调用的纯 Span 算术；它不得包含边界、随机、评估、比较、缓存、配置或运行时分派职责。
-- 不使用 `System.Runtime.Intrinsics`。显式 Intrinsics、GPU、并行种群评估或算法布局迁移必须由后续 Spec 和必要 ADR 单独决定。
+- 不引入公开或 Core 级 `VectorOps`。Algorithms 包内的 `internal` `VectorOps` 只可封装经证明无法由直接 `TensorPrimitives` 或无分配组合表达的、被实际算法调用的纯 Span 算术；它不得包含边界、随机、评估、比较、缓存、配置或公开运行时分派职责。
+- 任何实际算法调用的 Algorithms 私有 `VectorOps` 都可以在本 Spec 或后续对应 Spec 证明具体性能收益时，使用 `System.Runtime.Intrinsics` 中平台无关的 `Vector512<T>`、`Vector256<T>` 和 `Vector128<T>`，并按 512→256→128→标量尾部的顺序处理 Span。PSO 是当前首个落地点，Firefly 在本 Spec 内进行第二次候选验证。不得使用 `System.Runtime.Intrinsics.X86`、`.Arm` 或其他 ISA 专属 API；GPU、并行种群评估或算法布局迁移必须由后续 Spec 和必要 ADR 单独决定。
 - 不在本 Spec 中迁移蝙蝠或布谷鸟的生产更新循环；它们只接受基准诊断，不以“覆盖全部算法”为完成条件。
 - 不改变 Options、算法公式、默认值、比较、取消、Repair 时机、目标/约束数值域或随机数生成器。
 
@@ -40,9 +40,9 @@
 
 Algorithms 继续只引用 Core 作为项目依赖，并拥有各算法的私有状态与更新算术；Core 继续唯一拥有 Problem、Repair、评估、比较与运行生命周期。Algorithms 将通过直接包引用使用集中版本管理锁定的 `System.Numerics.Tensors`，与 Core 使用相同包版本。每个张量操作只读取当前 Optimizer 私有数组并写入其私有目标数组，不保存共享状态，不建立跨运行缓存，也不访问 Repair 的边界或内部实现。
 
-实现选择必须按以下顺序记录在 Plan 与基准中：直接 `TensorPrimitives` 调用、无调用级分配的 `TensorPrimitives` 组合、最后才是 Algorithms 包内私有 `VectorOps`。后者是 `internal` 的纯 Span 算术实现细节，不是新的策略、公共后端或通用种群抽象；只有有实际调用点时才创建。每个算法保留标量路径，供任何张量路径无法逐元素保持标量语义的输入使用。
+实现选择必须按以下顺序记录在 Plan 与基准中：直接 `TensorPrimitives` 调用、无调用级分配的 `TensorPrimitives` 组合、最后才是 Algorithms 包内私有 `VectorOps`。后者是 `internal` 的纯 Span 算术实现细节，不是新的策略、公共后端或通用种群抽象；只有有实际调用点时才创建。任何采用 `VectorOps` 的算法都必须在当前剩余长度足够时依次选择 512、256、128 位向量后执行标量尾部。
 
-该受限的直接包引用和内部帮助器不改变 [ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md) 的单点评估决定，也不扩大 [SPEC-0004](../SPEC-0004-masked-simd-reflect/spec.md) 中只允许 `CandidateRepairs` 使用 explicit Intrinsics 的范围。由于初版不引入公共计算后端、项目依赖方向、共享运行状态或 explicit Intrinsics，本 Spec 不提议新增 ADR。若需要突破任一边界，必须先暂停实施并新增或替代 ADR。
+该受限的直接包引用和内部帮助器不改变 [ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md) 的单点评估决定。[ADR-0016](../../decisions/0016-algorithm-fixed-width-simd-cascade.md) 记录了项目作者将通用固定宽度向量作为 Algorithms 私有性能手段的决定；PSO 是首个落地点，Firefly 可在本 Spec 内按相同门槛验证。这不允许 ISA 专属 API，也不改变 [SPEC-0004](../SPEC-0004-masked-simd-reflect/spec.md) 中 CandidateRepairs 的职责。若需要 ISA 专属 API 或突破任一边界，必须先暂停实施并新增或替代 ADR。
 
 ## 信任与责任边界
 
@@ -53,7 +53,7 @@ Algorithms 继续只引用 Core 作为项目依赖，并拥有各算法的私有
 | 位置合法性、特殊位置值与边界 | 调用方选定的 `ICandidateRepair` | Core 通过 Context 委托 | 算法仅在既有时机调用 Repair，不检查或读取边界。 |
 | 目标、约束与 Evaluation 数值域 | `ContinuousProblem` 与公开值对象 | 是 | 保持既有异常和有序扩展数值语义。 |
 | 张量实现优先级与算法私有 `VectorOps` | Algorithms 维护者 | 否 | 未满足优先级、数值或性能门槛时保留标量实现。 |
-| Tensor SIMD 硬件可用性 | `TensorPrimitives` 与 .NET 运行时 | 否 | 由包选择可用实现，功能语义仍由差分测试保护。 |
+| Tensor/SIMD 硬件可用性 | `TensorPrimitives`、通用固定宽度向量与 .NET 运行时 | 否 | PSO 按 512→256→128→标量尾部处理；功能语义由差分测试保护。 |
 
 ## 功能需求
 
@@ -61,7 +61,7 @@ Algorithms 继续只引用 Core 作为项目依赖，并拥有各算法的私有
 
 - 前置条件：`PsoOptimizer` 已完成 `ResetForRun`，并持有当前/目标双缓冲粒子数组与有效的 `OptimizationRunContext`。
 - 触发行为：`Advance` 为每个粒子生成下一代候选。
-- 预期结果：每粒子仍恰好先从当前 run 的 `Random` 取得一对认知/社会系数；随后按原有公式计算速度、按原有速度边界限幅、计算位置，并且只在完整 Position 写入后调用一次既有 `context.Repair`。实现必须先尝试直接 `TensorPrimitives` 方法；无单一方法覆盖完整公式时，才以 `TensorPrimitives` 原位组合和 Optimizer 已拥有的目标数组完成计算；只有该组合不满足约束时才能调用 Algorithms 私有 `VectorOps`。
+- 预期结果：每粒子仍恰好先从当前 run 的 `Random` 取得一对认知/社会系数；随后按原有公式计算速度、按原有速度边界限幅、计算位置，并且只在完整 Position 写入后调用一次既有 `context.Repair`。实现必须先尝试直接 `TensorPrimitives` 方法；无单一方法覆盖完整公式时，才以 `TensorPrimitives` 原位组合和 Optimizer 已拥有的目标数组完成计算；只有该组合不满足约束时才能调用 Algorithms 私有 `VectorOps`。该帮助器按当前剩余长度依次使用可硬件加速的 `Vector512<double>`、`Vector256<double>`、`Vector128<double>`，最后逐元素标量处理，不按 `Vector<T>.Count` 选取单一宽度。
 - 边界情况：零宽速度范围、`NaN`、正负 Infinity、负零、重叠输入/目标 Span 规则及 Repair 保留的特殊 Position 都必须产生与权威标量路径一致的逐维结果。若 `TensorPrimitives.Clamp` 或其他张量操作不能表达某个元素的标量语义，该元素必须退回标量计算，不能改变为隐式边界值。
 - 验收标准：同一目标执行环境中，固定 seed 的重复运行产生逐位一致的候选 Position、Velocity、个人/全局最佳和 Evaluation；逐元素非归约算术与标量参考差分一致，随机数消费、Repair/Evaluate 调用次数、取消传播、RunGroup 隔离和工作区复用均与既有契约测试一致。不同平台之间不要求数值或轨迹逐位一致。
 
@@ -106,7 +106,7 @@ Algorithms 继续只引用 Core 作为项目依赖，并拥有各算法的私有
 ### NFR-003：实现边界可审计
 
 - 测量方式：项目引用、公开 API 与残留搜索审查。
-- 可接受阈值：Algorithms 仅新增对集中锁定 `System.Numerics.Tensors` 的直接引用；不新增公开 SIMD 类型、Core 批量评估、布局转换、跨 Optimizer 缓冲区或 `System.Runtime.Intrinsics` 使用。代码审查必须证明每项逐元素实现依次审查过直接 `TensorPrimitives`、无分配组合和 Algorithms 私有 `VectorOps`；后者仅为 `internal`、无状态、无验证、无随机性的纯 Span 算术。
+- 可接受阈值：Algorithms 仅新增对集中锁定 `System.Numerics.Tensors` 的直接引用；不新增公开 SIMD 类型、Core 批量评估、布局转换或跨 Optimizer 缓冲区。实际算法调用的 `internal VectorOps` 可使用通用 `Vector512<T>`、`Vector256<T>`、`Vector128<T>`；不得使用 ISA 专属命名空间。代码审查必须证明每项逐元素实现依次审查过直接 `TensorPrimitives`、无分配组合和 Algorithms 私有 `VectorOps`；后者仅为无状态、无验证、无随机性的纯 Span 算术。
 - 证据类型：代码审查、`rg` 残留搜索、API/项目引用审查。
 
 ## 职责与替代关系
@@ -131,9 +131,14 @@ Algorithms 继续只引用 Core 作为项目依赖，并拥有各算法的私有
 - 已确认：不保证跨 OS、硬件架构、Runtime 或 JIT 设置的数值稳定性；只要求同一目标执行环境中的固定 seed 重复运行确定。
 - 已确认：PSO 与萤火虫同属本 Spec，但萤火虫只有在 PSO 性能门槛通过后才进入实施。
 - 已确认：主要性能门槛为两个维度（32、128）乘两类负载均优于标量基线，并要求零新增 `Advance` 分配。
+- 已确认：PSO 私有向量公式参考 `TensorPrimitives` 的分级处理方式，在有足够剩余元素且硬件支持时依次使用 `Vector512<double>`、`Vector256<double>`、`Vector128<double>`，再处理标量尾部；不使用 ISA 专属 API。
+- 已确认：ADR-0016 的固定宽度级联是 Algorithms 私有性能手段而非 PSO 独占授权；其他算法可在自身已批准范围内以同样的语义和 BenchmarkDotNet 门槛采用，Firefly 本次重新验证两条候选路径。
 
 ## 批准记录
 
 - 规格批准：项目作者
 - 批准日期：2026-08-29
 - 批准时明确接受的风险：TensorPrimitives 的归约可因目标执行环境不同而改变末位、搜索轨迹或最佳解；跨平台数值稳定性不构成承诺。每个候选路径必须在定义的主要比较中快于标量基线，否则删除。
+- 实施补充批准：项目作者
+- 实施补充日期：2026-08-29
+- 实施补充内容：以通用固定宽度向量的 512→256→128→标量级联替代基于单一 `Vector<T>.Count` 的长度阈值；每次 BenchmarkDotNet 测量前必须等待项目作者审阅代码和命令。

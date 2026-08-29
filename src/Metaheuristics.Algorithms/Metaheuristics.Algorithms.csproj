@@ -4,6 +4,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.Numerics.Tensors" />
     <ProjectReference Include="..\Metaheuristics.Core\Metaheuristics.Core.csproj" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,4 @@
+using System.Numerics.Tensors;
 using Anastasya.Metaheuristics.Core.Comparison;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
@@ -225,19 +226,24 @@ public sealed class PsoOptimizer : IOptimizer
         var random = context.Random;
         var cognitiveRandom = random.NextDouble();
         var socialRandom = random.NextDouble();
-        for (var dimensionIndex = 0; dimensionIndex < _dimension; dimensionIndex++)
-        {
-            var velocity = (inertia * source.Velocity[dimensionIndex])
-                + ((_options.CognitiveCoefficient * cognitiveRandom)
-                    * (source.PersonalBestPosition[dimensionIndex] - source.Position[dimensionIndex]))
-                + ((_options.SocialCoefficient * socialRandom)
-                    * (_bestPosition![dimensionIndex] - source.Position[dimensionIndex]));
-            target.Velocity[dimensionIndex] = Math.Clamp(
-                velocity,
-                _options.VelocityLowerBound,
-                _options.VelocityUpperBound);
-            target.Position[dimensionIndex] = source.Position[dimensionIndex] + target.Velocity[dimensionIndex];
-        }
+        var cognitiveScale = _options.CognitiveCoefficient * cognitiveRandom;
+        var socialScale = _options.SocialCoefficient * socialRandom;
+
+        VectorOps.ComputePsoVelocity(
+            source.Position,
+            source.Velocity,
+            source.PersonalBestPosition,
+            _bestPosition!,
+            inertia,
+            cognitiveScale,
+            socialScale,
+            target.Velocity);
+        TensorPrimitives.Clamp(
+            target.Velocity,
+            _options.VelocityLowerBound,
+            _options.VelocityUpperBound,
+            target.Velocity);
+        TensorPrimitives.Add(source.Position, target.Velocity, target.Position);
 
         context.Repair(target.Position);
         source.PersonalBestPosition.CopyTo(target.PersonalBestPosition, 0);

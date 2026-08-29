@@ -29,6 +29,7 @@
 | [0013](0013-tensor-shaped-repair-bounds.md) | Tensor 形状的 Repair 边界 | `Accepted` |
 | [0014](0014-spec-driven-change-governance.md) | Spec-Driven 变更治理 | `Accepted` |
 | [0015](0015-ordered-extended-evaluation-values.md) | 评估结果使用有序扩展数值域 | `Accepted` |
+| [0016](0016-algorithm-fixed-width-simd-cascade.md) | 算法私有固定宽度 SIMD 级联 | `Accepted` |
 
 ## ADR 模板
 

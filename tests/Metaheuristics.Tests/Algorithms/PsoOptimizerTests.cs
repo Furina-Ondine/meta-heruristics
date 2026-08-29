@@ -164,6 +164,50 @@ public sealed class PsoOptimizerTests
     }
 
     [Xunit.Fact]
+    public void AdvancePreservesRandomDrawOrderAndComputesTheExpectedVectorUpdate()
+    {
+        const int seed = 271828;
+        var optimizer = new PsoOptimizer(
+            new VectorSequenceInitializer([4, -4, 0], [1, -1, 1]),
+            new PsoOptimizerOptions
+            {
+                PopulationSize = 2,
+                VelocityLowerBound = -10,
+                VelocityUpperBound = 10,
+                InitialInertia = 0,
+                MinimumInertia = 0,
+                CognitiveCoefficient = 1,
+                SocialCoefficient = 1.5,
+            });
+        var problem = new ContinuousProblem(3, new SphereObjective(), CandidateRepairs.Clamp(-10, 10));
+        var random = new Random(seed);
+        for (var draw = 0; draw < 7; draw++)
+        {
+            _ = random.NextDouble();
+        }
+
+        var socialRandom = random.NextDouble();
+
+        ExecuteWithSnapshot(
+            problem,
+            optimizer,
+            StopAfterIterations(1),
+            seed,
+            Xunit.TestContext.Current.CancellationToken);
+
+        var expectedScale = 1.5 * socialRandom;
+        var expected = new[]
+        {
+            4 + (expectedScale * (1 - 4)),
+            -4 + (expectedScale * (-1 - -4)),
+            expectedScale,
+        };
+        var targetPopulation = GetPopulation(optimizer, "_populationB");
+
+        Xunit.Assert.Equal(expected, GetVectors(targetPopulation, "Position")[0]);
+    }
+
+    [Xunit.Fact]
     public void RunImprovesSphereFixture()
     {
         var options = new PsoOptimizerOptions { PopulationSize = 30 };
@@ -267,6 +311,16 @@ public sealed class PsoOptimizerTests
         {
             position.Clear();
             position[0] = values[_next++ % values.Length];
+        }
+    }
+
+    private sealed class VectorSequenceInitializer(params double[][] values) : ICandidateInitializer
+    {
+        private int _next;
+
+        public void Initialize(Span<double> position, Random random)
+        {
+            values[_next++ % values.Length].AsSpan().CopyTo(position);
         }
     }
 

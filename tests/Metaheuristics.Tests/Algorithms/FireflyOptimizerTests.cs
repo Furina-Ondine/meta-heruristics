@@ -85,6 +85,38 @@ public sealed class FireflyOptimizerTests
     }
 
     [Xunit.Fact]
+    public void AdvancePreservesPerAttractorAndPerDimensionRandomDrawOrder()
+    {
+        const int seed = 161803;
+        var optimizer = new FireflyOptimizer(
+            new SequenceInitializer(2, 1, 0),
+            new FireflyOptimizerOptions
+            {
+                PopulationSize = 3,
+                BaseAttractiveness = 0,
+                InitialRandomStep = 1,
+            });
+        var problem = new ContinuousProblem(1, new FirstCoordinateObjective(), CandidateRepairs.Clamp(-10, 10));
+        var random = new Random(seed);
+        var expectedFirst = 2 + (random.NextDouble() - 0.5) + (random.NextDouble() - 0.5);
+        var expectedSecond = 1 + (random.NextDouble() - 0.5);
+
+        ExecuteWithSnapshot(
+            problem,
+            optimizer,
+            StopAfterIterations(1),
+            seed,
+            Xunit.TestContext.Current.CancellationToken);
+
+        var targetPopulation = GetPopulation(optimizer, "_populationB");
+        var positions = GetVectors(targetPopulation);
+
+        Xunit.Assert.Equal(expectedFirst, positions[0][0]);
+        Xunit.Assert.Equal(expectedSecond, positions[1][0]);
+        Xunit.Assert.Equal(0, positions[2][0]);
+    }
+
+    [Xunit.Fact]
     public async Task RunIsReproducibleAndIndependentInstancesRemainIsolated()
     {
         var options = new FireflyOptimizerOptions
@@ -141,6 +173,7 @@ public sealed class FireflyOptimizerTests
             Xunit.TestContext.Current.CancellationToken);
         var firstPopulationA = GetPopulation(optimizer, "_populationA");
         var firstPopulationB = GetPopulation(optimizer, "_populationB");
+        var firstRandomWalk = GetArray(optimizer, "_randomWalk");
         var firstPositions = GetVectors(firstPopulationA);
 
         ExecuteWithSnapshot(
@@ -152,6 +185,7 @@ public sealed class FireflyOptimizerTests
 
         Xunit.Assert.Same(firstPopulationA, GetPopulation(optimizer, "_populationA"));
         Xunit.Assert.Same(firstPopulationB, GetPopulation(optimizer, "_populationB"));
+        Xunit.Assert.Same(firstRandomWalk, GetArray(optimizer, "_randomWalk"));
         Xunit.Assert.Equal(firstPositions, GetVectors(firstPopulationA), ReferenceEqualityComparer.Instance);
         Xunit.Assert.Throws<InvalidOperationException>(
             () => ExecuteWithSnapshot(
@@ -232,6 +266,14 @@ public sealed class FireflyOptimizerTests
     private static Array GetPopulation(FireflyOptimizer optimizer, string fieldName)
     {
         return (Array)(typeof(FireflyOptimizer)
+            .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.GetValue(optimizer)
+            ?? throw new InvalidOperationException($"Field '{fieldName}' was not initialized."));
+    }
+
+    private static double[] GetArray(FireflyOptimizer optimizer, string fieldName)
+    {
+        return (double[])(typeof(FireflyOptimizer)
             .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
             ?.GetValue(optimizer)
             ?? throw new InvalidOperationException($"Field '{fieldName}' was not initialized."));

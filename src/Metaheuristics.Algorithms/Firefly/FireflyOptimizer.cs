@@ -16,6 +16,7 @@ public sealed class FireflyOptimizer : IOptimizer
     private FireflyState[]? _populationA;
     private FireflyState[]? _populationB;
     private double[]? _bestPosition;
+    private double[]? _randomWalk;
     private Evaluation _bestEvaluation;
     private OptimizationRunContext? _context;
     private int _dimension;
@@ -163,6 +164,7 @@ public sealed class FireflyOptimizer : IOptimizer
         _populationA = CreatePopulation(_options.PopulationSize, dimension);
         _populationB = CreatePopulation(_options.PopulationSize, dimension);
         _bestPosition = new double[dimension];
+        _randomWalk = new double[dimension];
     }
 
     private static FireflyState[] CreatePopulation(int populationSize, int dimension)
@@ -193,30 +195,24 @@ public sealed class FireflyOptimizer : IOptimizer
                 continue;
             }
 
-            var distanceSquared = DistanceSquared(target.Position, attractor.Position);
-            var attractiveness = _options.BaseAttractiveness
-                * Math.Exp(-_options.DistanceAttenuation * distanceSquared);
             for (var dimensionIndex = 0; dimensionIndex < _dimension; dimensionIndex++)
             {
-                var randomWalk = randomStep * (_context.Random.NextDouble() - 0.5);
-                target.Position[dimensionIndex] += (attractiveness
-                    * (attractor.Position[dimensionIndex] - target.Position[dimensionIndex])) + randomWalk;
+                _randomWalk![dimensionIndex] = randomStep * (_context.Random.NextDouble() - 0.5);
             }
+
+            var distanceSquared = VectorOps.DistanceSquared(target.Position, attractor.Position);
+            var attractiveness = _options.BaseAttractiveness
+                * Math.Exp(-_options.DistanceAttenuation * distanceSquared);
+
+            VectorOps.UpdateFireflyPosition(
+                target.Position,
+                attractor.Position,
+                _randomWalk!,
+                attractiveness,
+                target.Position);
 
             _context.Repair(target.Position);
         }
-    }
-
-    private static double DistanceSquared(ReadOnlySpan<double> first, ReadOnlySpan<double> second)
-    {
-        var distance = 0.0;
-        for (var index = 0; index < first.Length; index++)
-        {
-            var delta = first[index] - second[index];
-            distance += delta * delta;
-        }
-
-        return distance;
     }
 
     private void CopyBest(FireflyState source)

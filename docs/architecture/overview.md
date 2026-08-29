@@ -11,11 +11,11 @@
 | 项目 | 实现现状 |
 | --- | --- |
 | `Metaheuristics.Core` | 已提供连续问题、有序扩展实数评估与比较、有状态 Optimizer、run Context、停止、轨迹、结果和单次 Runner API；内置 Clamp 使用 `System.Numerics.Tensors` 的逐元素实现，Reflect 以自适应 512/256/128 位掩码内核逐 lane 处理，并保留无 SIMD、最终单元素尾部和大余数 lane 的标量参考。 |
-| `Metaheuristics.Algorithms` | 已提供连续蝙蝠、PSO、萤火虫和布谷鸟算法；每种算法都有强类型配置、RunGroup 私有工作区与顺序 run 复用。 |
+| `Metaheuristics.Algorithms` | 已提供连续蝙蝠、PSO、萤火虫和布谷鸟算法；每种算法都有强类型配置、RunGroup 私有工作区与顺序 run 复用。PSO 的候选速度公式以及 Firefly 的距离/位置移动在直接 TensorPrimitives 组合未通过各自门槛后，由 Algorithms 私有 512/256/128 位级联计算；PSO 的速度限幅和位置更新仍使用 TensorPrimitives。两者均保留标量尾部、原随机/Repair 时点和私有工作区复用，32/128 维的固定宽度性能验证已通过。 |
 | `Metaheuristics.Experiments` | 已提供强类型 Case、RunGroup 规划、有界并发、共享 seed、部分失败/取消结果，以及可显式表达 Infinity 未定义项的基本统计。 |
 | `Metaheuristics.Examples` | 已提供四种内置算法的单次运行和可替换 Optimizer 的 Experiment 示例。 |
 | `Metaheuristics.Tests` | 已包含目标运行时、Core、Experiment 以及四种内置算法的契约与行为测试。 |
-| `Metaheuristics.Benchmarks` | 已提供蝙蝠算法工作区复用基准，以及固定 Worker、Parallel API 和信号量 RunGroup 调度基准。 |
+| `Metaheuristics.Benchmarks` | 已提供蝙蝠算法工作区复用、PSO/Firefly SIMD 内核与端到端候选基准，以及固定 Worker、Parallel API 和信号量 RunGroup 调度基准。 |
 
 ## 项目依赖
 
