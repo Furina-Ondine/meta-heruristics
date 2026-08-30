@@ -47,7 +47,7 @@
 
 ## T004：迁移 Core 私有 Reflect SIMD
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-006`、`NFR-001`、`NFR-002`
 - 依赖：`T003`
 - 影响区域：Core CandidateRepairs、Reflect 模板、Core 项目引用、Repair 测试
@@ -55,11 +55,11 @@
 - 明确不做：不改变 Clamp/RandomReset/DoNothing、边界形状、ULP 契约、危险 lane 判定、公共 Repair API 或新增 Core `VectorOps`。
 - 完成条件：四种边界形状、特殊/危险 lane 和全部指定尾部长度通过；生成路径无新增分配/运行时依赖；旧三宽度机械副本删除。
 - 验证命令：定向 CandidateRepair 差分/特殊值/尾部测试，随后 Release build 和完整测试。
-- 验证结果：尚未执行
+- 验证结果：Core 模板生成外层硬件门、Repair 块和三宽度 helper，旧机械副本已删除；完整 Release 测试 167/167 通过。Reflect Dry disassembly 执行 40/40，代表 code size 保持 3938/4390/4406 B；两侧均为 550 个方法实例、28 种签名，归一化地址和反汇编方法序号后结构差异为 0。
 
 ## T005：执行生成后零开销与性能门槛
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`NFR-001`、`NFR-003`
 - 依赖：`T004`
 - 影响区域：Benchmarks、JIT artifacts、Verification
