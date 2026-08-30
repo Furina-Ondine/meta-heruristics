@@ -5,12 +5,16 @@
   <Folder Name="/examples/">
     <Project Path="examples/Metaheuristics.Examples/Metaheuristics.Examples.csproj" />
   </Folder>
+  <Folder Name="/eng/">
+    <Project Path="eng/Metaheuristics.Simd.Generators/Metaheuristics.Simd.Generators.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Metaheuristics.Algorithms/Metaheuristics.Algorithms.csproj" />
     <Project Path="src/Metaheuristics.Core/Metaheuristics.Core.csproj" />
     <Project Path="src/Metaheuristics.Experiments/Metaheuristics.Experiments.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Metaheuristics.Simd.Generators.Tests/Metaheuristics.Simd.Generators.Tests.csproj" />
     <Project Path="tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj" />
   </Folder>
 </Solution>

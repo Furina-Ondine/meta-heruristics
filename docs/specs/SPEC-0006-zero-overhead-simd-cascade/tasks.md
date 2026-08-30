@@ -11,19 +11,19 @@
 
 ## T001：记录手写 SIMD 基线
 
-- 状态：`Pending`
+- 状态：`Completed`
 - 覆盖需求：`NFR-001`、`NFR-003`
 - 依赖：无
 - 影响区域：Benchmarks、BenchmarkDotNet artifacts、Verification
 - 实施内容：在提交 `ed2de0d3` 的当前手写生产路径上记录 Reflect、PSO、Firefly 的局部与端到端耗时、分配、环境和 JIT 反汇编；保存完整命令与结果位置，作为生成后同配置比较基线。
 - 明确不做：不修改生产 SIMD、基准参数、公式或准入门槛；不使用 SPEC-0004/0005 的历史数字代替本次同配置基线。
 - 完成条件：五项生产路径的基线报告和 JIT artifacts 完整，硬件宽度与分配已记录；任何失败或零 benchmark 运行均明确报告而不视为证据。
-- 验证命令：待项目作者审阅本任务的完整 BenchmarkDotNet/JIT 命令后执行。
-- 验证结果：尚未执行
+- 验证命令：完整命令见 [`verification.md`](./verification.md#完整命令)。
+- 验证结果：五项 timing 与三项 Dry disassembly 均退出 0，执行数量分别为 Reflect 40/40、PSO 11/11、Firefly 11/11；环境、分配、统计值与 Reflect 短迭代限制已记录。
 
 ## T002：建立受限增量生成器和诊断
 
-- 状态：`Pending`
+- 状态：`Completed`
 - 覆盖需求：`FR-001`、`FR-004`、`FR-005`、`NFR-004`
 - 依赖：`T001`
 - 影响区域：eng、生成器测试项目、解决方案、集中包版本
@@ -31,11 +31,11 @@
 - 明确不做：不接入 Core/Algorithms 生产代码，不解析任意 C# 宏，不访问网络/环境状态，不生成运行时策略类型。
 - 完成条件：生成器与测试项目 Release build 通过；相同输入生成文本逐字节一致；虚拟 `double`/`float`/`int` Count 展开和不支持能力负例符合 Plan。
 - 验证命令：`dotnet test tests/Metaheuristics.Simd.Generators.Tests/Metaheuristics.Simd.Generators.Tests.csproj -c Release`
-- 验证结果：尚未执行
+- 验证结果：Release 测试 21/21 通过，覆盖 `double`/`float`/`int`、512→256→128 顺序、0/1/2/7/8/15/16 尾部、确定性、真实增量缓存、稳定/不冲突 hint name、重复目标和无效模板/能力诊断；完整解决方案 Release build 为 0 warning、0 error。
 
 ## T003：迁移 Algorithms 私有 VectorOps
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-002`、`FR-003`、`FR-006`、`NFR-001`、`NFR-002`
 - 依赖：`T002`
 - 影响区域：Algorithms、VectorOps 模板、Algorithms 项目引用、算法测试
