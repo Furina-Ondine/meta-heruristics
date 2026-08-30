@@ -5,5 +5,13 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Numerics.Tensors" />
+    <ProjectReference Include="..\..\eng\Metaheuristics.Simd.Generators\Metaheuristics.Simd.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Problems\CandidateRepairs.simd.cs" />
+    <AdditionalFiles Include="Problems\CandidateRepairs.simd.cs"
+                     SimdTemplatePath="src/Metaheuristics.Core/Problems/CandidateRepairs.simd.cs" />
   </ItemGroup>
 </Project>

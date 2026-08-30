@@ -31,11 +31,11 @@
 - 明确不做：不接入 Core/Algorithms 生产代码，不解析任意 C# 宏，不访问网络/环境状态，不生成运行时策略类型。
 - 完成条件：生成器与测试项目 Release build 通过；相同输入生成文本逐字节一致；虚拟 `double`/`float`/`int` Count 展开和不支持能力负例符合 Plan。
 - 验证命令：`dotnet test tests/Metaheuristics.Simd.Generators.Tests/Metaheuristics.Simd.Generators.Tests.csproj -c Release`
-- 验证结果：Release 测试 21/21 通过，覆盖 `double`/`float`/`int`、512→256→128 顺序、0/1/2/7/8/15/16 尾部、确定性、真实增量缓存、稳定/不冲突 hint name、重复目标和无效模板/能力诊断；完整解决方案 Release build 为 0 warning、0 error。
+- 验证结果：Release 测试 23/23 通过，覆盖 `double`/`float`/`int`、512→256→128 顺序、生成的三层 `IsHardwareAccelerated` 门、0/1/2/7/8/15/16 尾部、方法级三宽度展开、确定性、真实增量缓存、稳定/不冲突 hint name、重复目标和无效模板/能力诊断；完整解决方案 Release build 为 0 warning、0 error。
 
 ## T003：迁移 Algorithms 私有 VectorOps
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`FR-002`、`FR-003`、`FR-006`、`NFR-001`、`NFR-002`
 - 依赖：`T002`
 - 影响区域：Algorithms、VectorOps 模板、Algorithms 项目引用、算法测试
@@ -43,11 +43,11 @@
 - 明确不做：不改变 Optimizer、随机工作区、Repair/Evaluate 时机、TensorPrimitives 路径或算法公开 API；不保留旧手写生产方法体。
 - 完成条件：Algorithms 只保留模板权威和生成 SIMD 路径；VectorOps/PSO/Firefly 全部定向测试通过；API 与运行时依赖无变化；无新增调用/分派/分配。
 - 验证命令：定向 `VectorOpsTests`、`PsoOptimizerTests`、`FireflyOptimizerTests`，随后 Release build 和完整测试。
-- 验证结果：尚未执行
+- 验证结果：模板已替代三个原手写方法，硬件门也由生成器统一产生；既有行为测试 144/144 通过。PSO 与 Firefly Dry disassembly 分别执行 11/11，code size 保持 2004 B 与 2753 B；归一化地址后与 T001 手写基线反汇编逐字节相同，无新增调用、控制流或分配。
 
 ## T004：迁移 Core 私有 Reflect SIMD
 
-- 状态：`Pending`
+- 状态：`InProgress`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-006`、`NFR-001`、`NFR-002`
 - 依赖：`T003`
 - 影响区域：Core CandidateRepairs、Reflect 模板、Core 项目引用、Repair 测试

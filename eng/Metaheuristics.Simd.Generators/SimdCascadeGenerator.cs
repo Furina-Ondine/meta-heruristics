@@ -14,6 +14,8 @@ namespace Anastasya.Metaheuristics.Simd.Generators;
 public sealed class SimdCascadeGenerator : IIncrementalGenerator
 {
     private const string TemplateSuffix = ".simd.cs";
+    private const string WidthExpansionMarker = "__SimdExpandWidths";
+    private const string AcceleratedWidthExpansionMarker = "__SimdExpandHardwareAcceleratedWidths";
     private static readonly int[] Widths = [512, 256, 128];
 
     private static readonly DiagnosticDescriptor InvalidSyntax = new(
@@ -35,7 +37,7 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor InvalidExpansionBlock = new(
         "SIMDGEN003",
         "Invalid SIMD expansion block",
-        "Method '{0}' must contain exactly one __SimdExpandWidths block",
+        "Method '{0}' must contain exactly one supported SIMD expansion block",
         "SimdGeneration",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -119,7 +121,7 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
         }
 
         var methods = tree.GetCompilationUnitRoot().DescendantNodes().OfType<MethodDeclarationSyntax>();
-        return methods.Select(method =>
+        return methods.SelectMany(method =>
         {
             var containers = method.Ancestors()
                 .Where(static ancestor => ancestor is BaseNamespaceDeclarationSyntax or TypeDeclarationSyntax)
@@ -136,7 +138,13 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
             var key = string.Join(".", containers)
                 + "." + method.Identifier.ValueText
                 + "(" + parameterTypes + ")";
-            return new TargetMethod(key, CreateLocation(input.Path, method.Identifier.GetLocation()));
+            var location = CreateLocation(input.Path, method.Identifier.GetLocation());
+            return RequiresMethodExpansion(method)
+                ? Widths.Select(width => new TargetMethod(
+                    key.Replace("__Width", width.ToString(CultureInfo.InvariantCulture))
+                        .Replace("__Vector", "Vector" + width.ToString(CultureInfo.InvariantCulture)),
+                    location))
+                : [new TargetMethod(key, location)];
         }).ToImmutableArray();
     }
 
@@ -196,7 +204,8 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
                 && token.ValueText.StartsWith("__", StringComparison.Ordinal)
                 && token.ValueText != "__Vector"
                 && !token.ValueText.EndsWith("__Width", StringComparison.Ordinal)
-                && token.ValueText != "__SimdExpandWidths");
+                && token.ValueText != WidthExpansionMarker
+                && token.ValueText != AcceleratedWidthExpansionMarker);
         if (invalidPlaceholder.RawKind != 0)
         {
             context.ReportDiagnostic(Diagnostic.Create(
@@ -219,7 +228,7 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
             return;
         }
 
-        var expanded = (CompilationUnitSyntax)new ExpansionRewriter().Visit(rootWithoutMetadata)!;
+        var expanded = (CompilationUnitSyntax)new CascadeExpansionRewriter().Visit(rootWithoutMetadata)!;
         expanded = (CompilationUnitSyntax)new GeneratedMethodAttributeRewriter().Visit(expanded)!;
 
         var normalizedPath = input.Path.Replace('\\', '/');
@@ -333,12 +342,54 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
 
     private static bool IsExpansionInvocation(InvocationExpressionSyntax invocation) =>
         invocation.Expression is IdentifierNameSyntax identifier
-        && identifier.Identifier.ValueText == "__SimdExpandWidths";
+        && identifier.Identifier.ValueText is WidthExpansionMarker or AcceleratedWidthExpansionMarker;
+
+    private static bool IsHardwareAcceleratedExpansion(InvocationExpressionSyntax invocation) =>
+        invocation.Expression is IdentifierNameSyntax identifier
+        && identifier.Identifier.ValueText == AcceleratedWidthExpansionMarker;
 
     private static bool IsValidExpansionBlock(InvocationExpressionSyntax invocation) =>
         invocation.Parent is ExpressionStatementSyntax
         && invocation.ArgumentList.Arguments.Count == 1
         && invocation.ArgumentList.Arguments[0].Expression is ParenthesizedLambdaExpressionSyntax { Block: not null };
+
+    private static bool RequiresMethodExpansion(MethodDeclarationSyntax method) =>
+        method.Identifier.ValueText.EndsWith("__Width", StringComparison.Ordinal)
+        || method.ReturnType.DescendantTokens().Concat(method.ParameterList.DescendantTokens())
+            .Any(static token => token.IsKind(SyntaxKind.IdentifierToken) && token.ValueText == "__Vector");
+
+    private static bool TryGetExpansionBlock(
+        StatementSyntax statement,
+        out BlockSyntax block,
+        out bool requiresHardwareAcceleration)
+    {
+        if (statement is ExpressionStatementSyntax
+            {
+                Expression: InvocationExpressionSyntax invocation,
+            }
+            && IsExpansionInvocation(invocation)
+            && invocation.ArgumentList.Arguments[0].Expression is ParenthesizedLambdaExpressionSyntax
+            {
+                Block: { } templateBlock,
+            })
+        {
+            block = templateBlock;
+            requiresHardwareAcceleration = IsHardwareAcceleratedExpansion(invocation);
+            return true;
+        }
+
+        block = null!;
+        requiresHardwareAcceleration = false;
+        return false;
+    }
+
+    private static IfStatementSyntax CreateHardwareAccelerationGuard(int width, BlockSyntax block) =>
+        SyntaxFactory.IfStatement(
+            SyntaxFactory.MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                SyntaxFactory.IdentifierName("Vector" + width.ToString(CultureInfo.InvariantCulture)),
+                SyntaxFactory.IdentifierName("IsHardwareAccelerated")),
+            block);
 
     private static Location CreateLocation(string path, Location syntaxLocation)
     {
@@ -399,27 +450,90 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
         public Location Location { get; }
     }
 
-    private sealed class ExpansionRewriter : CSharpSyntaxRewriter
+    private sealed class CascadeExpansionRewriter : CSharpSyntaxRewriter
     {
+        public override SyntaxNode? VisitClassDeclaration(ClassDeclarationSyntax node) =>
+            node.WithMembers(ExpandMembers(node.Members));
+
+        public override SyntaxNode? VisitStructDeclaration(StructDeclarationSyntax node) =>
+            node.WithMembers(ExpandMembers(node.Members));
+
         public override SyntaxNode? VisitBlock(BlockSyntax node)
         {
             var statements = ImmutableArray.CreateBuilder<StatementSyntax>();
             foreach (var statement in node.Statements)
             {
-                if (statement is ExpressionStatementSyntax
-                    {
-                        Expression: InvocationExpressionSyntax invocation,
-                    }
-                    && IsExpansionInvocation(invocation)
-                    && invocation.ArgumentList.Arguments[0].Expression is ParenthesizedLambdaExpressionSyntax
-                    {
-                        Block: { } templateBlock,
-                    })
+                if (TryGetExpansionBlock(statement, out var templateBlock, out var requiresHardwareAcceleration))
                 {
                     foreach (var width in Widths)
                     {
                         var expandedBlock = (BlockSyntax)new WidthPlaceholderRewriter(width).Visit(templateBlock)!;
-                        statements.AddRange(expandedBlock.Statements);
+                        if (requiresHardwareAcceleration)
+                        {
+                            statements.Add(CreateHardwareAccelerationGuard(width, expandedBlock));
+                        }
+                        else
+                        {
+                            statements.AddRange(expandedBlock.Statements);
+                        }
+                    }
+                }
+                else
+                {
+                    statements.Add((StatementSyntax)base.Visit(statement)!);
+                }
+            }
+
+            return node.WithStatements(SyntaxFactory.List(statements));
+        }
+
+        private SyntaxList<MemberDeclarationSyntax> ExpandMembers(SyntaxList<MemberDeclarationSyntax> members)
+        {
+            var expandedMembers = ImmutableArray.CreateBuilder<MemberDeclarationSyntax>();
+            foreach (var member in members)
+            {
+                if (member is MethodDeclarationSyntax method && RequiresMethodExpansion(method))
+                {
+                    foreach (var width in Widths)
+                    {
+                        var widthMethod = (MethodDeclarationSyntax)new WidthPlaceholderRewriter(width).Visit(method)!;
+                        widthMethod = (MethodDeclarationSyntax)new SingleWidthExpansionRewriter(width).Visit(widthMethod)!;
+                        expandedMembers.Add(widthMethod);
+                    }
+                }
+                else
+                {
+                    expandedMembers.Add((MemberDeclarationSyntax)Visit(member)!);
+                }
+            }
+
+            return SyntaxFactory.List(expandedMembers);
+        }
+    }
+
+    private sealed class SingleWidthExpansionRewriter : CSharpSyntaxRewriter
+    {
+        private readonly int width;
+
+        public SingleWidthExpansionRewriter(int width)
+        {
+            this.width = width;
+        }
+
+        public override SyntaxNode? VisitBlock(BlockSyntax node)
+        {
+            var statements = ImmutableArray.CreateBuilder<StatementSyntax>();
+            foreach (var statement in node.Statements)
+            {
+                if (TryGetExpansionBlock(statement, out var templateBlock, out var requiresHardwareAcceleration))
+                {
+                    if (requiresHardwareAcceleration)
+                    {
+                        statements.Add(CreateHardwareAccelerationGuard(width, templateBlock));
+                    }
+                    else
+                    {
+                        statements.AddRange(templateBlock.Statements);
                     }
                 }
                 else

@@ -39,13 +39,10 @@ public sealed class SimdCascadeGeneratorTests
                 internal static int Count()
                 {
                     var count = 0;
-                    __SimdExpandWidths(() =>
+                    __SimdExpandHardwareAcceleratedWidths(() =>
                     {
-                        if (Vector512.IsHardwareAccelerated)
-                        {
-                            count += __Vector<double>.Count;
-                            Consume__Width();
-                        }
+                        count += __Vector<double>.Count;
+                        Consume__Width();
                     });
                     return count;
                 }
@@ -71,6 +68,7 @@ public sealed class SimdCascadeGeneratorTests
         Assert.Contains("Consume512();", source, StringComparison.Ordinal);
         Assert.Contains("Consume256();", source, StringComparison.Ordinal);
         Assert.Contains("Consume128();", source, StringComparison.Ordinal);
+        Assert.Equal(3, source.Split("IsHardwareAccelerated", StringSplitOptions.None).Length - 1);
         Assert.Contains("#line 1 \"Kernel.simd.cs\"", source, StringComparison.Ordinal);
     }
 
@@ -94,16 +92,13 @@ public sealed class SimdCascadeGeneratorTests
                 {
                     var index = 0;
                     var processed = 0;
-                    __SimdExpandWidths(() =>
+                    __SimdExpandHardwareAcceleratedWidths(() =>
                     {
-                        if (__Vector.IsHardwareAccelerated)
+                        var widthEnd = length - __Vector<int>.Count;
+                        while (index <= widthEnd)
                         {
-                            var widthEnd = length - __Vector<int>.Count;
-                            while (index <= widthEnd)
-                            {
-                                processed += __Vector<int>.Count;
-                                index += __Vector<int>.Count;
-                            }
+                            processed += __Vector<int>.Count;
+                            index += __Vector<int>.Count;
                         }
                     });
                     while (index < length)
@@ -182,6 +177,49 @@ public sealed class SimdCascadeGeneratorTests
             static output => Assert.Equal(IncrementalStepRunReason.Cached, output.Reason));
     }
 
+    [Fact]
+    public void ExpandsWidthSuffixedMethodDeclarations()
+    {
+        const string template = """
+            [assembly: SimdTemplate("double", SimdCapabilities.FloatingPoint)]
+            namespace Demo;
+            internal static partial class Kernel
+            {
+                private static __Vector<double> Load__Width()
+                {
+                    __SimdExpandWidths(() =>
+                    {
+                        return __Vector<double>.Zero;
+                    });
+                }
+            }
+            """;
+
+        var result = Run(template);
+
+        Assert.Empty(result.Diagnostics);
+        var source = Assert.Single(result.GeneratedSources).SourceText.ToString();
+        Assert.Contains("Vector512<double> Load512()", source, StringComparison.Ordinal);
+        Assert.Contains("Vector256<double> Load256()", source, StringComparison.Ordinal);
+        Assert.Contains("Vector128<double> Load128()", source, StringComparison.Ordinal);
+        Assert.Equal(3, source.Split("GeneratedCode", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("__Simd", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GeneratesHardwareAccelerationGuardForEachCascadeWidth()
+    {
+        var result = Run(CreateTemplate("double", "FloatingPoint"));
+
+        Assert.Empty(result.Diagnostics);
+        var source = Assert.Single(result.GeneratedSources).SourceText.ToString();
+        Assert.Contains("if (Vector512.IsHardwareAccelerated)", source, StringComparison.Ordinal);
+        Assert.Contains("if (Vector256.IsHardwareAccelerated)", source, StringComparison.Ordinal);
+        Assert.Contains("if (Vector128.IsHardwareAccelerated)", source, StringComparison.Ordinal);
+        Assert.Equal(3, source.Split("IsHardwareAccelerated", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain(AcceleratedMarker, source, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("double", "Integer")]
     [InlineData("int", "FloatingPoint")]
@@ -199,12 +237,12 @@ public sealed class SimdCascadeGeneratorTests
     public void RejectsMissingOrDuplicateExpansionBlocks()
     {
         var missing = Run(CreateTemplate("double", "FloatingPoint").Replace(
-            "__SimdExpandWidths(() =>",
+            AcceleratedMarker + "(() =>",
             "Consume(() =>",
             StringComparison.Ordinal));
         var duplicate = Run(CreateTemplate("double", "FloatingPoint").Replace(
             "return count;",
-            "__SimdExpandWidths(() => { count++; }); return count;",
+            AcceleratedMarker + "(() => { count++; }); return count;",
             StringComparison.Ordinal));
 
         Assert.Equal("SIMDGEN003", Assert.Single(missing.Diagnostics).Id);
@@ -290,18 +328,17 @@ public sealed class SimdCascadeGeneratorTests
             internal static int Count()
             {
                 var count = 0;
-                __SimdExpandWidths(() =>
+                __SimdExpandHardwareAcceleratedWidths(() =>
                 {
-                    if (__Vector.IsHardwareAccelerated)
-                    {
-                        count += __Vector<{{elementType}}>.Count;
-                        Consume__Width();
-                    }
+                    count += __Vector<{{elementType}}>.Count;
+                    Consume__Width();
                 });
                 return count;
             }
         }
         """;
+
+    private const string AcceleratedMarker = "__SimdExpandHardwareAcceleratedWidths";
 
     private sealed class TestAdditionalText(string path, string text) : AdditionalText
     {

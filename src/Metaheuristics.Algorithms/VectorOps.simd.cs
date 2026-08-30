@@ -25,22 +25,19 @@ internal static partial class VectorOps
         ref var globalBestStart = ref MemoryMarshal.GetReference(globalBestPosition);
         ref var destinationStart = ref MemoryMarshal.GetReference(destination);
 
-        __SimdExpandWidths(() =>
+        __SimdExpandHardwareAcceleratedWidths(() =>
         {
-            if (__Vector.IsHardwareAccelerated)
+            var inertiaVector = __Vector.Create(inertia);
+            var cognitiveScaleVector = __Vector.Create(cognitiveScale);
+            var socialScaleVector = __Vector.Create(socialScale);
+            while (index <= sourcePosition.Length - __Vector<double>.Count)
             {
-                var inertiaVector = __Vector.Create(inertia);
-                var cognitiveScaleVector = __Vector.Create(cognitiveScale);
-                var socialScaleVector = __Vector.Create(socialScale);
-                while (index <= sourcePosition.Length - __Vector<double>.Count)
-                {
-                    var position = __Vector.LoadUnsafe(ref sourcePositionStart, (nuint)index);
-                    var velocity = (__Vector.LoadUnsafe(ref sourceVelocityStart, (nuint)index) * inertiaVector)
-                        + ((__Vector.LoadUnsafe(ref personalBestStart, (nuint)index) - position) * cognitiveScaleVector)
-                        + ((__Vector.LoadUnsafe(ref globalBestStart, (nuint)index) - position) * socialScaleVector);
-                    velocity.StoreUnsafe(ref destinationStart, (nuint)index);
-                    index += __Vector<double>.Count;
-                }
+                var position = __Vector.LoadUnsafe(ref sourcePositionStart, (nuint)index);
+                var velocity = (__Vector.LoadUnsafe(ref sourceVelocityStart, (nuint)index) * inertiaVector)
+                    + ((__Vector.LoadUnsafe(ref personalBestStart, (nuint)index) - position) * cognitiveScaleVector)
+                    + ((__Vector.LoadUnsafe(ref globalBestStart, (nuint)index) - position) * socialScaleVector);
+                velocity.StoreUnsafe(ref destinationStart, (nuint)index);
+                index += __Vector<double>.Count;
             }
         });
 
@@ -62,21 +59,18 @@ internal static partial class VectorOps
         ref var currentPositionStart = ref MemoryMarshal.GetReference(currentPosition);
         ref var attractorPositionStart = ref MemoryMarshal.GetReference(attractorPosition);
 
-        __SimdExpandWidths(() =>
+        __SimdExpandHardwareAcceleratedWidths(() =>
         {
-            if (__Vector.IsHardwareAccelerated)
+            var sum = __Vector<double>.Zero;
+            while (index <= currentPosition.Length - __Vector<double>.Count)
             {
-                var sum = __Vector<double>.Zero;
-                while (index <= currentPosition.Length - __Vector<double>.Count)
-                {
-                    var difference = __Vector.LoadUnsafe(ref currentPositionStart, (nuint)index)
-                        - __Vector.LoadUnsafe(ref attractorPositionStart, (nuint)index);
-                    sum += difference * difference;
-                    index += __Vector<double>.Count;
-                }
-
-                distance += __Vector.Sum(sum);
+                var difference = __Vector.LoadUnsafe(ref currentPositionStart, (nuint)index)
+                    - __Vector.LoadUnsafe(ref attractorPositionStart, (nuint)index);
+                sum += difference * difference;
+                index += __Vector<double>.Count;
             }
+
+            distance += __Vector.Sum(sum);
         });
 
         for (; index < currentPosition.Length; index++)
@@ -102,20 +96,17 @@ internal static partial class VectorOps
         ref var randomWalkStart = ref MemoryMarshal.GetReference(randomWalk);
         ref var destinationStart = ref MemoryMarshal.GetReference(destination);
 
-        __SimdExpandWidths(() =>
+        __SimdExpandHardwareAcceleratedWidths(() =>
         {
-            if (__Vector.IsHardwareAccelerated)
+            var attractivenessVector = __Vector.Create(attractiveness);
+            while (index <= currentPosition.Length - __Vector<double>.Count)
             {
-                var attractivenessVector = __Vector.Create(attractiveness);
-                while (index <= currentPosition.Length - __Vector<double>.Count)
-                {
-                    var current = __Vector.LoadUnsafe(ref currentPositionStart, (nuint)index);
-                    var movement = ((__Vector.LoadUnsafe(ref attractorPositionStart, (nuint)index) - current)
-                        * attractivenessVector)
-                        + __Vector.LoadUnsafe(ref randomWalkStart, (nuint)index);
-                    (current + movement).StoreUnsafe(ref destinationStart, (nuint)index);
-                    index += __Vector<double>.Count;
-                }
+                var current = __Vector.LoadUnsafe(ref currentPositionStart, (nuint)index);
+                var movement = ((__Vector.LoadUnsafe(ref attractorPositionStart, (nuint)index) - current)
+                    * attractivenessVector)
+                    + __Vector.LoadUnsafe(ref randomWalkStart, (nuint)index);
+                (current + movement).StoreUnsafe(ref destinationStart, (nuint)index);
+                index += __Vector<double>.Count;
             }
         });
 

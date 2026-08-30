@@ -55,22 +55,29 @@ Dry disassembly 分别执行 Reflect 40/40、PSO 11/11、Firefly 11/11。PSO 与
 
 ## T002 生成器基础设施
 
-- `dotnet test tests/Metaheuristics.Simd.Generators.Tests/Metaheuristics.Simd.Generators.Tests.csproj -c Release --no-restore`：通过，21/21。
+- `dotnet test tests/Metaheuristics.Simd.Generators.Tests/Metaheuristics.Simd.Generators.Tests.csproj -c Release --no-restore`：通过，23/23。
 - `dotnet build Metaheuristics.NET.slnx -c Release --no-restore`：通过，0 warning、0 error。
-- 正例覆盖 `double`/`float`/`int` 三种显式能力组合、512→256→128 展开顺序、指定尾部长度的动态编译执行、逐字节确定输出、不同路径 hint name 与第二轮 `Cached` 增量步骤。
+- 正例覆盖 `double`/`float`/`int` 三种显式能力组合、512→256→128 展开顺序、由生成器插入的三层 `IsHardwareAccelerated` 门、方法级三宽度展开、指定尾部长度的动态编译执行、逐字节确定输出、不同路径 hint name 与第二轮 `Cached` 增量步骤。
 - 负例覆盖类型/能力不匹配、缺失/重复/错误形状 expansion block、未知占位符、整数能力使用浮点运算、跨模板重复目标和 AdditionalFile 诊断位置。
+
+## T003 Algorithms 生成迁移
+
+- `VectorOps.cs` 仅保留 partial 容器，`ComputePsoVelocity`、`DistanceSquared` 与 `UpdateFireflyPosition` 的单一权威位于 AdditionalFiles 模板；模板通过 `__SimdExpandHardwareAcceleratedWidths` 声明块体，不再手写任一宽度的硬件门。
+- `dotnet test Metaheuristics.NET.slnx -c Release --no-build` 在 T003 候选上通过，既有行为测试 144/144；生成器测试随后扩充为 23/23，完整当前测试为 167/167。
+- Firefly Dry disassembly 执行 11/11，生成候选 code size 为 2753 B；PSO Dry disassembly 执行 11/11，生成候选 code size 为 2004 B，均与 T001 手写基线一致。
+- 将反汇编中的 12 至 16 位十六进制地址归一化后，Firefly 生成候选与基线文本相同（两侧归一化长度均为 225445），PSO 也相同（两侧均为 173690）；未出现额外调用或控制流。完整 timing 仍由 T005 同配置复测。
 
 ## 需求覆盖
 
 | 需求 | 实现位置 | 测试或基准 | 文档 | 结果 |
 | --- | --- | --- | --- | --- |
-| FR-001 | Pending | Pending | [`spec.md`](./spec.md) | Pending |
+| FR-001 | 受限增量生成器、Algorithms 模板 | 生成器 23/23、Algorithms JIT | [`spec.md`](./spec.md) | Partial |
 | FR-002 | Pending | Pending | [`spec.md`](./spec.md) | Pending |
 | FR-003 | Pending | Pending | [`spec.md`](./spec.md) | Pending |
-| FR-004 | Pending | Pending | [`spec.md`](./spec.md) | Pending |
-| FR-005 | Pending | Pending | [`spec.md`](./spec.md) | Pending |
+| FR-004 | 显式元素类型与能力 metadata | 生成器正/负例 | [`spec.md`](./spec.md) | Pass |
+| FR-005 | 稳定 hint、相对 `#line`、确定输出 | 生成器确定性/增量测试 | [`spec.md`](./spec.md) | Partial |
 | FR-006 | Pending | Pending | [`spec.md`](./spec.md) | Pending |
-| NFR-001 | Pending | Pending | [`spec.md`](./spec.md) | Pending |
-| NFR-002 | Pending | Pending | [`spec.md`](./spec.md) | Pending |
+| NFR-001 | Algorithms 完全展开输出 | PSO/Firefly JIT 等价 | [`spec.md`](./spec.md) | Partial |
+| NFR-002 | Algorithms 既有公式与标量尾部 | 完整行为测试 167/167 | [`spec.md`](./spec.md) | Partial |
 | NFR-003 | Pending | Pending | [`spec.md`](./spec.md) | Pending |
-| NFR-004 | Pending | Pending | [`spec.md`](./spec.md) | Pending |
+| NFR-004 | 受限语法节点替换，无运行时 DSL | 生成器 23/23、Release build | [`spec.md`](./spec.md) | Partial |
