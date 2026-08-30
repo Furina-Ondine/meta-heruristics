@@ -68,9 +68,18 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
     {
         var templates = context.AdditionalTextsProvider
             .Where(static file => file.Path.EndsWith(TemplateSuffix, StringComparison.OrdinalIgnoreCase))
-            .Select(static (file, cancellationToken) => new TemplateInput(
-                file.Path,
-                file.GetText(cancellationToken)?.ToString()))
+            .Combine(context.AnalyzerConfigOptionsProvider)
+            .Select(static (pair, cancellationToken) =>
+            {
+                var file = pair.Left;
+                var options = pair.Right.GetOptions(file);
+                var path = options.TryGetValue(
+                    "build_metadata.AdditionalFiles.SimdTemplatePath",
+                    out var configuredPath)
+                    ? configuredPath
+                    : file.Path;
+                return new TemplateInput(path, file.GetText(cancellationToken)?.ToString());
+            })
             .WithTrackingName("SimdTemplates");
 
         context.RegisterSourceOutput(templates, static (productionContext, input) =>
@@ -392,20 +401,34 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
 
     private sealed class ExpansionRewriter : CSharpSyntaxRewriter
     {
-        public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
+        public override SyntaxNode? VisitBlock(BlockSyntax node)
         {
-            if (node.Expression is not InvocationExpressionSyntax invocation
-                || !IsExpansionInvocation(invocation)
-                || invocation.ArgumentList.Arguments.Count != 1
-                || invocation.ArgumentList.Arguments[0].Expression is not ParenthesizedLambdaExpressionSyntax lambda
-                || lambda.Block is not { } block)
+            var statements = ImmutableArray.CreateBuilder<StatementSyntax>();
+            foreach (var statement in node.Statements)
             {
-                return base.VisitExpressionStatement(node);
+                if (statement is ExpressionStatementSyntax
+                    {
+                        Expression: InvocationExpressionSyntax invocation,
+                    }
+                    && IsExpansionInvocation(invocation)
+                    && invocation.ArgumentList.Arguments[0].Expression is ParenthesizedLambdaExpressionSyntax
+                    {
+                        Block: { } templateBlock,
+                    })
+                {
+                    foreach (var width in Widths)
+                    {
+                        var expandedBlock = (BlockSyntax)new WidthPlaceholderRewriter(width).Visit(templateBlock)!;
+                        statements.AddRange(expandedBlock.Statements);
+                    }
+                }
+                else
+                {
+                    statements.Add((StatementSyntax)base.Visit(statement)!);
+                }
             }
 
-            var statements = Widths.Select(width =>
-                (StatementSyntax)new WidthPlaceholderRewriter(width).Visit(block)!).ToArray();
-            return SyntaxFactory.Block(statements).WithTriviaFrom(node);
+            return node.WithStatements(SyntaxFactory.List(statements));
         }
     }
 
@@ -445,6 +468,8 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
         public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             var visited = (MethodDeclarationSyntax)base.VisitMethodDeclaration(node)!;
+            var leadingTrivia = visited.GetLeadingTrivia();
+            visited = visited.WithoutLeadingTrivia();
             var attributes = SyntaxFactory.AttributeList(
                 SyntaxFactory.SeparatedList([
                     SyntaxFactory.Attribute(SyntaxFactory.ParseName("global::System.CodeDom.Compiler.GeneratedCode"))
@@ -457,7 +482,7 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
                                 SyntaxFactory.Literal("1.0.0"))),
                         ]))),
                     SyntaxFactory.Attribute(SyntaxFactory.ParseName("global::System.Runtime.CompilerServices.CompilerGenerated")),
-                ]));
+                ])).WithLeadingTrivia(leadingTrivia);
             return visited.AddAttributeLists(attributes);
         }
     }

@@ -71,6 +71,7 @@ public sealed class SimdCascadeGeneratorTests
         Assert.Contains("Consume512();", source, StringComparison.Ordinal);
         Assert.Contains("Consume256();", source, StringComparison.Ordinal);
         Assert.Contains("Consume128();", source, StringComparison.Ordinal);
+        Assert.Contains("#line 1 \"Kernel.simd.cs\"", source, StringComparison.Ordinal);
     }
 
     [Theory]

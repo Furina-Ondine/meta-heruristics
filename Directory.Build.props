@@ -9,4 +9,7 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
+  <ItemGroup>
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="SimdTemplatePath" />
+  </ItemGroup>
 </Project>

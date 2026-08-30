@@ -6,5 +6,13 @@
   <ItemGroup>
     <PackageReference Include="System.Numerics.Tensors" />
     <ProjectReference Include="..\Metaheuristics.Core\Metaheuristics.Core.csproj" />
+    <ProjectReference Include="..\..\eng\Metaheuristics.Simd.Generators\Metaheuristics.Simd.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="VectorOps.simd.cs" />
+    <AdditionalFiles Include="VectorOps.simd.cs"
+                     SimdTemplatePath="src/Metaheuristics.Algorithms/VectorOps.simd.cs" />
   </ItemGroup>
 </Project>
