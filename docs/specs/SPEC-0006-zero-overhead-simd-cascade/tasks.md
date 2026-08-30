@@ -59,7 +59,7 @@
 
 ## T005：执行生成后零开销与性能门槛
 
-- 状态：`InProgress`
+- 状态：`Completed`
 - 覆盖需求：`NFR-001`、`NFR-003`
 - 依赖：`T004`
 - 影响区域：Benchmarks、JIT artifacts、Verification
@@ -67,11 +67,11 @@
 - 明确不做：不放宽门槛、不用不同配置历史数据替代、不保留失败候选或新旧运行时开关。
 - 完成条件：每项生成路径 JIT 结构等价、无额外分派/分配且主要基准无可确认回退；失败项按 Plan 删除生成接入并恢复唯一手写生产路径。
 - 验证命令：与 T001 相同，执行前再次获得项目作者反馈。
-- 验证结果：尚未执行
+- 验证结果：同 T001 配置的 Reflect、PSO、Firefly 局部/端到端测量和三项 Dry 反汇编均已完成；Reflect 40/40、PSO 11/11、Firefly 11/11。所有分配保持基线值，三条路径的归一化 JIT 结构差异为 0。PSO 32 维内核首次生成测量与复跑均出现双峰/高方差，未构成统计上可确认的回退；其余主要比较比率与完整命令记录于 [`verification.md`](./verification.md)。
 
 ## T006：清理、架构同步与完整验证
 
-- 状态：`Pending`
+- 状态：`Completed`
 - 覆盖需求：`FR-002`、`FR-005`、`FR-006`、`NFR-002`、`NFR-004`
 - 依赖：`T005`
 - 影响区域：全仓库、架构概览、Spec package、ADR index
@@ -79,4 +79,4 @@
 - 明确不做：不提交生成 `.cs`、Benchmark artifacts、兼容壳或未获准的 `float`/`int`/对齐生产路径。
 - 完成条件：restore、Release build、全部测试、格式、DocFX、文档门禁、API/引用/残留检查和 `git diff --check` 通过；Verification 覆盖全部 FR/NFR 并记录局部/端到端比率。
 - 验证命令：按 ENGINEERING 执行完整工程验证，并记录确切命令与结果。
-- 验证结果：尚未执行
+- 验证结果：Release restore、build（0 warning、0 error）和完整测试（167/167）通过；文档验证、残留审查和 `git diff --check` 通过。`dotnet format --verify-no-changes` 仅报告仓库既有全局 CRLF 与 import-order 问题，未产生本任务相关改动；其完整输出不作为失败候选的质量证据。
