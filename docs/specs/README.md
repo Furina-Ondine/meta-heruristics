@@ -69,4 +69,4 @@ Plan 使用 `Draft`、`Approved`、`Superseded`；Tasks 使用 `Pending`、`InPr
 | [SPEC-0004](./SPEC-0004-masked-simd-reflect/spec.md) | 掩码 SIMD Reflect Repair | `Implemented` |
 | [SPEC-0005](./SPEC-0005-algorithm-private-simd/spec.md) | 算法私有 SIMD 演进 | `Implemented` |
 | [SPEC-0006](./SPEC-0006-zero-overhead-simd-cascade/spec.md) | 零开销 SIMD 级联源码生成 | `Implemented` |
-| [SPEC-0007](./SPEC-0007-repair-boundary-shape-specialization/spec.md) | Repair 边界形状专用化 | `Approved` |
+| [SPEC-0007](./SPEC-0007-repair-boundary-shape-specialization/spec.md) | Repair 边界形状专用化 | `Implemented` |

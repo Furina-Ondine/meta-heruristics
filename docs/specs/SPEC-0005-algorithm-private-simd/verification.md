@@ -64,7 +64,7 @@
 | 128 | 220.237 ns | 87.505 ns | 37.015 ns | 5.95x |
 | 129 | 220.966 ns | 80.889 ns | 35.338 ns | 6.25x |
 
-15 维的 `VectorOps` 结果确认 512 位硬件下的 8 + 4 + 2 + 1 长度级联没有退回为大段标量尾部。原始导出：[CSV](../../../BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.PsoCandidateUpdateBenchmarks-report.csv)、[Markdown](../../../BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.PsoCandidateUpdateBenchmarks-report-github.md)。
+15 维的 `VectorOps` 结果确认 512 位硬件下的 8 + 4 + 2 + 1 长度级联没有退回为大段标量尾部。原始导出（运行时生成，未纳入版本库）：`BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.PsoCandidateUpdateBenchmarks-report.csv`、`BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.PsoCandidateUpdateBenchmarks-report-github.md`。
 
 ### 固定宽度级联完整 `Advance`（T006）
 
@@ -75,7 +75,7 @@
 | 32 | 62.02 μs | 41.81 μs | 1.48x | 456 B | 456 B |
 | 128 | 539.04 μs | 107.85 μs | 5.00x | 456 B | 456 B |
 
-固定宽度级联在 32、128 维的内核和端到端四项比较均快于同机标量基线，且没有新增托管分配，满足 PSO 的 FR-003 阶段门槛。原始导出：[CSV](../../../BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.PsoAdvanceBenchmarks-report.csv)、[Markdown](../../../BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.PsoAdvanceBenchmarks-report-github.md)。
+固定宽度级联在 32、128 维的内核和端到端四项比较均快于同机标量基线，且没有新增托管分配，满足 PSO 的 FR-003 阶段门槛。原始导出（运行时生成，未纳入版本库）：`BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.PsoAdvanceBenchmarks-report.csv`、`BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.PsoAdvanceBenchmarks-report-github.md`。
 
 Algorithms 直接引用集中管理的 `System.Numerics.Tensors` `10.0.11`。先测量了直接 `TensorPrimitives` 组合；32 维完整生命周期为 62.603 us，对照标量 61.671 us，未能通过，因此没有将该组合作为生产路径。随后只为实际 PSO 速度融合公式使用无状态 `internal VectorOps.ComputePsoVelocity`，Clamp 和位置更新仍调用 `TensorPrimitives.Clamp` 与 `TensorPrimitives.Add`。
 
@@ -131,7 +131,7 @@ PSO 通过后，首次按原方案测量了 Firefly 的直接 `TensorPrimitives`
 | 128 | 145.10 ns | 69.04 ns | 28.93 ns | 5.02x |
 | 129 | 148.03 ns | 65.48 ns | 35.71 ns | 4.15x |
 
-目标维度 32、128 的 VectorOps 内核均快于标量基线；15、31、33、127、129 等非整倍数诊断也走完整固定宽度级联和标量尾部。原始导出：[CSV](../../../BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.FireflyMoveBenchmarks-report.csv)、[Markdown](../../../BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.FireflyMoveBenchmarks-report-github.md)。
+目标维度 32、128 的 VectorOps 内核均快于标量基线；15、31、33、127、129 等非整倍数诊断也走完整固定宽度级联和标量尾部。原始导出（运行时生成，未纳入版本库）：`BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.FireflyMoveBenchmarks-report.csv`、`BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.FireflyMoveBenchmarks-report-github.md`。
 
 ### Firefly 固定宽度级联完整 `Advance`
 
@@ -142,7 +142,7 @@ PSO 通过后，首次按原方案测量了 Firefly 的直接 `TensorPrimitives`
 | 32 | 4.453 ms | 4.848 ms | 4.222 ms | 0.92x | 1.05x | 20.45 KB | 20.45 KB |
 | 128 | 16.492 ms | 15.876 ms | 14.947 ms | 1.04x | 1.10x | 20.46 KB | 20.45 KB |
 
-VectorOps 在 32、128 维的端到端比较均快于标量基线，且没有新增托管分配，满足 Firefly 的 FR-003/NFR-002 阶段门槛；因此保留 VectorOps 生产路径，不保留 TensorPrimitives 候选路径。原始导出：[CSV](../../../BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.FireflyAdvanceBenchmarks-report.csv)、[Markdown](../../../BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.FireflyAdvanceBenchmarks-report-github.md)。
+VectorOps 在 32、128 维的端到端比较均快于标量基线，且没有新增托管分配，满足 Firefly 的 FR-003/NFR-002 阶段门槛；因此保留 VectorOps 生产路径，不保留 TensorPrimitives 候选路径。原始导出（运行时生成，未纳入版本库）：`BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.FireflyAdvanceBenchmarks-report.csv`、`BenchmarkDotNet.Artifacts/results/Anastasya.Metaheuristics.Benchmarks.FireflyAdvanceBenchmarks-report-github.md`。
 
 T007 的 Release 构建、144/144 测试、内核 33/33 和端到端 6/6 均完成。`FireflyOptimizerTests` 覆盖严格更优 attractor、逐 attractor/逐维随机调用顺序、每次 Repair、固定 seed 复现、并发实例隔离和工作区复用；`VectorOpsTests` 覆盖 2、7、8、15、16、31、32、33、127、128、129 长度、原位更新以及 NaN/Infinity/负零分类。VectorOps 的生产调用点保持在纯 Span 算术边界内，不承担随机、Repair、评估或比较职责。
 

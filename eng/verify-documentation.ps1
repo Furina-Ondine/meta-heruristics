@@ -215,12 +215,12 @@ function Test-SpecPackages {
         $tasksContent = Get-Content -LiteralPath (Join-Path $package.FullName 'tasks.md') -Raw
         $verificationContent = Get-Content -LiteralPath (Join-Path $package.FullName 'verification.md') -Raw
 
-        $declaredNumber = [regex]::Match($specContent, '(?m)^- 编号：`SPEC-(?<number>\d{4})`$')
+        $declaredNumber = [regex]::Match($specContent, '(?m)^- 编号：`SPEC-(?<number>\d{4})`\r?$')
         if (-not $declaredNumber.Success -or $declaredNumber.Groups['number'].Value -ne $number) {
             Add-VerificationError "docs/specs/$($package.Name)/spec.md has a missing or mismatched Spec number."
         }
 
-        $specStatusMatch = [regex]::Match($specContent, '(?m)^- 状态：`(?<status>[^`]+)`$')
+        $specStatusMatch = [regex]::Match($specContent, '(?m)^- 状态：`(?<status>[^`]+)`\r?$')
         if (-not $specStatusMatch.Success -or $specStatusMatch.Groups['status'].Value -notin $specStatuses) {
             Add-VerificationError "docs/specs/$($package.Name)/spec.md has an invalid Spec status."
         }
@@ -240,7 +240,7 @@ function Test-SpecPackages {
             }
         }
 
-        $planStatusMatch = [regex]::Match($planContent, '(?m)^- 状态：`(?<status>[^`]+)`$')
+        $planStatusMatch = [regex]::Match($planContent, '(?m)^- 状态：`(?<status>[^`]+)`\r?$')
         if (-not $planStatusMatch.Success -or $planStatusMatch.Groups['status'].Value -notin $planStatuses) {
             Add-VerificationError "docs/specs/$($package.Name)/plan.md has an invalid Plan status."
         }
@@ -299,7 +299,7 @@ function Test-SpecPackages {
             }
         }
 
-        $statusMatches = [regex]::Matches($tasksContent, '(?m)^- 状态：`(?<status>[^`]+)`$')
+        $statusMatches = [regex]::Matches($tasksContent, '(?m)^- 状态：`(?<status>[^`]+)`\r?$')
         $inProgressCount = 0
         $allTasksCompleted = $statusMatches.Count -gt 0
         foreach ($statusMatch in $statusMatches) {
@@ -329,7 +329,7 @@ function Test-SpecPackages {
             }
         }
 
-        $verificationResultMatch = [regex]::Match($verificationContent, '(?m)^- 最终结果：`(?<result>Pending|Passed|Failed)`$')
+        $verificationResultMatch = [regex]::Match($verificationContent, '(?m)^- 最终结果：`(?<result>Pending|Passed|Failed)`\r?$')
         if (-not $verificationResultMatch.Success) {
             Add-VerificationError "docs/specs/$($package.Name)/verification.md has a missing or invalid final result."
         }
@@ -385,7 +385,7 @@ function Test-SpecPackages {
                 Add-VerificationError "docs/specs/$($package.Name)/plan.md Approved Plan lacks approval metadata."
             }
 
-            $baselineMatch = [regex]::Match($planContent, '(?m)^- Spec 基线提交：`(?<commit>[0-9a-fA-F]{7,40})`$')
+            $baselineMatch = [regex]::Match($planContent, '(?m)^- Spec 基线提交：`(?<commit>[0-9a-fA-F]{7,40})`\r?$')
             if (-not $baselineMatch.Success) {
                 Add-VerificationError "docs/specs/$($package.Name)/plan.md Approved Plan lacks a Spec baseline commit."
             }
@@ -416,7 +416,7 @@ function Test-SpecPackages {
             if ($specContent -match '(?im)\b(TODO|TBD)\b|待定|尚未决定') {
                 Add-VerificationError "docs/specs/$($package.Name)/spec.md is approved or later but still contains a placeholder."
             }
-            if ($specContent -match '(?m)^- 规格批准：—$|^- 批准日期：—$') {
+            if ($specContent -match '(?m)^- 规格批准：—\r?$|^- 批准日期：—\r?$') {
                 Add-VerificationError "docs/specs/$($package.Name)/spec.md is approved or later but lacks approval metadata."
             }
         }

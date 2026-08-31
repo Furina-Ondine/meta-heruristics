@@ -16,7 +16,7 @@
 | FR-002 | 六个同形状私有 Repair 类型 | Core 测试、实现审查 | architecture overview | Passed |
 | FR-003 | `ClampValue`、`ReflectValue` 与 RandomReset 循环 | 位置、特殊值、复制、长度与固定 seed 测试 | SPEC-0007 | Passed |
 | FR-004 | `ScalarReflectCandidateRepair`、`VectorReflectCandidateRepair` 的直接 `for` 循环 | Core/`eng` 残留搜索、差分测试 | ADR-0019 | Passed |
-| FR-005 | `RepairBenchmarks` 的纯标量参考与历史 SIMD 候选 | BenchmarkDotNet 长测、MemoryDiagnoser | 本报告 | Passed（拒绝候选） |
+| FR-005 | `RepairBenchmarks` 的纯标量参考与历史 SIMD 候选 | BenchmarkDotNet 长测、MemoryDiagnoser | 本报告 | Passed |
 | NFR-001 | public factory、ADR 替代关系 | Release build、文档审查 | ADR-0019 | Passed |
 | NFR-002 | Core 无 SIMD/生成器接入 | 残留搜索、MemoryDiagnoser | architecture overview | Passed |
 | NFR-003 | Repair 调用链与数值/随机测试 | 完整 Release test | SPEC-0007 | Passed |
