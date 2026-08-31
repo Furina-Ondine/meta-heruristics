@@ -9,7 +9,7 @@ public sealed class CandidateRepairsTensorTests
 
     /// <summary>验证 Clamp 在边界形状、特殊值和向量尾部下逐位匹配标量参考。</summary>
     [Xunit.Fact]
-    public void ClampMatchesTheScalarReferenceForAllBoundaryShapesAndLengths()
+    public void ClampMatchesTheScalarReferenceForSameShapeBoundariesAndLengths()
     {
         foreach (var length in TestedLengths)
         {
@@ -188,8 +188,6 @@ public sealed class CandidateRepairsTensorTests
     private static ICandidateRepair CreateClamp(double[] lower, double[] upper, BoundaryShape shape) => shape switch
     {
         BoundaryShape.ScalarScalar => CandidateRepairs.Clamp(lower[0], upper[0]),
-        BoundaryShape.VectorScalar => CandidateRepairs.Clamp(lower, upper[0]),
-        BoundaryShape.ScalarVector => CandidateRepairs.Clamp(lower[0], upper),
         BoundaryShape.VectorVector => CandidateRepairs.Clamp(lower, upper),
         _ => throw new ArgumentOutOfRangeException(nameof(shape)),
     };
@@ -197,8 +195,6 @@ public sealed class CandidateRepairsTensorTests
     private static ICandidateRepair CreateReflect(double[] lower, double[] upper, BoundaryShape shape) => shape switch
     {
         BoundaryShape.ScalarScalar => CandidateRepairs.Reflect(lower[0], upper[0]),
-        BoundaryShape.VectorScalar => CandidateRepairs.Reflect(lower, upper[0]),
-        BoundaryShape.ScalarVector => CandidateRepairs.Reflect(lower[0], upper),
         BoundaryShape.VectorVector => CandidateRepairs.Reflect(lower, upper),
         _ => throw new ArgumentOutOfRangeException(nameof(shape)),
     };
@@ -228,8 +224,6 @@ public sealed class CandidateRepairsTensorTests
         int index) => shape switch
         {
             BoundaryShape.ScalarScalar => (lower[0], upper[0]),
-            BoundaryShape.VectorScalar => (lower[index], upper[0]),
-            BoundaryShape.ScalarVector => (lower[0], upper[index]),
             BoundaryShape.VectorVector => (lower[index], upper[index]),
             _ => throw new ArgumentOutOfRangeException(nameof(shape)),
         };
@@ -354,8 +348,6 @@ public sealed class CandidateRepairsTensorTests
     private enum BoundaryShape
     {
         ScalarScalar,
-        VectorScalar,
-        ScalarVector,
         VectorVector,
     }
 }

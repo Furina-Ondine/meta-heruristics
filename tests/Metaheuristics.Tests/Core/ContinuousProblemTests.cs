@@ -74,21 +74,13 @@ public sealed class ContinuousProblemTests
         Xunit.Assert.True(double.IsNaN(position[4]));
     }
 
-    /// <summary>验证 Clamp 支持四种标量和向量端点组合。</summary>
+    /// <summary>验证 Clamp 支持保留的同形状端点组合。</summary>
     [Xunit.Fact]
-    public void ClampSupportsAllScalarAndVectorBoundaryCombinations()
+    public void ClampSupportsSameShapeBoundaryCombinations()
     {
         var scalar = new[] { -1.0, 11.0 };
         CandidateRepairs.Clamp(0, 10).Repair(scalar, new Random(1));
         Xunit.Assert.Equal([0, 10], scalar);
-
-        var vectorLower = new[] { -1.0, 11.0 };
-        CandidateRepairs.Clamp([0.0, 1], 10).Repair(vectorLower, new Random(1));
-        Xunit.Assert.Equal([0, 10], vectorLower);
-
-        var vectorUpper = new[] { -1.0, 11.0 };
-        CandidateRepairs.Clamp(0, [2.0, 3]).Repair(vectorUpper, new Random(1));
-        Xunit.Assert.Equal([0, 3], vectorUpper);
 
         var vectors = new[] { -1.0, 11.0 };
         CandidateRepairs.Clamp([0.0, 1], [2.0, 3]).Repair(vectors, new Random(1));

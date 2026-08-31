@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Immutable;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -14,7 +12,6 @@ namespace Anastasya.Metaheuristics.Simd.Generators;
 public sealed class SimdCascadeGenerator : IIncrementalGenerator
 {
     private const string TemplateSuffix = ".simd.cs";
-    private const string WidthExpansionMarker = "__SimdExpandWidths";
     private const string AcceleratedWidthExpansionMarker = "__SimdExpandHardwareAcceleratedWidths";
     private static readonly int[] Widths = [512, 256, 128];
 
@@ -121,7 +118,7 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
         }
 
         var methods = tree.GetCompilationUnitRoot().DescendantNodes().OfType<MethodDeclarationSyntax>();
-        return methods.SelectMany(method =>
+        return methods.Select(method =>
         {
             var containers = method.Ancestors()
                 .Where(static ancestor => ancestor is BaseNamespaceDeclarationSyntax or TypeDeclarationSyntax)
@@ -139,12 +136,7 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
                 + "." + method.Identifier.ValueText
                 + "(" + parameterTypes + ")";
             var location = CreateLocation(input.Path, method.Identifier.GetLocation());
-            return RequiresMethodExpansion(method)
-                ? Widths.Select(width => new TargetMethod(
-                    key.Replace("__Width", width.ToString(CultureInfo.InvariantCulture))
-                        .Replace("__Vector", "Vector" + width.ToString(CultureInfo.InvariantCulture)),
-                    location))
-                : [new TargetMethod(key, location)];
+            return new TargetMethod(key, location);
         }).ToImmutableArray();
     }
 
@@ -203,8 +195,6 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
             .FirstOrDefault(static token => token.IsKind(SyntaxKind.IdentifierToken)
                 && token.ValueText.StartsWith("__", StringComparison.Ordinal)
                 && token.ValueText != "__Vector"
-                && !token.ValueText.EndsWith("__Width", StringComparison.Ordinal)
-                && token.ValueText != WidthExpansionMarker
                 && token.ValueText != AcceleratedWidthExpansionMarker);
         if (invalidPlaceholder.RawKind != 0)
         {
@@ -342,10 +332,6 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
 
     private static bool IsExpansionInvocation(InvocationExpressionSyntax invocation) =>
         invocation.Expression is IdentifierNameSyntax identifier
-        && identifier.Identifier.ValueText is WidthExpansionMarker or AcceleratedWidthExpansionMarker;
-
-    private static bool IsHardwareAcceleratedExpansion(InvocationExpressionSyntax invocation) =>
-        invocation.Expression is IdentifierNameSyntax identifier
         && identifier.Identifier.ValueText == AcceleratedWidthExpansionMarker;
 
     private static bool IsValidExpansionBlock(InvocationExpressionSyntax invocation) =>
@@ -353,15 +339,9 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
         && invocation.ArgumentList.Arguments.Count == 1
         && invocation.ArgumentList.Arguments[0].Expression is ParenthesizedLambdaExpressionSyntax { Block: not null };
 
-    private static bool RequiresMethodExpansion(MethodDeclarationSyntax method) =>
-        method.Identifier.ValueText.EndsWith("__Width", StringComparison.Ordinal)
-        || method.ReturnType.DescendantTokens().Concat(method.ParameterList.DescendantTokens())
-            .Any(static token => token.IsKind(SyntaxKind.IdentifierToken) && token.ValueText == "__Vector");
-
     private static bool TryGetExpansionBlock(
         StatementSyntax statement,
-        out BlockSyntax block,
-        out bool requiresHardwareAcceleration)
+        out BlockSyntax block)
     {
         if (statement is ExpressionStatementSyntax
             {
@@ -374,12 +354,10 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
             })
         {
             block = templateBlock;
-            requiresHardwareAcceleration = IsHardwareAcceleratedExpansion(invocation);
             return true;
         }
 
         block = null!;
-        requiresHardwareAcceleration = false;
         return false;
     }
 
@@ -463,19 +441,12 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
             var statements = ImmutableArray.CreateBuilder<StatementSyntax>();
             foreach (var statement in node.Statements)
             {
-                if (TryGetExpansionBlock(statement, out var templateBlock, out var requiresHardwareAcceleration))
+                if (TryGetExpansionBlock(statement, out var templateBlock))
                 {
                     foreach (var width in Widths)
                     {
                         var expandedBlock = (BlockSyntax)new WidthPlaceholderRewriter(width).Visit(templateBlock)!;
-                        if (requiresHardwareAcceleration)
-                        {
-                            statements.Add(CreateHardwareAccelerationGuard(width, expandedBlock));
-                        }
-                        else
-                        {
-                            statements.AddRange(expandedBlock.Statements);
-                        }
+                        statements.Add(CreateHardwareAccelerationGuard(width, expandedBlock));
                     }
                 }
                 else
@@ -492,57 +463,10 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
             var expandedMembers = ImmutableArray.CreateBuilder<MemberDeclarationSyntax>();
             foreach (var member in members)
             {
-                if (member is MethodDeclarationSyntax method && RequiresMethodExpansion(method))
-                {
-                    foreach (var width in Widths)
-                    {
-                        var widthMethod = (MethodDeclarationSyntax)new WidthPlaceholderRewriter(width).Visit(method)!;
-                        widthMethod = (MethodDeclarationSyntax)new SingleWidthExpansionRewriter(width).Visit(widthMethod)!;
-                        expandedMembers.Add(widthMethod);
-                    }
-                }
-                else
-                {
-                    expandedMembers.Add((MemberDeclarationSyntax)Visit(member)!);
-                }
+                expandedMembers.Add((MemberDeclarationSyntax)Visit(member)!);
             }
 
             return SyntaxFactory.List(expandedMembers);
-        }
-    }
-
-    private sealed class SingleWidthExpansionRewriter : CSharpSyntaxRewriter
-    {
-        private readonly int width;
-
-        public SingleWidthExpansionRewriter(int width)
-        {
-            this.width = width;
-        }
-
-        public override SyntaxNode? VisitBlock(BlockSyntax node)
-        {
-            var statements = ImmutableArray.CreateBuilder<StatementSyntax>();
-            foreach (var statement in node.Statements)
-            {
-                if (TryGetExpansionBlock(statement, out var templateBlock, out var requiresHardwareAcceleration))
-                {
-                    if (requiresHardwareAcceleration)
-                    {
-                        statements.Add(CreateHardwareAccelerationGuard(width, templateBlock));
-                    }
-                    else
-                    {
-                        statements.AddRange(templateBlock.Statements);
-                    }
-                }
-                else
-                {
-                    statements.Add((StatementSyntax)base.Visit(statement)!);
-                }
-            }
-
-            return node.WithStatements(SyntaxFactory.List(statements));
         }
     }
 
@@ -562,14 +486,7 @@ public sealed class SimdCascadeGenerator : IIncrementalGenerator
                 return base.VisitToken(token);
             }
 
-            var replacement = token.ValueText switch
-            {
-                "__Vector" => $"Vector{width}",
-                var value when value.EndsWith("__Width", StringComparison.Ordinal) =>
-                    value.Substring(0, value.Length - "__Width".Length)
-                        + width.ToString(CultureInfo.InvariantCulture),
-                _ => null,
-            };
+            var replacement = token.ValueText == "__Vector" ? $"Vector{width}" : null;
 
             return replacement is null
                 ? base.VisitToken(token)

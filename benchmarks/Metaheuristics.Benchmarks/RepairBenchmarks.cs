@@ -14,10 +14,13 @@ public class RepairBenchmarks
     private double[] _upper = null!;
     private double[] _clampSeed = null!;
     private double[] _reflectSeed = null!;
+    private double[] _randomResetSeed = null!;
     private double[] _clampPosition = null!;
     private double[] _reflectPosition = null!;
+    private double[] _randomResetPosition = null!;
     private ICandidateRepair _clamp = null!;
     private ICandidateRepair _reflect = null!;
+    private ICandidateRepair _randomReset = null!;
     private Random _random = null!;
     private double _legacyScalarWidth;
     private double _legacyScalarPeriod;
@@ -31,8 +34,6 @@ public class RepairBenchmarks
     /// <summary>获取或设置 Clamp/Reflect 的标量与向量端点形状。</summary>
     [Params(
         RepairBoundaryShape.ScalarScalar,
-        RepairBoundaryShape.VectorScalar,
-        RepairBoundaryShape.ScalarVector,
         RepairBoundaryShape.VectorVector)]
     public RepairBoundaryShape BoundaryShape { get; set; }
 
@@ -44,8 +45,10 @@ public class RepairBenchmarks
         _upper = new double[Dimension];
         _clampSeed = new double[Dimension];
         _reflectSeed = new double[Dimension];
+        _randomResetSeed = new double[Dimension];
         _clampPosition = new double[Dimension];
         _reflectPosition = new double[Dimension];
+        _randomResetPosition = new double[Dimension];
 
         for (var index = 0; index < Dimension; index++)
         {
@@ -55,10 +58,12 @@ public class RepairBenchmarks
             var width = upper - lower;
             _clampSeed[index] = lower + (width * ((index % 7) - 3.25));
             _reflectSeed[index] = lower + (width * ((index % 7) - 3.25));
+            _randomResetSeed[index] = lower + (width * ((index % 7) - 3.25));
         }
 
         _clamp = CreateClamp();
         _reflect = CreateReflect();
+        _randomReset = CreateRandomReset();
         CreateLegacyReflectionParameters();
         _random = new Random(1);
     }
@@ -69,6 +74,8 @@ public class RepairBenchmarks
     {
         _clampSeed.CopyTo(_clampPosition, 0);
         _reflectSeed.CopyTo(_reflectPosition, 0);
+        _randomResetSeed.CopyTo(_randomResetPosition, 0);
+        _random = new Random(1);
     }
 
     /// <summary>测量与既有实现相同的 Clamp 标量参考。</summary>
@@ -105,11 +112,13 @@ public class RepairBenchmarks
     [Benchmark]
     public void Reflect() => _reflect.Repair(_reflectPosition, _random);
 
+    /// <summary>测量实际内置 RandomReset Repair，位置和随机流在迭代准备阶段重置。</summary>
+    [Benchmark]
+    public void RandomReset() => _randomReset.Repair(_randomResetPosition, _random);
+
     private ICandidateRepair CreateClamp() => BoundaryShape switch
     {
         RepairBoundaryShape.ScalarScalar => CandidateRepairs.Clamp(_lower[0], _upper[0]),
-        RepairBoundaryShape.VectorScalar => CandidateRepairs.Clamp(_lower, _upper[0]),
-        RepairBoundaryShape.ScalarVector => CandidateRepairs.Clamp(_lower[0], _upper),
         RepairBoundaryShape.VectorVector => CandidateRepairs.Clamp(_lower, _upper),
         _ => throw new InvalidOperationException("The configured boundary shape is unsupported."),
     };
@@ -117,17 +126,20 @@ public class RepairBenchmarks
     private ICandidateRepair CreateReflect() => BoundaryShape switch
     {
         RepairBoundaryShape.ScalarScalar => CandidateRepairs.Reflect(_lower[0], _upper[0]),
-        RepairBoundaryShape.VectorScalar => CandidateRepairs.Reflect(_lower, _upper[0]),
-        RepairBoundaryShape.ScalarVector => CandidateRepairs.Reflect(_lower[0], _upper),
         RepairBoundaryShape.VectorVector => CandidateRepairs.Reflect(_lower, _upper),
+        _ => throw new InvalidOperationException("The configured boundary shape is unsupported."),
+    };
+
+    private ICandidateRepair CreateRandomReset() => BoundaryShape switch
+    {
+        RepairBoundaryShape.ScalarScalar => CandidateRepairs.RandomReset(_lower[0], _upper[0]),
+        RepairBoundaryShape.VectorVector => CandidateRepairs.RandomReset(_lower, _upper),
         _ => throw new InvalidOperationException("The configured boundary shape is unsupported."),
     };
 
     private (double Lower, double Upper) GetBounds(int index) => BoundaryShape switch
     {
         RepairBoundaryShape.ScalarScalar => (_lower[0], _upper[0]),
-        RepairBoundaryShape.VectorScalar => (_lower[index], _upper[0]),
-        RepairBoundaryShape.ScalarVector => (_lower[0], _upper[index]),
         RepairBoundaryShape.VectorVector => (_lower[index], _upper[index]),
         _ => throw new InvalidOperationException("The configured boundary shape is unsupported."),
     };
@@ -199,7 +211,7 @@ public class RepairBenchmarks
 
     private void ApplyLegacyTensorReflection(Span<double> position)
     {
-        if (BoundaryShape is RepairBoundaryShape.VectorScalar or RepairBoundaryShape.VectorVector)
+        if (BoundaryShape == RepairBoundaryShape.VectorVector)
         {
             TensorPrimitives.Subtract(position, _lower, position);
         }
@@ -237,7 +249,7 @@ public class RepairBenchmarks
             TensorPrimitives.Subtract(_legacyWidths, position, position);
         }
 
-        if (BoundaryShape is RepairBoundaryShape.VectorScalar or RepairBoundaryShape.VectorVector)
+        if (BoundaryShape == RepairBoundaryShape.VectorVector)
         {
             TensorPrimitives.Add(position, _lower, position);
         }
@@ -302,12 +314,6 @@ public enum RepairBoundaryShape
 {
     /// <summary>两个端点均为标量。</summary>
     ScalarScalar,
-
-    /// <summary>下界为向量，上界为标量。</summary>
-    VectorScalar,
-
-    /// <summary>下界为标量，上界为向量。</summary>
-    ScalarVector,
 
     /// <summary>两个端点均为向量。</summary>
     VectorVector,

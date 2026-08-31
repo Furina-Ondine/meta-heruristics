@@ -3,13 +3,13 @@
 ## 元数据
 
 - 编号：`SPEC-0007`
-- 状态：`Approved`
+- 状态：`Implemented`
 - 创建日期：2026-08-31
 - 批准人：项目作者
 - 批准日期：2026-08-31
 - 替代：无；实施后替代 [ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md) 对内置 Repair 四种边界形状的决定。
 - 被替代：无
-- 相关 ADR：[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0017](../../decisions/0017-repository-private-simd-source-generation.md)
+- 相关 ADR：[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0019](../../decisions/0019-scalar-reflect-and-algorithm-only-simd-generation.md)
 
 ## 问题与动机
 
@@ -22,7 +22,7 @@
 - `Clamp`、`Reflect` 和 `RandomReset` 只提供标量/标量与向量/向量边界。
 - 删除混合工厂、私有通用边界判别模型、混合测试/基准参数和任何兼容壳。
 - 由工厂在创建时选择标量或向量的密封私有 Repair 类型；热路径不得再按边界形状分派。
-- 将 Reflect 的 scalar/scalar 与 vector/vector SIMD 内核拆为唯一的广播或数组加载路径，保留已批准的 512→256→128→scalar 回退和危险 lane 标量修补。
+- Reflect 对标量/标量与向量/向量都使用各自直接的逐元素标量循环；不得保留 SIMD、硬件门、模板或生成器接入。
 - 测量 Clamp、Reflect、RandomReset 的局部与代表性端到端成本；只保留无可确认回退、无新增分配且具有维护或性能收益的专用实现。
 
 ## 非目标
@@ -34,9 +34,7 @@
 
 ## 架构契合
 
-Core 继续唯一拥有 Repair、边界副本、派生 width/period 和私有 SIMD。两个保留工厂在创建时分别实例化专用类型：标量类型仅保存标量端点及其标量派生值，向量类型仅保存防御性复制的等长数组及派生数组。现有 `ICandidateRepair` 作为运行上下文策略边界不变；本变更不新增 delegate、接口层级、反射、共享状态或运行时后端。
-
-SIMD 位宽与硬件门仍由 ADR-0017 的编译期生成器机械展开。生成器不决定 Repair 形状或数值规则；它只为各专用模板生成现有固定宽度级联。ADR-0013 当前授权四形状 API，实施前必须以新的 Accepted ADR 替代其边界形状决定。
+Core 继续唯一拥有 Repair、边界副本和 Reflect 数值语义。两个保留工厂在创建时分别实例化专用类型：标量类型仅保存标量端点，向量类型仅保存防御性复制的等长数组。现有 `ICandidateRepair` 作为运行上下文策略边界不变；本变更不新增 delegate、接口层级、反射、共享状态或运行时后端。Reflect 不再采用 SIMD 或编译期生成；ADR-0013 当前授权四形状 API，实施前必须以新的 Accepted ADR 替代其边界形状决定。
 
 ## 信任与责任边界
 
@@ -47,7 +45,7 @@ SIMD 位宽与硬件门仍由 ADR-0017 的编译期生成器机械展开。生�
 | 向量端点 NaN、等长和逐维顺序 | 调用方 | 创建时复制并验证 | 保持既有构造异常。 |
 | Position 与向量边界长度 | 调用方 | 每次向量 Repair 一次 | 保持 `ArgumentException`。 |
 | 特殊值、Reflect 数值和 RandomReset 采样 | 所选 Repair | 按既有参考语义 | 不得改变可观察结果或随机消费条件。 |
-| SIMD 硬件与尾部 | 运行时/生成代码 | 逐级回退 | 无 SIMD 时使用对应标量参考。 |
+| Reflect 逐元素执行 | 所选 Repair | 每个元素 | 直接执行对应标量参考。 |
 | 性能准入 | 维护者 | JIT、分配和 BenchmarkDotNet | 有可确认回退或新增分配时不得替换。 |
 
 ## 功能需求
@@ -72,17 +70,17 @@ SIMD 位宽与硬件门仍由 ADR-0017 的编译期生成器机械展开。生�
 
 - 前置条件：有效同形状边界与任意 Position/Random。
 - 触发行为：创建或执行 Repair。
-- 预期结果：NaN、逐维顺序、向量等长、Position 长度与防御性复制的验证阶段和异常类型保持不变。Clamp 保持 Position `NaN`；Reflect 保持特殊值、端点、大 offset 标量修补以及普通有限 lane 最多 1 ULP 的既有许可。
+- 预期结果：NaN、逐维顺序、向量等长、Position 长度与防御性复制的验证阶段和异常类型保持不变。Clamp 保持 Position `NaN`；Reflect 保持特殊值、端点和大 offset 的标量参考语义。
 - 随机规则：RandomReset 在且仅在有限、越界且有限宽度的区间消费一次 `Random.NextDouble()`；其余情况按 Clamp 退化且不消费随机数。
 - 验收标准：同形状差分、特殊值、边界、长度、复制、固定 seed 与随机次数测试通过；旧混合测试删除而非变为私有兼容测试。
 
-### FR-004：简化同形状 Reflect SIMD
+### FR-004：同形状标量 Reflect
 
-- 前置条件：执行标量或向量 Reflect，且运行时支持至少一种 128-bit SIMD 宽度。
-- 触发行为：处理完整向量块。
-- 预期结果：标量模板只广播 lower/upper/width/period；向量模板只加载数组。块内不得判断形状、选择广播/加载或检查 nullable 派生数组。
-- 边界情况：长度 2、7、8、31、32、33、127、128、129、1024 继续采用 512→256→128→单元素尾部；危险大 offset 只修补对应 scalar lane。
-- 验收标准：归一化反汇编无旧形状控制流；同形状差分覆盖正常、特殊、端点、溢出和大 offset lane。
+- 前置条件：执行标量或向量 Reflect。
+- 触发行为：逐元素处理 Position。
+- 预期结果：标量 Repair 直接使用标量端点，向量 Repair 直接索引对应端点数组；不得存在 SIMD 块、硬件门、宽度级联、模板或生成器接入。
+- 边界情况：长度 2、7、8、31、32、33、127、128、129、1024、特殊值、端点、溢出和大 offset 均通过同一标量参考语义处理。
+- 验收标准：残留搜索证明 Core 和生成器没有 Reflect SIMD 关联；同形状差分覆盖正常、特殊、端点、溢出和大 offset。
 
 ### FR-005：性能优化准入
 
@@ -120,18 +118,18 @@ SIMD 位宽与硬件门仍由 ADR-0017 的编译期生成器机械展开。生�
 
 ## 职责与替代关系
 
-- 新增概念：Core 私有 scalar/scalar、vector/vector Repair 专用类型及同形状 Reflect 模板。
-- 被替代概念：三种混合工厂、通用 `Boundary` 判别存储和每次 Repair/SIMD 块的形状分派。
-- 必须删除：混合工厂/构造器、形状标志、nullable 派生字段、混合 benchmark enum 值/测试分支及所有转发兼容层。
-- 保留概念：`ICandidateRepair` 仍是稳定策略边界；同形状 Repair、标量 Reflect、危险 lane 修补、Tensor Clamp 与 RandomReset 仍有独立语义职责。
-- 最终所属：Core 拥有工厂/边界/专用实现；生成器只拥有位宽和硬件门展开；Tests 定义兼容性；Benchmarks/Verification 记录性能证据。
+- 新增概念：Core 私有 scalar/scalar、vector/vector Repair 专用类型。
+- 被替代概念：三种混合工厂、通用 `Boundary` 判别存储、每次 Repair 的形状分派和 Reflect SIMD 实现。
+- 必须删除：混合工厂/构造器、形状标志、nullable 派生字段、Reflect SIMD 模板/生成器接入、混合 benchmark enum 值/测试分支及所有转发兼容层。
+- 保留概念：`ICandidateRepair` 仍是稳定策略边界；同形状 Repair、标量 Reflect、Tensor Clamp 与 RandomReset 仍有独立语义职责。
+- 最终所属：Core 拥有工厂/边界/专用实现；生成器只拥有 Algorithms 的位宽和硬件门展开；Tests 定义兼容性；Benchmarks/Verification 记录性能证据。
 
 ## 成功标准
 
 - 公开工厂只表达同形状边界，混合调用无兼容壳。
-- Reflect 标量和向量路径不再运行时判断边界形状，SIMD 块只执行唯一广播或加载形态。
+- Reflect 标量和向量路径不再运行时判断边界形状，并且不包含 SIMD 或生成器依赖。
 - 保留形状的数值、状态、随机性、尾部和分配保持兼容。
-- 性能证据证明没有可确认回退，并报告专用化的局部和端到端影响。
+- 性能证据记录已拒绝 SIMD 候选的同机对照，并报告标量实现的局部与端到端成本。
 - ADR、架构概览、API 文档、示例、测试、基准和 Verification 与最终实现一致。
 
 ## 已澄清决定与待批准项

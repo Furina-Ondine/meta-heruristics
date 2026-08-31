@@ -26,11 +26,13 @@
 | [0010](0010-scalar-evaluation-baseline.md) | 单点评估基础契约 | `Accepted` |
 | [0011](0011-bat-first-algorithm-migration.md) | 首个算法迁移选择蝙蝠算法 | `Accepted` |
 | [0012](0012-repair-owned-candidate-boundaries.md) | Repair 拥有候选位置边界 | `Superseded` |
-| [0013](0013-tensor-shaped-repair-bounds.md) | Tensor 形状的 Repair 边界 | `Accepted` |
+| [0013](0013-tensor-shaped-repair-bounds.md) | Tensor 形状的 Repair 边界 | `Superseded` |
 | [0014](0014-spec-driven-change-governance.md) | Spec-Driven 变更治理 | `Accepted` |
 | [0015](0015-ordered-extended-evaluation-values.md) | 评估结果使用有序扩展数值域 | `Accepted` |
 | [0016](0016-algorithm-fixed-width-simd-cascade.md) | 算法私有固定宽度 SIMD 级联 | `Accepted` |
-| [0017](0017-repository-private-simd-source-generation.md) | 仓库私有 SIMD 增量源码生成 | `Accepted` |
+| [0017](0017-repository-private-simd-source-generation.md) | 仓库私有 SIMD 增量源码生成 | `Superseded` |
+| [0018](0018-repair-boundary-shape-specialization.md) | Repair 边界形状专用化 | `Superseded` |
+| [0019](0019-scalar-reflect-and-algorithm-only-simd-generation.md) | 标量 Reflect 与仅 Algorithms 使用 SIMD 生成 | `Accepted` |
 
 ## ADR 模板
 

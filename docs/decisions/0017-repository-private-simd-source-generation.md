@@ -2,7 +2,7 @@
 
 ## 状态
 
-Accepted
+Superseded by [ADR-0019](0019-scalar-reflect-and-algorithm-only-simd-generation.md).
 
 ## 背景
 

@@ -143,7 +143,7 @@ dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.cs
 
 ### 改变位置范围或恢复策略
 
-通过 `CandidateRepairs` 选择 Clamp、Reflect 或 RandomReset，并把策略传给 `ContinuousProblem`。算法不读取上下界；Initializer 写入初值后以及算法修改位置后，都会调用 Repair。
+通过 `CandidateRepairs` 选择 Clamp、Reflect 或 RandomReset，并把策略传给 `ContinuousProblem`。两端边界必须同为标量，或同为与 Position 等长的逐维向量；混合标量/向量端点由调用方按领域语义显式转换。算法不读取上下界；Initializer 写入初值后以及算法修改位置后，都会调用 Repair。
 
 未提供 Repair 时使用 `[0, 10]` Clamp。`DoNothing` 表示调用方自己承担位置合法性和数值后果，不是推荐的默认配置。
 

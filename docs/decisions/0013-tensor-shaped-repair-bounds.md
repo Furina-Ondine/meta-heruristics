@@ -2,7 +2,9 @@
 
 ## 状态
 
-Accepted
+Superseded
+
+由 [ADR-0018](0018-repair-boundary-shape-specialization.md) 替代。ADR-0018 仅收窄内置 Repair 的边界形状；Repair 拥有边界、向量复制和创建/执行时验证的责任保持有效。
 
 替代 [ADR-0012](0012-repair-owned-candidate-boundaries.md) 中 `VariableBounds` 表示与由其配置内置 Repair 的规定。
 
