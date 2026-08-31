@@ -4,7 +4,7 @@
 
 - 状态：`Approved`
 - 对应 Spec：[`spec.md`](./spec.md)
-- Spec 基线提交：`7380b9c032351d0587c4d8dc0d32ee884536a03e`
+- Spec 基线提交：`e41d33f08a53ad3ecbfcfaa5982419e017ac5e8c`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`NFR-001`、`NFR-002`、`NFR-003`、`NFR-004`
 - 批准人：项目作者
 - 批准日期：2026-08-31
