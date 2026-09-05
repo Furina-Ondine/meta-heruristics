@@ -2,7 +2,9 @@
 
 ## 状态
 
-状态：Accepted
+状态：Superseded
+
+已由 [ADR-0020](0020-core-owned-random-source-and-run-execution.md) 替代。
 
 替代 [ADR-0008](0008-experiment-run-groups-and-reusable-workers.md)。
 

@@ -22,7 +22,7 @@
 | [0006](0006-evaluation-performance-and-reproducibility.md) | 评估、性能与可复现性 | `Superseded` |
 | [0007](0007-versioning-and-release.md) | 版本与发布 | `Accepted` |
 | [0008](0008-experiment-run-groups-and-reusable-workers.md) | Experiment RunGroup 与可复用 Worker | `Superseded` |
-| [0009](0009-group-scoped-optimizer-execution.md) | RunGroup 独占的有状态 Optimizer | `Accepted` |
+| [0009](0009-group-scoped-optimizer-execution.md) | RunGroup 独占的有状态 Optimizer | `Superseded` |
 | [0010](0010-scalar-evaluation-baseline.md) | 单点评估基础契约 | `Accepted` |
 | [0011](0011-bat-first-algorithm-migration.md) | 首个算法迁移选择蝙蝠算法 | `Accepted` |
 | [0012](0012-repair-owned-candidate-boundaries.md) | Repair 拥有候选位置边界 | `Superseded` |
@@ -33,6 +33,7 @@
 | [0017](0017-repository-private-simd-source-generation.md) | 仓库私有 SIMD 增量源码生成 | `Superseded` |
 | [0018](0018-repair-boundary-shape-specialization.md) | Repair 边界形状专用化 | `Superseded` |
 | [0019](0019-scalar-reflect-and-algorithm-only-simd-generation.md) | 标量 Reflect 与仅 Algorithms 使用 SIMD 生成 | `Accepted` |
+| [0020](0020-core-owned-random-source-and-run-execution.md) | Core 拥有的封闭随机源与 RunGroup 执行 | `Accepted` |
 
 ## ADR 模板
 
