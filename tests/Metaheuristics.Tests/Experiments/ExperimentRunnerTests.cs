@@ -334,6 +334,27 @@ public sealed class ExperimentRunnerTests
     }
 
     /// <summary>
+    /// 验证自动 seed 派生使用已批准的 unchecked 64 位模加法。
+    /// </summary>
+    [Xunit.Fact]
+    public async Task RunAsyncDerivesSeedsWithUnsignedWraparound()
+    {
+        var experimentCase = CreateRecordingCase(
+            "wrap",
+            3,
+            1,
+            new ConcurrentQueue<string>(),
+            new ConcurrentBag<SeedValueOptimizer>());
+
+        var result = await ExperimentRunner.RunAsync(
+            new ExperimentDefinition([experimentCase]),
+            new ExperimentExecutionOptions { BaseSeed = ulong.MaxValue - 1 },
+            Xunit.TestContext.Current.CancellationToken);
+
+        Xunit.Assert.Equal([ulong.MaxValue - 1, ulong.MaxValue, 0UL], result.Seeds);
+    }
+
+    /// <summary>
     /// 验证显式 seed 列表必须覆盖最大的 Case 重复次数。
     /// </summary>
     [Xunit.Fact]
@@ -409,7 +430,7 @@ public sealed class ExperimentRunnerTests
             runGroupCount: 1);
         var result = await ExperimentRunner.RunAsync(
             new ExperimentDefinition([experimentCase]),
-            new ExperimentExecutionOptions { Seeds = Enumerable.Range(1, values.Length).ToArray() },
+            new ExperimentExecutionOptions { Seeds = Enumerable.Range(1, values.Length).Select(static value => (ulong)value).ToArray() },
             Xunit.TestContext.Current.CancellationToken);
 
         return result.Cases[0].Statistics.BestObjective!;

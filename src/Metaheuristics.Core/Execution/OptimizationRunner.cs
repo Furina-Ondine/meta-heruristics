@@ -36,7 +36,7 @@ public static class OptimizationRunner
         ContinuousProblem problem,
         IOptimizer optimizer,
         OptimizationRunOptions options,
-        int seed = 0,
+        ulong seed = 0,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(problem);

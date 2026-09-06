@@ -57,6 +57,7 @@ Initializer 是所有内置 Optimizer 的必需依赖。当前库中没有可直
 using Anastasya.Metaheuristics.Algorithms.Bat;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 var problem = new ContinuousProblem(
     dimension: 2,
@@ -110,7 +111,7 @@ file sealed class UniformInitializer : ICandidateInitializer
         _width = width;
     }
 
-    public void Initialize(Span<double> position, Random random)
+    public void Initialize(Span<double> position, RandomSource random)
     {
         for (var index = 0; index < position.Length; index++)
         {
@@ -121,7 +122,7 @@ file sealed class UniformInitializer : ICandidateInitializer
 ```
 
 1. `ContinuousProblem` 组合维度、Sphere Objective 和位置 Repair。
-2. `UniformInitializer` 是调用方在示例中实现的策略，只用当前 run 传入的 `Random` 产生 `[-5, 5)` 初值；它不是库的内置契约。
+2. `UniformInitializer` 是调用方在示例中实现的策略，只用当前 run 传入的 `RandomSource` 产生 `[-5, 5)` 初值；它不是库的内置契约。`RandomSource` 由 Core 按 `ulong` seed 在 run 内创建，调用方不构造、不替换，也不保存它。
 3. `BatOptimizer` 使用 Initializer 创建种群并执行搜索；也可换成 `PsoOptimizer`、`FireflyOptimizer` 或 `CuckooOptimizer`。
 4. `OptimizationRunOptions` 组合 Stopping Condition，决定何时停止。
 5. `OptimizationRunner.Execute` 用显式 seed 执行一次完整生命周期，并返回 Summary。
@@ -167,7 +168,7 @@ Experiment 的目标统计可能无法定义：样本同时含正负 Infinity �
 
 ### 保持可复现
 
-每次运行都传入显式 seed。不要在 Objective、Constraint、Initializer 或 Repair 中使用 `Random.Shared`、当前时间或跨运行共享的随机状态。
+每次运行都传入显式 `ulong` seed。Initializer 和 Repair 从当前 run 的 `RandomSource` 参数取样；不要在 Objective、Constraint、Initializer、Repair 或 Optimizer 中使用 `Random.Shared`、当前时间或跨运行共享的随机状态。需要高吞吐时，对 `Span<ulong>`、`Span<double>` 或 `Span<int>` 使用 `RandomSource.Fill`；需要标准正态时使用 `StandardNormal.Sample`/`StandardNormal.Fill`。
 
 ## 什么时候使用 Experiment
 

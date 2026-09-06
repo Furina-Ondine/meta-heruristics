@@ -2,6 +2,7 @@ using System.Reflection;
 using Anastasya.Metaheuristics.Algorithms.Firefly;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Tests.Algorithms;
 
@@ -87,7 +88,7 @@ public sealed class FireflyOptimizerTests
     [Xunit.Fact]
     public void AdvancePreservesPerAttractorAndPerDimensionRandomDrawOrder()
     {
-        const int seed = 161803;
+        const ulong seed = 161803;
         var optimizer = new FireflyOptimizer(
             new SequenceInitializer(2, 1, 0),
             new FireflyOptimizerOptions
@@ -97,7 +98,7 @@ public sealed class FireflyOptimizerTests
                 InitialRandomStep = 1,
             });
         var problem = new ContinuousProblem(1, new FirstCoordinateObjective(), CandidateRepairs.Clamp(-10, 10));
-        var random = new Random(seed);
+        var random = new RandomSource(seed);
         var expectedFirst = 2 + (random.NextDouble() - 0.5) + (random.NextDouble() - 0.5);
         var expectedSecond = 1 + (random.NextDouble() - 0.5);
 
@@ -256,7 +257,7 @@ public sealed class FireflyOptimizerTests
         ContinuousProblem problem,
         FireflyOptimizer optimizer,
         OptimizationRunOptions options,
-        int seed,
+        ulong seed,
         CancellationToken cancellationToken)
     {
         var summary = OptimizationRunner.Execute(problem, optimizer, options, seed, cancellationToken);
@@ -308,7 +309,7 @@ public sealed class FireflyOptimizerTests
     {
         private int _next;
 
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             position.Clear();
             position[0] = values[_next++ % values.Length];
@@ -317,7 +318,7 @@ public sealed class FireflyOptimizerTests
 
     private sealed class RandomPositionInitializer : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {
@@ -330,7 +331,7 @@ public sealed class FireflyOptimizerTests
     {
         public int CallCount { get; private set; }
 
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
         {
             CallCount++;
         }

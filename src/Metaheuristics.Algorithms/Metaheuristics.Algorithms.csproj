@@ -6,7 +6,9 @@
   <ItemGroup>
     <PackageReference Include="System.Numerics.Tensors" />
     <ProjectReference Include="..\Metaheuristics.Core\Metaheuristics.Core.csproj" />
+    <!-- DocFX 只提取公共 API；私有 SIMD 生成器仅参与正常构建。 -->
     <ProjectReference Include="..\..\eng\Metaheuristics.Simd.Generators\Metaheuristics.Simd.Generators.csproj"
+                      Condition="'$(BuildingDocfx)' != 'true'"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>

@@ -121,13 +121,13 @@ public delegate ExperimentGroupSetup ExperimentGroupFactory<TConfiguration>(
 public sealed class ExperimentGroupContext
 {
     private readonly ReadOnlyCollection<int> _repetitionIndices;
-    private readonly ReadOnlyCollection<int> _seeds;
+    private readonly ReadOnlyCollection<ulong> _seeds;
 
     internal ExperimentGroupContext(
         string caseId,
         int groupIndex,
         int[] repetitionIndices,
-        int[] seeds,
+        ulong[] seeds,
         CancellationToken cancellationToken)
     {
         CaseId = caseId;
@@ -155,7 +155,7 @@ public sealed class ExperimentGroupContext
     /// <summary>
     /// 获取与 <see cref="RepetitionIndices"/> 一一对应的随机种子。
     /// </summary>
-    public IReadOnlyList<int> Seeds => _seeds;
+    public IReadOnlyList<ulong> Seeds => _seeds;
 
     /// <summary>
     /// 获取整个 Experiment 的取消令牌。

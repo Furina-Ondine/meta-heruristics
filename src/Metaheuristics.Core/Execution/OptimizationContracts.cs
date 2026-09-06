@@ -1,4 +1,5 @@
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Core.Execution;
 
@@ -51,11 +52,11 @@ public interface IOptimizer
 /// </remarks>
 public sealed class OptimizationRunContext
 {
-    internal OptimizationRunContext(ContinuousProblem problem, int seed, CancellationToken cancellationToken)
+    internal OptimizationRunContext(ContinuousProblem problem, ulong seed, CancellationToken cancellationToken)
     {
         Problem = problem;
         Seed = seed;
-        Random = new Random(seed);
+        Random = new RandomSource(seed);
         CancellationToken = cancellationToken;
     }
 
@@ -67,12 +68,12 @@ public sealed class OptimizationRunContext
     /// <summary>
     /// 获取当前运行使用的随机种子。
     /// </summary>
-    public int Seed { get; }
+    public ulong Seed { get; }
 
     /// <summary>
-    /// 获取当前运行独占的随机数生成器。
+    /// 获取当前运行独占的随机源。
     /// </summary>
-    public Random Random { get; }
+    public RandomSource Random { get; }
 
     /// <summary>
     /// 获取当前运行的取消令牌。

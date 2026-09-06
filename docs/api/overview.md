@@ -44,6 +44,12 @@ Problem + Optimizer + OptimizationRunOptions
 - [CuckooOptimizer](xref:Anastasya.Metaheuristics.Algorithms.Cuckoo.CuckooOptimizer)
 - [CuckooOptimizerOptions](xref:Anastasya.Metaheuristics.Algorithms.Cuckoo.CuckooOptimizerOptions)
 
+每次运行的随机状态由 `OptimizationRunContext` 按 `ulong` seed 创建并拥有。扩展策略从 `context.Random` 获取封闭的 `RandomSource`；调用方不能自行构造、替换或带出该随机源。批量填充入口和标准正态采样见：
+
+- [RandomSource](xref:Anastasya.Metaheuristics.Core.Randomness.RandomSource)
+- [StandardNormal](xref:Anastasya.Metaheuristics.Core.Randomness.StandardNormal)
+- [OptimizationRunContext.Random](xref:Anastasya.Metaheuristics.Core.Execution.OptimizationRunContext.Random)
+
 ## 运行重复实验
 
 ```text

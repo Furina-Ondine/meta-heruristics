@@ -20,7 +20,7 @@ public sealed class OptimizationRunSummary
         int iterations,
         long evaluations,
         TimeSpan duration,
-        int seed,
+        ulong seed,
         IReadOnlyList<OptimizationTracePoint> trace)
     {
         BestEvaluation = bestEvaluation;
@@ -60,7 +60,7 @@ public sealed class OptimizationRunSummary
     /// <summary>
     /// 获取运行使用的随机种子。
     /// </summary>
-    public int Seed { get; }
+    public ulong Seed { get; }
 
     /// <summary>
     /// 获取按配置记录的不可变轨迹点集合。

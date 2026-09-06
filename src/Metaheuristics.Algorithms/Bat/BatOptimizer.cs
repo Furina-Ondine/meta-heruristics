@@ -1,6 +1,7 @@
 using Anastasya.Metaheuristics.Core.Comparison;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Algorithms.Bat;
 
@@ -311,11 +312,11 @@ public sealed class BatOptimizer : IOptimizer
         _bestEvaluation = source.Evaluation;
     }
 
-    private static double NextDouble(Random random, double lowerBound, double upperBound)
+    private static double NextDouble(RandomSource random, double lowerBound, double upperBound)
     {
         return lowerBound == upperBound
             ? lowerBound
-            : lowerBound + ((upperBound - lowerBound) * random.NextDouble());
+            : random.NextDouble(lowerBound, upperBound);
     }
 
 }

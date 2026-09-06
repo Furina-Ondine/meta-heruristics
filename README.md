@@ -13,6 +13,8 @@ Metaheuristics.NET 是面向 .NET 的连续单目标元启发式优化库。你�
 - 用多个 Case、重复运行、显式 seed 和有界并发执行批量实验；
 - 通过强类型接口替换 Objective、Constraint、Initializer、Repair、Stopping Condition 或完整 Optimizer。
 
+每个 run 使用由 Core 按 `ulong` seed 创建并拥有的封闭 `RandomSource`；扩展策略通过运行上下文消费它，不能自行替换随机后端。
+
 当前不支持多目标、二进制或排列表示、远程/集群/GPU 执行，也不提供运行时程序集扫描或字符串插件注册。
 
 ## 两个入口

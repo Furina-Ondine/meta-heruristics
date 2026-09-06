@@ -5,6 +5,7 @@ using Anastasya.Metaheuristics.Algorithms.Firefly;
 using Anastasya.Metaheuristics.Algorithms.Pso;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 using Anastasya.Metaheuristics.Examples;
 using Anastasya.Metaheuristics.Experiments.Configuration;
 using Anastasya.Metaheuristics.Experiments.Execution;
@@ -166,7 +167,7 @@ namespace Anastasya.Metaheuristics.Examples
     /// <summary>生成待默认 Clamp Repair 处理的随机初始位置。</summary>
     file sealed class RandomPositionInitializer : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {

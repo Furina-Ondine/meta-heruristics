@@ -30,7 +30,7 @@ public sealed class ExperimentRunResult
         string caseId,
         int groupIndex,
         int repetitionIndex,
-        int seed,
+        ulong seed,
         ExperimentExecutionStatus status,
         OptimizationRunSummary? summary,
         Exception? exception)
@@ -54,7 +54,7 @@ public sealed class ExperimentRunResult
     public int RepetitionIndex { get; }
 
     /// <summary>获取当前 run 实际使用的 seed。</summary>
-    public int Seed { get; }
+    public ulong Seed { get; }
 
     /// <summary>获取当前 run 的最终状态。</summary>
     public ExperimentExecutionStatus Status { get; }
@@ -110,12 +110,12 @@ public sealed class ExperimentCaseResult
 public sealed class ExperimentResult
 {
     private readonly ReadOnlyCollection<ExperimentCaseResult> _cases;
-    private readonly ReadOnlyCollection<int> _seeds;
+    private readonly ReadOnlyCollection<ulong> _seeds;
 
     internal ExperimentResult(
         ExperimentExecutionStatus status,
         ExperimentCaseResult[] cases,
-        int[] seeds,
+        ulong[] seeds,
         ExperimentRunCounts counts,
         TimeSpan duration)
     {
@@ -133,7 +133,7 @@ public sealed class ExperimentResult
     public IReadOnlyList<ExperimentCaseResult> Cases => _cases;
 
     /// <summary>获取执行时快照的共享 seed 序列。</summary>
-    public IReadOnlyList<int> Seeds => _seeds;
+    public IReadOnlyList<ulong> Seeds => _seeds;
 
     /// <summary>获取所有 Case 的状态数量汇总。</summary>
     public ExperimentRunCounts Counts { get; }

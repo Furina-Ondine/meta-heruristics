@@ -2,6 +2,7 @@ using System.Reflection;
 using Anastasya.Metaheuristics.Algorithms.Pso;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Tests.Algorithms;
 
@@ -166,7 +167,7 @@ public sealed class PsoOptimizerTests
     [Xunit.Fact]
     public void AdvancePreservesRandomDrawOrderAndComputesTheExpectedVectorUpdate()
     {
-        const int seed = 271828;
+        const ulong seed = 271828;
         var optimizer = new PsoOptimizer(
             new VectorSequenceInitializer([4, -4, 0], [1, -1, 1]),
             new PsoOptimizerOptions
@@ -180,7 +181,7 @@ public sealed class PsoOptimizerTests
                 SocialCoefficient = 1.5,
             });
         var problem = new ContinuousProblem(3, new SphereObjective(), CandidateRepairs.Clamp(-10, 10));
-        var random = new Random(seed);
+        var random = new RandomSource(seed);
         for (var draw = 0; draw < 7; draw++)
         {
             _ = random.NextDouble();
@@ -244,6 +245,36 @@ public sealed class PsoOptimizerTests
             () => CreateOptimizer(new PsoOptimizerOptions { CognitiveCoefficient = double.NaN }));
     }
 
+    /// <summary>
+    /// 验证 PSO 速度范围采用半开区间，且相等边界不消费随机状态。
+    /// </summary>
+    [Xunit.Fact]
+    public void VelocityBoundsUseHalfOpenRangesAndSkipEqualBounds()
+    {
+        var initializer = new CapturingInitializer();
+        var optimizer = new PsoOptimizer(
+            initializer,
+            new PsoOptimizerOptions
+            {
+                PopulationSize = 1,
+                VelocityLowerBound = 1,
+                VelocityUpperBound = Math.BitIncrement(1),
+            });
+
+        ExecuteWithSnapshot(
+            CreateProblem(1, new SphereObjective()),
+            optimizer,
+            StopAfterIterations(0),
+            seed: 778,
+            Xunit.TestContext.Current.CancellationToken);
+
+        var population = GetPopulation(optimizer, "_populationA");
+        Xunit.Assert.Equal(1, GetVectors(population, "Velocity")[0][0]);
+        var expected = new RandomSource(778);
+        _ = expected.NextULong();
+        Xunit.Assert.Equal(expected.NextULong(), initializer.Random!.NextULong());
+    }
+
     private static PsoOptimizer CreateOptimizer(PsoOptimizerOptions? options = null)
     {
         return new PsoOptimizer(new RandomPositionInitializer(), options);
@@ -263,7 +294,7 @@ public sealed class PsoOptimizerTests
         ContinuousProblem problem,
         PsoOptimizer optimizer,
         OptimizationRunOptions options,
-        int seed,
+        ulong seed,
         CancellationToken cancellationToken)
     {
         var summary = OptimizationRunner.Execute(problem, optimizer, options, seed, cancellationToken);
@@ -307,7 +338,7 @@ public sealed class PsoOptimizerTests
     {
         private int _next;
 
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             position.Clear();
             position[0] = values[_next++ % values.Length];
@@ -318,7 +349,7 @@ public sealed class PsoOptimizerTests
     {
         private int _next;
 
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             values[_next++ % values.Length].AsSpan().CopyTo(position);
         }
@@ -326,7 +357,7 @@ public sealed class PsoOptimizerTests
 
     private sealed class RandomPositionInitializer : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {
@@ -335,11 +366,22 @@ public sealed class PsoOptimizerTests
         }
     }
 
+    private sealed class CapturingInitializer : ICandidateInitializer
+    {
+        public RandomSource? Random { get; private set; }
+
+        public void Initialize(Span<double> position, RandomSource random)
+        {
+            Random = random;
+            position.Clear();
+        }
+    }
+
     private sealed class RecordingRepair : ICandidateRepair
     {
         public int CallCount { get; private set; }
 
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
         {
             CallCount++;
         }

@@ -42,7 +42,7 @@ public sealed class OptimizationRunnerTests
         Xunit.Assert.Equal(TerminationReason.MaxIterations, result.TerminationReason);
         Xunit.Assert.Equal(2, result.Iterations);
         Xunit.Assert.Equal(3, result.Evaluations);
-        Xunit.Assert.Equal(42, result.Seed);
+        Xunit.Assert.Equal(42UL, result.Seed);
         var bestPosition = optimizer.BestPosition.ToArray();
         Xunit.Assert.Equal(1, bestPosition[0]);
         Xunit.Assert.Equal(1, result.BestEvaluation.Objective);

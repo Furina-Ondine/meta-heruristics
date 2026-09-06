@@ -9,4 +9,4 @@ internal sealed record RunGroupPlan(
     ExperimentCase Case,
     int GroupIndex,
     int[] RepetitionIndices,
-    int[] Seeds);
+    ulong[] Seeds);

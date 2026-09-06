@@ -5,6 +5,7 @@ using Anastasya.Metaheuristics.Algorithms.Firefly;
 using Anastasya.Metaheuristics.Core.Comparison;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 using BenchmarkDotNet.Attributes;
 
 namespace Anastasya.Metaheuristics.Benchmarks;
@@ -156,9 +157,9 @@ public class FireflyAdvanceBenchmarks
             FireflyUpdatePath.VectorOps);
         _runOptions = new OptimizationRunOptions(StoppingConditions.MaxIterations(10));
 
-        OptimizationRunner.Execute(_problem, _scalarOptimizer, _runOptions, seed: -1);
-        OptimizationRunner.Execute(_problem, _tensorPrimitivesOptimizer, _runOptions, seed: -1);
-        OptimizationRunner.Execute(_problem, _vectorOpsOptimizer, _runOptions, seed: -1);
+        OptimizationRunner.Execute(_problem, _scalarOptimizer, _runOptions, seed: ulong.MaxValue);
+        OptimizationRunner.Execute(_problem, _tensorPrimitivesOptimizer, _runOptions, seed: ulong.MaxValue);
+        OptimizationRunner.Execute(_problem, _vectorOpsOptimizer, _runOptions, seed: ulong.MaxValue);
     }
 
     /// <summary>测量原标量距离、移动、Repair 和目标求值的完整生命周期。</summary>
@@ -504,7 +505,7 @@ public class FireflyAdvanceBenchmarks
 
     private sealed class RandomPositionInitializer : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {

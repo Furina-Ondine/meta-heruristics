@@ -1,4 +1,5 @@
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Tests.Core;
 
@@ -20,7 +21,7 @@ public sealed class CandidateRepairsTensorTests
                 var expected = (double[])actual.Clone();
                 ClampReference(expected, lower, upper, shape);
 
-                CreateClamp(lower, upper, shape).Repair(actual, new Random(1));
+                CreateClamp(lower, upper, shape).Repair(actual, new RandomSource(1));
 
                 AssertBitwiseEqual(expected, actual);
             }
@@ -40,7 +41,7 @@ public sealed class CandidateRepairsTensorTests
                 var expected = (double[])actual.Clone();
                 ReflectReference(expected, lower, upper, shape);
 
-                CreateReflect(lower, upper, shape).Repair(actual, new Random(1));
+                CreateReflect(lower, upper, shape).Repair(actual, new RandomSource(1));
 
                 AssertWithinOneUlp(expected, actual);
             }
@@ -57,7 +58,7 @@ public sealed class CandidateRepairsTensorTests
         var expected = (double[])actual.Clone();
 
         ReflectReference(expected, lower, upper, BoundaryShape.VectorVector);
-        CreateReflect(lower, upper, BoundaryShape.VectorVector).Repair(actual, new Random(1));
+        CreateReflect(lower, upper, BoundaryShape.VectorVector).Repair(actual, new RandomSource(1));
 
         AssertBitwiseEqual(expected, actual);
     }
@@ -76,7 +77,7 @@ public sealed class CandidateRepairsTensorTests
                 var expected = (double[])actual.Clone();
                 ReflectReference(expected, lower, upper, shape);
 
-                CreateReflect(lower, upper, shape).Repair(actual, new Random(1));
+                CreateReflect(lower, upper, shape).Repair(actual, new RandomSource(1));
 
                 AssertReflectCompatible(expected, actual, source, lower, upper, shape);
             }
@@ -104,7 +105,7 @@ public sealed class CandidateRepairsTensorTests
             var expected = (double[])actual.Clone();
 
             ReflectReference(expected, [minimum], [maximum], BoundaryShape.ScalarScalar);
-            CandidateRepairs.Reflect(minimum, maximum).Repair(actual, new Random(1));
+            CandidateRepairs.Reflect(minimum, maximum).Repair(actual, new RandomSource(1));
 
             AssertWithinOneUlp(expected, actual);
         }

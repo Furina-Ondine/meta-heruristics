@@ -14,7 +14,7 @@ public sealed class ExperimentExecutionOptions
     /// <summary>
     /// 获取或设置未显式提供 seed 列表时使用的基础种子。
     /// </summary>
-    public int BaseSeed { get; init; }
+    public ulong BaseSeed { get; init; }
 
     /// <summary>
     /// 获取或设置可选的显式共享 seed 列表。
@@ -23,5 +23,5 @@ public sealed class ExperimentExecutionOptions
     /// Runner 在启动时复制列表。列表必须覆盖所有 Case 中最大的 Repetition 数。
     /// 不同 Case 的相同 Repetition 默认读取同一个 seed。
     /// </remarks>
-    public IReadOnlyList<int>? Seeds { get; init; }
+    public IReadOnlyList<ulong>? Seeds { get; init; }
 }

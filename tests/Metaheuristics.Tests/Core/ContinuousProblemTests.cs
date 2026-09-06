@@ -1,4 +1,5 @@
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Tests.Core;
 
@@ -40,7 +41,7 @@ public sealed class ContinuousProblemTests
         constraints[0] = new FixedConstraint(1);
 
         var position = new[] { 2.0 };
-        problem.Repair.Repair(position, new Random(1));
+        problem.Repair.Repair(position, new RandomSource(1));
         Xunit.Assert.Equal(1, position[0]);
         Xunit.Assert.True(problem.Evaluate([0.5]).Constraints.IsFeasible);
     }
@@ -68,7 +69,7 @@ public sealed class ContinuousProblemTests
             new SumObjective());
         var position = new[] { -1.0, double.PositiveInfinity, double.NegativeInfinity, double.PositiveInfinity, double.NaN };
 
-        problem.Repair.Repair(position, new Random(1));
+        problem.Repair.Repair(position, new RandomSource(1));
 
         Xunit.Assert.Equal([0, 10, 0, 10], position[..4]);
         Xunit.Assert.True(double.IsNaN(position[4]));
@@ -79,11 +80,11 @@ public sealed class ContinuousProblemTests
     public void ClampSupportsSameShapeBoundaryCombinations()
     {
         var scalar = new[] { -1.0, 11.0 };
-        CandidateRepairs.Clamp(0, 10).Repair(scalar, new Random(1));
+        CandidateRepairs.Clamp(0, 10).Repair(scalar, new RandomSource(1));
         Xunit.Assert.Equal([0, 10], scalar);
 
         var vectors = new[] { -1.0, 11.0 };
-        CandidateRepairs.Clamp([0.0, 1], [2.0, 3]).Repair(vectors, new Random(1));
+        CandidateRepairs.Clamp([0.0, 1], [2.0, 3]).Repair(vectors, new RandomSource(1));
         Xunit.Assert.Equal([0, 3], vectors);
     }
 
@@ -102,9 +103,9 @@ public sealed class ContinuousProblemTests
         upper[0] = 5;
 
         var position = new[] { 2.0 };
-        repair.Repair(position, new Random(1));
+        repair.Repair(position, new RandomSource(1));
         Xunit.Assert.Equal(1, position[0]);
-        Xunit.Assert.Throws<ArgumentException>(() => repair.Repair([0.0, 0], new Random(1)));
+        Xunit.Assert.Throws<ArgumentException>(() => repair.Repair([0.0, 0], new RandomSource(1)));
     }
 
     /// <summary>
@@ -116,19 +117,19 @@ public sealed class ContinuousProblemTests
         var lower = new[] { 0.0, double.NegativeInfinity };
         var upper = new[] { 10.0, double.PositiveInfinity };
         var reflected = new[] { 12.0, double.PositiveInfinity };
-        CandidateRepairs.Reflect(lower, upper).Repair(reflected, new Random(1));
+        CandidateRepairs.Reflect(lower, upper).Repair(reflected, new RandomSource(1));
         Xunit.Assert.Equal([8, double.PositiveInfinity], reflected);
 
         var randomFirst = new[] { -1.0, double.NaN };
         var randomSecond = new[] { -1.0, double.NaN };
-        CandidateRepairs.RandomReset(lower, upper).Repair(randomFirst, new Random(42));
-        CandidateRepairs.RandomReset(lower, upper).Repair(randomSecond, new Random(42));
+        CandidateRepairs.RandomReset(lower, upper).Repair(randomFirst, new RandomSource(42));
+        CandidateRepairs.RandomReset(lower, upper).Repair(randomSecond, new RandomSource(42));
         Xunit.Assert.InRange(randomFirst[0], 0, 10);
         Xunit.Assert.Equal(randomFirst[0], randomSecond[0]);
         Xunit.Assert.True(double.IsNaN(randomFirst[1]));
 
         var unchanged = new[] { -1.0, double.PositiveInfinity };
-        CandidateRepairs.DoNothing.Repair(unchanged, new Random(1));
+        CandidateRepairs.DoNothing.Repair(unchanged, new RandomSource(1));
         Xunit.Assert.Equal([-1, double.PositiveInfinity], unchanged);
     }
 

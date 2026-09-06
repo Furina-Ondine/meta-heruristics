@@ -3,6 +3,7 @@ using System.Linq;
 using Anastasya.Metaheuristics.Algorithms.Bat;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 using BenchmarkDotNet.Attributes;
 
 namespace Anastasya.Metaheuristics.Benchmarks;
@@ -49,7 +50,7 @@ public class BatWorkspaceReuseBenchmarks
         _groupOptimizer = new BatOptimizer(_initializer, _optimizerOptions);
 
         // 预热一次以把工作区分配排除在复用路径的测量之外。
-        OptimizationRunner.Execute(_problem, _groupOptimizer, _runOptions, seed: -1);
+        OptimizationRunner.Execute(_problem, _groupOptimizer, _runOptions, seed: ulong.MaxValue);
     }
 
     /// <summary>
@@ -67,7 +68,7 @@ public class BatWorkspaceReuseBenchmarks
                 _problem,
                 optimizer,
                 _runOptions,
-                repetition).BestEvaluation.Objective;
+                (ulong)repetition).BestEvaluation.Objective;
         }
 
         return checksum;
@@ -87,7 +88,7 @@ public class BatWorkspaceReuseBenchmarks
                 _problem,
                 _groupOptimizer,
                 _runOptions,
-                repetition).BestEvaluation.Objective;
+                (ulong)repetition).BestEvaluation.Objective;
         }
 
         return checksum;
@@ -112,7 +113,7 @@ public class BatWorkspaceReuseBenchmarks
 
     private sealed class RandomPositionInitializer : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {

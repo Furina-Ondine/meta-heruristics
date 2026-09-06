@@ -37,7 +37,7 @@
 - 强类型 Config 保存算法定义和不可变参数；Factory 为每个 RunGroup 创建独立的 `IOptimizer`。`IOptimizer` 直接拥有种群数组和临时缓冲区，可在该 Group 的顺序 run 之间复用物理存储，但每次 run 必须完整重置逻辑状态。
 - `IOptimizer` 不保证线程安全，不得跨 RunGroup 共享，也不得在运行异常后继续复用；通用接口只持有托管资源，不要求实现 `IDisposable`。
 - 每个 RunGroup 使用独立 Problem 和 Optimizer；不同 Group 只能共享调用方明确提供的不可变底层数据。
-- 禁止全局随机流（包括 `Random.Shared`）、当前时间播种和跨运行共享逻辑状态；每个 run 使用由实验计划确定的独立 seed 和 `Random` 实例，其随机序列必须不受 RunGroup 拆分、调度顺序或并发度变化影响。
+- 禁止全局随机流（包括 `Random.Shared`）、当前时间播种和跨运行共享逻辑状态；每个 run 使用由实验计划确定的独立 `ulong` seed 和 Core-owned `RandomSource` 实例，其随机序列必须不受 RunGroup 拆分、调度顺序或并发度变化影响。
 - `IStoppingCondition` 必须可重入，不得保存 run 级可变状态；同一实例允许被多个运行并发调用。
 - 相同库版本、运行时和执行设置下，相同种子必须产生相同结果。
 - 池化资源必须明确所有权、清理和释放规则。

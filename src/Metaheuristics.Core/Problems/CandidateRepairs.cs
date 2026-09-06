@@ -1,5 +1,5 @@
 using System.Numerics.Tensors;
-using System.Runtime.Intrinsics;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Core.Problems;
 
@@ -166,7 +166,7 @@ public static class CandidateRepairs
 
     private sealed class ScalarClampCandidateRepair(double lower, double upper) : ICandidateRepair
     {
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
             => TensorPrimitives.Clamp(position, lower, upper, position);
     }
 
@@ -175,13 +175,13 @@ public static class CandidateRepairs
         private readonly double[] _lower = bounds.Lower;
         private readonly double[] _upper = bounds.Upper;
 
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
             => TensorPrimitives.Clamp(position, _lower, _upper, position);
     }
 
     private sealed class ScalarReflectCandidateRepair(double lower, double upper) : ICandidateRepair
     {
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {
@@ -195,7 +195,7 @@ public static class CandidateRepairs
         private readonly double[] _lower = bounds.Lower;
         private readonly double[] _upper = bounds.Upper;
 
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
         {
             ValidatePositionLength(position, _lower.Length);
             for (var index = 0; index < position.Length; index++)
@@ -207,7 +207,7 @@ public static class CandidateRepairs
 
     private sealed class ScalarRandomResetCandidateRepair(double lower, double upper) : ICandidateRepair
     {
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
         {
             ArgumentNullException.ThrowIfNull(random);
             for (var index = 0; index < position.Length; index++)
@@ -231,7 +231,7 @@ public static class CandidateRepairs
         private readonly double[] _lower = bounds.Lower;
         private readonly double[] _upper = bounds.Upper;
 
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
         {
             ArgumentNullException.ThrowIfNull(random);
             ValidatePositionLength(position, _lower.Length);
@@ -255,6 +255,6 @@ public static class CandidateRepairs
 
     private sealed class DoNothingCandidateRepair : ICandidateRepair
     {
-        public void Repair(Span<double> position, Random random) { }
+        public void Repair(Span<double> position, RandomSource random) { }
     }
 }

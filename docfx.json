@@ -13,7 +13,8 @@
       "dest": "docs/reference/api",
       "properties": {
         "Configuration": "Release",
-        "TargetFramework": "net10.0"
+        "TargetFramework": "net10.0",
+        "BuildingDocfx": "true"
       }
     }
   ],

@@ -2,6 +2,7 @@ using System.Numerics.Tensors;
 using Anastasya.Metaheuristics.Algorithms.Bat;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 using BenchmarkDotNet.Attributes;
 
 namespace Anastasya.Metaheuristics.Benchmarks;
@@ -21,7 +22,7 @@ public class RepairBenchmarks
     private ICandidateRepair _clamp = null!;
     private ICandidateRepair _reflect = null!;
     private ICandidateRepair _randomReset = null!;
-    private Random _random = null!;
+    private RandomSource _random = null!;
     private double _legacyScalarWidth;
     private double _legacyScalarPeriod;
     private double[]? _legacyWidths;
@@ -65,7 +66,7 @@ public class RepairBenchmarks
         _reflect = CreateReflect();
         _randomReset = CreateRandomReset();
         CreateLegacyReflectionParameters();
-        _random = new Random(1);
+        _random = new RandomSource(1);
     }
 
     /// <summary>在每次测量前恢复未修复的位置，排除复制以外的运行间状态。</summary>
@@ -75,7 +76,7 @@ public class RepairBenchmarks
         _clampSeed.CopyTo(_clampPosition, 0);
         _reflectSeed.CopyTo(_reflectPosition, 0);
         _randomResetSeed.CopyTo(_randomResetPosition, 0);
-        _random = new Random(1);
+        _random = new RandomSource(1);
     }
 
     /// <summary>测量与既有实现相同的 Clamp 标量参考。</summary>
@@ -355,8 +356,8 @@ public class BatRepairBenchmarks
         _runOptions = new OptimizationRunOptions(StoppingConditions.MaxIterations(5));
         _scalarOptimizer = new BatOptimizer(_initializer, _optimizerOptions);
         _tensorOptimizer = new BatOptimizer(_initializer, _optimizerOptions);
-        OptimizationRunner.Execute(_scalarProblem, _scalarOptimizer, _runOptions, seed: -1);
-        OptimizationRunner.Execute(_tensorProblem, _tensorOptimizer, _runOptions, seed: -1);
+        OptimizationRunner.Execute(_scalarProblem, _scalarOptimizer, _runOptions, seed: ulong.MaxValue);
+        OptimizationRunner.Execute(_tensorProblem, _tensorOptimizer, _runOptions, seed: ulong.MaxValue);
     }
 
     /// <summary>测量标量参考 Repair 下的完整 Bat run。</summary>
@@ -389,7 +390,7 @@ public class BatRepairBenchmarks
 
     private sealed class RandomPositionInitializer : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {
@@ -400,7 +401,7 @@ public class BatRepairBenchmarks
 
     private sealed class ScalarClampRepair(double lower, double upper) : ICandidateRepair
     {
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {
@@ -411,7 +412,7 @@ public class BatRepairBenchmarks
 
     private sealed class ScalarReflectRepair(double lower, double upper) : ICandidateRepair
     {
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {

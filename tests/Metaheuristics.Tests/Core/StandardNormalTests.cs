@@ -1,0 +1,104 @@
+using Anastasya.Metaheuristics.Core.Randomness;
+
+namespace Anastasya.Metaheuristics.Tests.Core;
+
+/// <summary>
+/// 验证标准正态采样、批量行为、统计性质和无分配执行路径。
+/// </summary>
+public sealed class StandardNormalTests
+{
+    /// <summary>
+    /// 验证空引用校验和空批量调用保持随机源状态。
+    /// </summary>
+    [Xunit.Fact]
+    public void NullAndEmptyInputsFollowTheContract()
+    {
+        Xunit.Assert.Throws<ArgumentNullException>(() => StandardNormal.Sample(null!));
+        Xunit.Assert.Throws<ArgumentNullException>(() => StandardNormal.Fill(null!, Span<double>.Empty));
+
+        var source = new RandomSource(123);
+        var expected = new RandomSource(123);
+        StandardNormal.Fill(source, Span<double>.Empty);
+        Xunit.Assert.Equal(expected.NextULong(), source.NextULong());
+    }
+
+    /// <summary>
+    /// 验证相同标量与批量调用序列可重复且结果有限。
+    /// </summary>
+    [Xunit.Fact]
+    public void ExactCallSequencesRepeatWithoutCrossCallSpareState()
+    {
+        var first = new RandomSource(456);
+        var second = new RandomSource(456);
+
+        for (var index = 0; index < 100; index++)
+        {
+            var firstBatch = new double[7];
+            var secondBatch = new double[7];
+            StandardNormal.Fill(first, firstBatch);
+            StandardNormal.Fill(second, secondBatch);
+            Xunit.Assert.Equal(firstBatch, secondBatch);
+            Xunit.Assert.All(firstBatch, static value => Xunit.Assert.True(double.IsFinite(value)));
+            Xunit.Assert.Equal(StandardNormal.Sample(first), StandardNormal.Sample(second));
+        }
+    }
+
+    /// <summary>
+    /// 验证预热后的标量与批量采样不在调用线程分配内存。
+    /// </summary>
+    [Xunit.Fact]
+    public void WarmedSamplingDoesNotAllocate()
+    {
+        var source = new RandomSource(789);
+        var destination = new double[32];
+        for (var index = 0; index < 10; index++)
+        {
+            _ = StandardNormal.Sample(source);
+            StandardNormal.Fill(source, destination);
+        }
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var index = 0; index < 100; index++)
+        {
+            _ = StandardNormal.Sample(source);
+            StandardNormal.Fill(source, destination);
+        }
+
+        Xunit.Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+    }
+
+    /// <summary>
+    /// 验证一百万个固定种子样本满足已批准的统计阈值。
+    /// </summary>
+    [Xunit.Fact]
+    public void FixedSeedMillionSampleStatisticsMeetTheApprovedThresholds()
+    {
+        const int sampleCount = 1_000_000;
+        var samples = new double[sampleCount];
+        StandardNormal.Fill(new RandomSource(0x0123456789ABCDEF), samples);
+
+        var sum = 0.0;
+        var sumSquares = 0.0;
+        var tailCount = 0;
+        foreach (var sample in samples)
+        {
+            Xunit.Assert.True(double.IsFinite(sample));
+            sum += sample;
+            sumSquares += sample * sample;
+            if (Math.Abs(sample) > 3)
+            {
+                tailCount++;
+            }
+        }
+
+        Array.Sort(samples);
+        var mean = sum / sampleCount;
+        var variance = (sumSquares / sampleCount) - (mean * mean);
+        Xunit.Assert.InRange(mean, -0.005, 0.005);
+        Xunit.Assert.InRange(variance, 0.99, 1.01);
+        Xunit.Assert.InRange(samples[sampleCount / 2], -0.01, 0.01);
+        Xunit.Assert.InRange(samples[sampleCount / 100], -2.40, -2.25);
+        Xunit.Assert.InRange(samples[(sampleCount * 99) / 100], 2.25, 2.40);
+        Xunit.Assert.InRange(tailCount, 2400, 3000);
+    }
+}

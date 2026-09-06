@@ -195,7 +195,7 @@ public static class ExperimentRunner
         return setup;
     }
 
-    private static ExperimentPlan CreatePlans(IReadOnlyList<ExperimentCase> cases, int[] seeds)
+    private static ExperimentPlan CreatePlans(IReadOnlyList<ExperimentCase> cases, ulong[] seeds)
     {
         var maximumGroupCount = cases.Max(static experimentCase => experimentCase.RunGroupCount);
         var groups = new List<RunGroupPlan>(cases.Sum(static experimentCase => experimentCase.RunGroupCount));
@@ -217,7 +217,7 @@ public static class ExperimentRunner
                 var size = baseSize + (groupIndex < remainder ? 1 : 0);
                 var start = (groupIndex * baseSize) + Math.Min(groupIndex, remainder);
                 var repetitionIndices = new int[size];
-                var groupSeeds = new int[size];
+                var groupSeeds = new ulong[size];
                 for (var offset = 0; offset < size; offset++)
                 {
                     var repetitionIndex = start + offset;
@@ -233,7 +233,7 @@ public static class ExperimentRunner
         return new ExperimentPlan(groups, groupIndices);
     }
 
-    private static int[] ResolveSeeds(ExperimentExecutionOptions options, int requiredCount)
+    private static ulong[] ResolveSeeds(ExperimentExecutionOptions options, int requiredCount)
     {
         if (options.Seeds is not null)
         {
@@ -247,25 +247,13 @@ public static class ExperimentRunner
             return options.Seeds.Take(requiredCount).ToArray();
         }
 
-        var seeds = new int[requiredCount];
+        var seeds = new ulong[requiredCount];
         for (var repetitionIndex = 0; repetitionIndex < seeds.Length; repetitionIndex++)
         {
-            seeds[repetitionIndex] = DeriveSeed(options.BaseSeed, repetitionIndex);
+            seeds[repetitionIndex] = unchecked(options.BaseSeed + (ulong)repetitionIndex);
         }
 
         return seeds;
-    }
-
-    private static int DeriveSeed(int baseSeed, int repetitionIndex)
-    {
-        // 这些可逆的 32 位变换构成一个置换，因此不同下标不会因混合而产生 seed 碰撞。
-        var value = unchecked((uint)baseSeed + (uint)repetitionIndex);
-        value ^= value >> 16;
-        value *= 0x7FEB352Du;
-        value ^= value >> 15;
-        value *= 0x846CA68Bu;
-        value ^= value >> 16;
-        return unchecked((int)value);
     }
 
     private static ExperimentExecutionStatus ResolveExperimentStatus(ExperimentRunCounts counts, int startedGroupCount)
@@ -291,14 +279,14 @@ public static class ExperimentRunner
         private readonly int[] _groupIndices;
         private readonly object _matrixGate = new();
         private readonly ExperimentRunResult?[] _runs;
-        private readonly IReadOnlyList<int> _seeds;
+        private readonly IReadOnlyList<ulong> _seeds;
         private BestPositionMatrix? _bestPositions;
         private int _startedGroupCount;
 
         public CaseResultBuilder(
             ExperimentCase experimentCase,
             int[] groupIndices,
-            IReadOnlyList<int> seeds)
+            IReadOnlyList<ulong> seeds)
         {
             _case = experimentCase;
             _groupIndices = groupIndices;

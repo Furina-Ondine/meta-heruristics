@@ -2,6 +2,7 @@ using System.Reflection;
 using Anastasya.Metaheuristics.Algorithms.Cuckoo;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Tests.Algorithms;
 
@@ -255,7 +256,7 @@ public sealed class CuckooOptimizerTests
         ContinuousProblem problem,
         CuckooOptimizer optimizer,
         OptimizationRunOptions options,
-        int seed,
+        ulong seed,
         CancellationToken cancellationToken)
     {
         var summary = OptimizationRunner.Execute(problem, optimizer, options, seed, cancellationToken);
@@ -299,7 +300,7 @@ public sealed class CuckooOptimizerTests
     {
         private int _next;
 
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             position.Clear();
             position[0] = values[_next++ % values.Length];
@@ -308,7 +309,7 @@ public sealed class CuckooOptimizerTests
 
     private sealed class RandomPositionInitializer : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {
@@ -321,7 +322,7 @@ public sealed class CuckooOptimizerTests
     {
         public int CallCount { get; private set; }
 
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
         {
             CallCount++;
         }

@@ -280,11 +280,11 @@ public sealed class CuckooOptimizer : IOptimizer
     private void GenerateAbandonmentCandidate(CuckooState target, double decayFactor)
     {
         var random = _context!.Random;
-        var firstIndex = random.Next(_population!.Length);
-        var secondIndex = random.Next(_population.Length);
+        var firstIndex = random.NextInt(0, _population!.Length);
+        var secondIndex = random.NextInt(0, _population.Length);
         while (_population.Length > 1 && secondIndex == firstIndex)
         {
-            secondIndex = random.Next(_population.Length);
+            secondIndex = random.NextInt(0, _population.Length);
         }
 
         var first = _population[firstIndex];

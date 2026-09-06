@@ -1,10 +1,11 @@
-using System.Runtime.Intrinsics;
 using System.Numerics.Tensors;
+using System.Runtime.Intrinsics;
 using Anastasya.Metaheuristics.Algorithms;
 using Anastasya.Metaheuristics.Algorithms.Pso;
 using Anastasya.Metaheuristics.Core.Comparison;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 using BenchmarkDotNet.Attributes;
 
 namespace Anastasya.Metaheuristics.Benchmarks;
@@ -145,8 +146,8 @@ public class PsoAdvanceBenchmarks
         _scalarOptimizer = new ScalarPsoBenchmarkOptimizer(new RandomPositionInitializer(), options);
         _vectorOpsOptimizer = new PsoOptimizer(new RandomPositionInitializer(), options);
         _runOptions = new OptimizationRunOptions(StoppingConditions.MaxIterations(10));
-        OptimizationRunner.Execute(_problem, _scalarOptimizer, _runOptions, seed: -1);
-        OptimizationRunner.Execute(_problem, _vectorOpsOptimizer, _runOptions, seed: -1);
+        OptimizationRunner.Execute(_problem, _scalarOptimizer, _runOptions, seed: ulong.MaxValue);
+        OptimizationRunner.Execute(_problem, _vectorOpsOptimizer, _runOptions, seed: ulong.MaxValue);
     }
 
     /// <summary>测量原标量候选更新、Repair 和目标求值的完整生命周期。</summary>
@@ -165,7 +166,7 @@ public class PsoAdvanceBenchmarks
 
     private sealed class RandomPositionInitializer : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {
@@ -349,7 +350,7 @@ public class PsoAdvanceBenchmarks
             _bestEvaluation = source.Evaluation;
         }
 
-        private static double NextDouble(Random random, double lowerBound, double upperBound)
+        private static double NextDouble(RandomSource random, double lowerBound, double upperBound)
         {
             return lowerBound == upperBound
                 ? lowerBound

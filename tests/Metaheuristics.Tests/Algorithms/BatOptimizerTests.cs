@@ -2,6 +2,7 @@ using System.Reflection;
 using Anastasya.Metaheuristics.Algorithms.Bat;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Tests.Algorithms;
 
@@ -344,6 +345,42 @@ public sealed class BatOptimizerTests
             () => CreateOptimizer(new BatOptimizerOptions { PulseRateGrowth = double.NaN }));
     }
 
+    /// <summary>
+    /// Verifies adjacent bounds exclude the upper endpoint and equal bounds consume no random value.
+    /// </summary>
+    [Xunit.Fact]
+    public void BoundedInitializationUsesHalfOpenRangesAndSkipsEqualBounds()
+    {
+        var initializer = new CapturingInitializer();
+        var optimizer = new BatOptimizer(
+            initializer,
+            new BatOptimizerOptions
+            {
+                PopulationSize = 1,
+                VelocityLowerBound = 1,
+                VelocityUpperBound = Math.BitIncrement(1),
+                FrequencyLowerBound = 0,
+                FrequencyUpperBound = 0,
+                InitialLoudnessLowerBound = 1,
+                InitialLoudnessUpperBound = 1,
+                InitialPulseRateLowerBound = 0,
+                InitialPulseRateUpperBound = 0,
+            });
+
+        ExecuteWithSnapshot(
+            CreateProblem(1, new SphereObjective()),
+            optimizer,
+            StopAfterIterations(0),
+            seed: 777,
+            Xunit.TestContext.Current.CancellationToken);
+
+        var population = GetPopulation(optimizer, "_populationA");
+        Xunit.Assert.Equal(1, GetStateVectors(population, "Velocity")[0][0]);
+        var expected = new RandomSource(777);
+        _ = expected.NextULong();
+        Xunit.Assert.Equal(expected.NextULong(), initializer.Random!.NextULong());
+    }
+
     private static ContinuousProblem CreateProblem(int dimension, IObjectiveFunction objective)
     {
         return new ContinuousProblem(dimension, objective, CandidateRepairs.Clamp(-5, 5));
@@ -363,7 +400,7 @@ public sealed class BatOptimizerTests
         ContinuousProblem problem,
         BatOptimizer optimizer,
         OptimizationRunOptions options,
-        int seed = 0,
+        ulong seed = 0,
         CancellationToken cancellationToken = default)
     {
         var summary = OptimizationRunner.Execute(problem, optimizer, options, seed, cancellationToken);
@@ -410,7 +447,7 @@ public sealed class BatOptimizerTests
     {
         private int _next;
 
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             position.Clear();
             position[0] = values[_next++ % values.Length];
@@ -422,7 +459,7 @@ public sealed class BatOptimizerTests
     /// </summary>
     private sealed class ConstantInitializer(double value) : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             position.Fill(value);
         }
@@ -430,7 +467,7 @@ public sealed class BatOptimizerTests
 
     private sealed class RandomPositionInitializer : ICandidateInitializer
     {
-        public void Initialize(Span<double> position, Random random)
+        public void Initialize(Span<double> position, RandomSource random)
         {
             for (var index = 0; index < position.Length; index++)
             {
@@ -439,11 +476,22 @@ public sealed class BatOptimizerTests
         }
     }
 
+    private sealed class CapturingInitializer : ICandidateInitializer
+    {
+        public RandomSource? Random { get; private set; }
+
+        public void Initialize(Span<double> position, RandomSource random)
+        {
+            Random = random;
+            position.Clear();
+        }
+    }
+
     private sealed class RecordingRepair : ICandidateRepair
     {
         public int CallCount { get; private set; }
 
-        public void Repair(Span<double> position, Random random)
+        public void Repair(Span<double> position, RandomSource random)
         {
             CallCount++;
         }

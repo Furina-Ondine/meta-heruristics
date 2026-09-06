@@ -31,9 +31,11 @@ Objective 和 Constraint 是否能被多个 RunGroup 并发调用由实现者负
 
 ## 实现 Initializer 或 Repair
 
-Initializer 只写入传入的位置并使用运行提供的 `Random`。算法在 Initializer 返回后立即调用 `context.Repair`。
+Initializer 只写入传入的位置并使用运行提供的 `RandomSource`。算法在 Initializer 返回后立即调用 `context.Repair`。`RandomSource` 是 Core 的封闭 `public sealed` 类型；调用方不构造它、不保存它，也不把 `OptimizationRunContext` 带出当前 run。标量和批量入口包括 `NextULong`、`NextDouble`、`NextInt` 以及对应的 `Fill`；需要标准正态时使用 `StandardNormal.Sample` 或 `StandardNormal.Fill`。
 
-Repair 拥有自己的边界或其他恢复数据。算法和 Problem 不读取这些数据；算法每次修改候选位置后都必须调用 `context.Repair`。向量端点等构造输入应在策略创建时复制和验证，避免在热路径重复处理配置。
+Repair 拥有自己的边界或其他恢复数据，并通过同一个 run 提供的 `RandomSource` 完成随机恢复。算法和 Problem 不读取这些数据；算法每次修改候选位置后都必须调用 `context.Repair`。向量端点等构造输入应在策略创建时复制和验证，避免在热路径重复处理配置。
+
+外部策略的最小公共 API 测试可以只引用 `Metaheuristics.Core`：实现 `IOptimizer`，在 `ResetForRun` 中通过 `context.Random` 调用自己的 `ICandidateInitializer` 和 `ICandidateRepair`，再用 `context.Evaluate` 评价候选位置，并在 `OptimizationRunner.Execute` 返回后复制 `BestPosition`。使用相同 `ulong` seed 启动两个独立 Optimizer 实例，应得到相同的结果快照；外部程序集无法访问 `RandomSource` 的 internal 构造函数，因此不需要测试专用 factory 或反射。
 
 策略失职造成的位置后果由策略和调用方负责；Core 不重新实现位置合法性判断或静默修复。
 
@@ -49,7 +51,7 @@ Repair 拥有自己的边界或其他恢复数据。算法和 Problem 不读取�
 
 ```text
 OptimizationRunner.Execute
-  → new OptimizationRunContext(seed, cancellation)
+  → new OptimizationRunContext(ulong seed, cancellation)
   → optimizer.ResetForRun(context)
   → check stop
   → optimizer.Advance()
@@ -83,7 +85,7 @@ ExperimentDefinition
   → ExperimentResult
 ```
 
-每个 Group 创建独占 Problem、Optimizer 和 RunOptions。同一 Group 的正常 run 可以复用物理工作区；异常后 Runner 丢弃环境并为后续 repetition 重建。不同 Group 只能共享调用方明确提供的不可变底层数据。
+每个 Group 创建独占 Problem、Optimizer 和 RunOptions。同一 Group 的正常 run 可以复用物理工作区；每次 run 的 `RandomSource` 由 Context 按 `ulong` seed 新建，异常后 Runner 丢弃环境并为后续 repetition 重建。不同 Group 只能共享调用方明确提供的不可变底层数据。
 
 seed 只取决于 Experiment 计划和 repetition 下标，不依赖 Group 拆分、Worker 领取顺序或并发度。结果读取顺序同样不依赖任务完成顺序。
 

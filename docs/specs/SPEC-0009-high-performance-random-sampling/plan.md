@@ -2,14 +2,14 @@
 
 ## 元数据
 
-- 状态：`Draft`
+- 状态：`Approved`
 - 对应 Spec：[`spec.md`](./spec.md)
 - Spec 基线提交：`8ac50110830519dd874e16d055258f8b7cdab621`
 - 覆盖需求：`FR-001`、`FR-002`、`FR-003`、`FR-004`、`FR-005`、`FR-006`、`FR-007`、`FR-008`、`NFR-001`、`NFR-002`、`NFR-003`、`NFR-004`、`NFR-005`
-- 批准人：—
-- 批准日期：—
+- 批准人：项目作者
+- 批准日期：2026-09-05
 
-`spec.md` 已于 2026-09-05 由项目作者批准，并在同日设计审查后获准修订；上述文档基线包含修订后的 Approved Spec 与 ADR-0020。本 Plan 保持 Draft，文档修订和提交授权不代替具体实施计划及基准命令批准。当前生产代码调查基线为 `466115ad90015d5476d890dc5fd93048f8439187`。
+`spec.md` 已于 2026-09-05 由项目作者批准，并在同日设计审查后获准修订；上述文档基线包含修订后的 Approved Spec 与 ADR-0020。项目作者于 2026-09-05 指示“撰写 tasks，然后派发 luna-max 子模型去完成任务”，据此批准执行当前 Plan（含下述基准与验证步骤）。当前生产代码调查基线为 `466115ad90015d5476d890dc5fd93048f8439187`。
 
 ## 当前实现调查
 
@@ -134,9 +134,9 @@
 
 ## 性能基准与准入
 
-本节命令只是 Draft Plan 提案。在 Plan 获得用户批准前不运行 BenchmarkDotNet；批准后先在独立临时 worktree 的生产代码基线 `466115ad90015d5476d890dc5fd93048f8439187` 上运行端到端基准，再以相同机器、Runtime、BenchmarkDotNet 配置和参数运行候选。
+本节命令随当前 Plan 获准执行；先在独立临时 worktree 的生产代码基线 `466115ad90015d5476d890dc5fd93048f8439187` 上运行端到端基准，再以相同机器、Runtime、BenchmarkDotNet 配置和参数运行候选。
 
-拟批准命令：
+批准的命令：
 
 ```powershell
 dotnet run -c Release --project benchmarks/Metaheuristics.Benchmarks -- --filter "*RandomSourceBenchmarks*"
@@ -152,6 +152,23 @@ dotnet run -c Release --project benchmarks/Metaheuristics.Benchmarks -- --filter
 - 所有随机标量和 Fill 方法的 BenchmarkDotNet `Allocated` 必须为 `0 B`。类型初始化和 benchmark setup 分配单独记录，不混入调用级数据。
 - Bat/Cuckoo 在 32/128 维、固定 population/迭代/目标下各运行旧/新端到端基准。因 PRNG 变化会改变轨迹，它们不证明算法等价；作为 Core 集成回归门槛，候选在四个主要点的平均时间不得超过同机基线的 `1.05x`。同时报告评估次数、分配和轨迹差异，不将单机数据外推。
 - DisassemblyDiagnoser 用于核对 Fill 状态推进内循环没有随机源接口、虚成员、delegate 或 factory 分派，并解释实测瓶颈；不以动态 PGO 偶然去虚化作为封闭路径证据。私有 helper 的直接 call 可以保留，验收依据为正确性、吞吐和分配；仅发现未内联不足以授权复制状态转换。
+
+## T006 复测与条件重实现修订
+
+项目作者已批准“让 luna 重新测量，如不行，让 terra 重新实现。此外，注释用中文”。本修订保留 Spec 公共契约和全部性能门槛。
+
+1. Luna（max）先修正局部基准：随机源初始化移到 GlobalSetup，测量期间持续推进状态，让 BDN 自动选择足够的调用次数；不使用 IterationSetup 导致的单次纳秒测量。确定性由自动化测试独立验证。正态基准采用同样的测量审查。
+2. 保留完整原始报告，新结果使用独立 artifact 目录。复测原有长度矩阵、分配和独立 Sample；补充 Cuckoo 实际使用的 NextDouble、NextInt(0,64) 和带 spare 的 Box–Muller 组合诊断。诊断与生产实现隔离，不新增公共 API。
+3. 同一轮实验按相同环境和 BDN 配置重测旧生产基线与当前候选的 Bat/Cuckoo 32/128 维端到端结果。保存所有运行结果，不挑选最优一次。独立非计时诊断可记录随机请求、拒绝/重试、接受及评估次数以区分轨迹变化和采样成本。
+4. 获取实际 JIT 证据；平台不支持 BDN DisassemblyDiagnoser 时可采用运行时 JIT 输出等替代方法，记录配置和局限，不能以源码审查冒充反汇编。
+5. Luna 复测仍有性能门槛未通过时，交给 Terra 根据测量证据重实现 RandomSource 内部路径；一次调整一个因素，保留对照与正确性测试。保持已批准的唯一 PRNG、API、所有权、数值语义和算法请求顺序。不得仅为消除 helper call 复制状态转换；若证据表明需要超出当前实现方案的结构变化，先给出具体 Plan 修订，不擅自扩大范围。
+6. 本次新增和修改涉及的代码注释（含 XML 注释）统一使用中文，保留必要技术名称。复测通过或 Terra 修复通过后，继续完成 T007 工程验证与最终追踪。未通过不得降低门槛或标记 Implemented。
+
+### T006 成员实现比较执行结果（2026-09-06）
+
+- 成员 `NextRaw()` 候选已按本轮授权实现并完成 Release 正确性测试、RandomSource 24 点和 Bat/Cuckoo 32/128 端到端正式 BDN；所有随机源点为 `0 B`，Fill 和端到端门槛均通过。报告及实际 JIT 输出归档于 [`evidence/t006-luna-member-20260906/`](evidence/t006-luna-member-20260906/README.md)，wrapper/ref 对照归档于 [`evidence/t006-luna-unified/`](evidence/t006-luna-unified/README.md)。
+- JIT 证据显示两种标量调用体均将转换内联为 76 bytes；成员 Fill 在循环内读写字段并为 104 bytes，wrapper/ref Fill 在循环外装载/写回并为 112 bytes。结合正式数据，wrapper/ref Fill 在八个主点稳定快约 `2.77x–3.27x`；成员只在标量及 Bat 端到端略快，Cuckoo 与 wrapper/ref 基本持平且略慢。
+- 最终保留 wrapper/ref 作为唯一生产状态转换实现；成员候选已从生产文件移除，未保留第二份转换体。该选择没有改变公共 API、随机请求顺序或 53 位 double 语义。
 
 ## 风险和回退
 
@@ -169,5 +186,7 @@ dotnet run -c Release --project benchmarks/Metaheuristics.Benchmarks -- --filter
 
 ## 批准记录
 
-- 计划批准：—
-- 批准日期：—
+- 计划批准：项目作者本次“撰写 tasks，然后派发 luna-max 子模型去完成任务”的执行指令；方案和验收门槛未修改。
+- 批准日期：2026-09-05
+- 最新执行授权（2026-09-05）：项目作者明确要求 Luna 完成具体修复，统一为唯一的 RandomSource 状态转换实现，并在标量、Fill、Bat/Cuckoo 32/128 维端到端路径上以实测性能选择更优方案；不保留两份转换实现，不降低既有性能门槛。该授权仅允许局部内部实现重构、中文化本次新增注释以及对应测试、基准和证据更新，不改变公共 API、随机请求顺序、53 位 double 语义或其他已批准行为。
+- 本轮比较授权（2026-09-06）：项目作者明确要求重新实现并正式测量真正的成员 `NextRaw()` 方案：成员方法读取 `_state0..3` 到局部变量，执行唯一 Xoshiro 状态转换并写回字段；`NextULong()` 直接调用该成员，Fill 也复用该成员，不得复制转换。该方案必须与当前 `NextRawFromFields` 调用静态 `NextRaw(ref ...)` 的 wrapper/ref 方案在相同 BDN 配置下比较 RandomSource 标量、Fill 32/128 以及 Bat/Cuckoo 32/128 端到端路径，所有点保持 0 B 分配和既有性能门槛；同时提取实际 JIT 输出，核对内联、字段读写和别名差异，不凭源码或耗时推断。生产代码运行时只保留正在评估的单一状态转换实现；注释继续统一为中文，证据直接归档到仓库 evidence，`verification.md` 由上游整合。
