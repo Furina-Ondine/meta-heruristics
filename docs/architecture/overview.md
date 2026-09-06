@@ -17,6 +17,10 @@
 | `Metaheuristics.Tests` | 已包含目标运行时、Core、Experiment 以及四种内置算法的契约与行为测试。 |
 | `Metaheuristics.Benchmarks` | 已提供蝙蝠算法工作区复用、PSO/Firefly SIMD 内核与端到端候选基准，以及固定 Worker、Parallel API 和信号量 RunGroup 调度基准。 |
 
+## 已批准、尚未实现的演进
+
+[SIMD 联合规格](../specs/simd-review.md) 已批准原始随机状态 SIMD 和四种算法增量优化；技术 Plan 尚待审批，以上实现现状保持不变。决策见 [ADR-0021](../decisions/0021-run-private-simd-random-lanes.md) 和 [ADR-0022](../decisions/0022-batched-algorithm-simd-fusion.md)。
+
 ## 项目依赖
 
 依赖保持单向，批准的项目依赖图如下：

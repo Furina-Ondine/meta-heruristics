@@ -2,7 +2,9 @@
 
 ## 状态
 
-Accepted
+Superseded
+
+由 [ADR-0022](0022-batched-algorithm-simd-fusion.md) 替代；以下保留原决策。
 
 ## 背景
 

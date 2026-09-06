@@ -11,6 +11,10 @@
 - 被替代：无
 - 相关 ADR：[ADR-0003](../../decisions/0003-project-and-package-boundaries.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0020](../../decisions/0020-core-owned-random-source-and-run-execution.md)；本变更保持现有项目边界，ADR-0020 替代 ADR-0009 并记录 Randomness 职责、随机源所有权与 64 位 seed 迁移。
 
+## 后续局部替代
+
+2026-09-06 批准的 [SPEC-0010](../SPEC-0010-simd-random-sampling/spec.md) 与 [ADR-0021](../../decisions/0021-run-private-simd-random-lanes.md) 替代本文 FR-002 的单组四字状态及 NFR-005 排除内部多流/Jump 的限制，允许 run 私有多 lane 和初始化 Jump。其余封闭 API、分布、所有权、弱序列兼容和 seed 排程契约继续有效；以下保留历史批准内容。该变更尚未实现，当前生产仍为单流。
+
 ## 问题与动机
 
 当前 Core 为每个 run 从显式 `int` seed 创建独立 `System.Random`，并通过 `OptimizationRunContext`、`ICandidateInitializer` 与 `ICandidateRepair` 把同一随机流传给运行时组件。该模型保证 RunGroup 隔离和调度无关的 seed，但只向算法提供逐次随机调用，无法直接向调用方拥有的 Span 批量生成均匀整数、均匀浮点或标准正态样本。
