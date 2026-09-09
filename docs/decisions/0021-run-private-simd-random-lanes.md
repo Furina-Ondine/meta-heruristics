@@ -2,7 +2,9 @@
 
 ## 状态
 
-Accepted
+Superseded
+
+2026-09-08：由 [ADR-0023](0023-separate-scalar-and-batch-random-state.md) 替代。以下保留历史决策，不再授权旧共享状态方案。
 
 替代 [ADR-0020](0020-core-owned-random-source-and-run-execution.md)。2026-09-06 项目作者批准 SPEC-0010 至 SPEC-0014 联合规格；实现仍待 Approved Plan。
 

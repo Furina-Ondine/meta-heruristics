@@ -34,8 +34,10 @@
 | [0018](0018-repair-boundary-shape-specialization.md) | Repair 边界形状专用化 | `Superseded` |
 | [0019](0019-scalar-reflect-and-algorithm-only-simd-generation.md) | 标量 Reflect 与仅 Algorithms 使用 SIMD 生成 | `Accepted` |
 | [0020](0020-core-owned-random-source-and-run-execution.md) | Core 拥有的封闭随机源与 RunGroup 执行 | `Superseded` |
-| [0021](0021-run-private-simd-random-lanes.md) | run 私有 SIMD 随机 lane 与封闭执行契约 | `Accepted` |
+| [0021](0021-run-private-simd-random-lanes.md) | run 私有 SIMD 随机 lane 与封闭执行契约 | `Superseded` |
 | [0022](0022-batched-algorithm-simd-fusion.md) | 批量采样下的算法私有 SIMD 与融合 | `Accepted` |
+| [0023](0023-separate-scalar-and-batch-random-state.md) | 分离单值与批量随机状态 | `Superseded` |
+| [0024](0024-adaptive-vector-random-api.md) | 自适应 Vector 随机状态与向量采样 API | `Accepted` |
 
 ## ADR 模板
 
