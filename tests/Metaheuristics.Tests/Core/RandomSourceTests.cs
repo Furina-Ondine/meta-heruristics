@@ -113,7 +113,7 @@ public sealed class RandomSourceTests
         Xunit.Assert.Empty(type.GetConstructors(BindingFlags.Public | BindingFlags.Instance));
         Xunit.Assert.DoesNotContain(type.GetInterfaces(), static interfaceType => interfaceType.Name == "IRandomSource");
         Xunit.Assert.Equal(
-            ["Fill", "Fill", "Fill", "Fill", "NextDouble", "NextDouble", "NextInt", "NextULong"],
+            ["Fill", "Fill", "Fill", "Fill", "NextDouble", "NextDouble", "NextDoubleVector", "NextInt", "NextULong", "NextULongVector"],
             type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
                 .Where(static method => !method.IsSpecialName)
                 .Select(static method => method.Name)
@@ -128,21 +128,28 @@ public sealed class RandomSourceTests
     public void EmptyAndInvalidOperationsPreserveStateAndTargets()
     {
         var source = new RandomSource(987654321);
-        var expected = new RandomSource(987654321);
+        var scalarExpected = new RandomSource(987654321);
+        var batchExpected = new RandomSource(987654321);
         source.Fill(Span<ulong>.Empty);
         source.Fill(Span<double>.Empty);
+        source.Fill(Span<double>.Empty, -1.0, 1.0);
         source.Fill(Span<int>.Empty, -10, 10);
-        Xunit.Assert.Equal(expected.NextULong(), source.NextULong());
+
+        // 空目标既不写目标，也不消费两套状态中的任何一套。
+        Xunit.Assert.True(batchExpected.NextULongVector() == source.NextULongVector());
+        Xunit.Assert.Equal(scalarExpected.NextULong(), source.NextULong());
 
         var target = new[] { 3.0, 4.0 };
         Xunit.Assert.Throws<ArgumentOutOfRangeException>(() => source.Fill(target, 0, double.PositiveInfinity));
         Xunit.Assert.Equal([3.0, 4.0], target);
-        Xunit.Assert.Equal(expected.NextULong(), source.NextULong());
 
         var intTarget = new[] { 3, 4 };
         Xunit.Assert.Throws<ArgumentException>(() => source.Fill(intTarget, 10, 10));
         Xunit.Assert.Equal([3, 4], intTarget);
-        Xunit.Assert.Equal(expected.NextULong(), source.NextULong());
+
+        // 失败之后两套状态都没有推进。
+        Xunit.Assert.Equal(scalarExpected.NextULong(), source.NextULong());
+        Xunit.Assert.True(batchExpected.NextULongVector() == source.NextULongVector());
     }
 
     /// <summary>

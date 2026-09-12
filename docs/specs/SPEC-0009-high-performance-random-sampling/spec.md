@@ -13,7 +13,7 @@
 
 ## 后续局部替代
 
-2026-09-06 批准的 [SPEC-0010](../SPEC-0010-simd-random-sampling/spec.md) 与 [ADR-0021](../../decisions/0021-run-private-simd-random-lanes.md) 替代本文 FR-002 的单组四字状态及 NFR-005 排除内部多流/Jump 的限制，允许 run 私有多 lane 和初始化 Jump。其余封闭 API、分布、所有权、弱序列兼容和 seed 排程契约继续有效；以下保留历史批准内容。该变更尚未实现，当前生产仍为单流。
+2026-09-08 批准的 [SPEC-0010](../SPEC-0010-simd-random-sampling/spec.md) 替代本文 FR-002 的“单组四字状态被全部入口共享”部分：`RandomSource` 现在同时持有单值状态与运行时宽度的批量状态，批量 lane 由内部 Jump 播种，单值入口与批量入口互不推进。当前决策见 [ADR-0024](../../decisions/0024-adaptive-vector-random-api.md)（替代 ADR-0023 与 ADR-0021）。其余封闭 API、分布、所有权、弱序列兼容、数值/异常规则和 seed 排程契约继续有效，单值路径仍沿用本文的序列；以下保留历史批准内容。
 
 ## 问题与动机
 

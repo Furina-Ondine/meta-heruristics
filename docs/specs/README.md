@@ -61,7 +61,7 @@ Plan 使用 `Draft`、`Approved`、`Superseded`；Tasks 使用 `Pending`、`InPr
 
 ## SIMD 演进
 
-[SPEC-0010 至 SPEC-0014 联合规格](simd-review.md)已批准，[联合技术计划](simd-plan.md)等待 Plan 审批。
+[SPEC-0010 至 SPEC-0014 联合规格](simd-review.md)已批准。[随机源技术计划](SPEC-0010-simd-random-sampling/plan.md)已批准并实施；SPEC-0011 至 SPEC-0014 的 Plan 尚未创建。
 
 ## 当前 package
 
@@ -75,7 +75,7 @@ Plan 使用 `Draft`、`Approved`、`Superseded`；Tasks 使用 `Pending`、`InPr
 | [SPEC-0006](./SPEC-0006-zero-overhead-simd-cascade/spec.md) | 零开销 SIMD 级联源码生成 | `Implemented` |
 | [SPEC-0007](./SPEC-0007-repair-boundary-shape-specialization/spec.md) | Repair 边界形状专用化 | `Implemented` |
 | [SPEC-0009](./SPEC-0009-high-performance-random-sampling/spec.md) | 高性能随机源与批量分布采样 | `Implemented` |
-| [SPEC-0010](./SPEC-0010-simd-random-sampling/spec.md) | 随机采样 SIMD 化 | `Approved` |
+| [SPEC-0010](./SPEC-0010-simd-random-sampling/spec.md) | 随机采样 SIMD 化 | `Implementing` |
 | [SPEC-0011](./SPEC-0011-bat-batched-simd/spec.md) | Bat 批量采样与 SIMD | `Approved` |
 | [SPEC-0012](./SPEC-0012-cuckoo-batched-simd/spec.md) | Cuckoo 批量采样与 SIMD | `Approved` |
 | [SPEC-0013](./SPEC-0013-pso-simd-refinement/spec.md) | PSO SIMD 增量优化 | `Approved` |

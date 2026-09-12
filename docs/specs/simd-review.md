@@ -10,7 +10,7 @@
 
 | Spec | 具体方案与主要风险 |
 | --- | --- |
-| [SPEC-0010](SPEC-0010-simd-random-sampling/spec.md) | 保留 xoshiro256++，SplitMix64 初始化首 lane，内部 Jump 派生其余 lane；全部采样入口共享 lane 状态及必要原始输出缓存；增加播种/状态成本。 |
+| [SPEC-0010](SPEC-0010-simd-random-sampling/spec.md) | 保留 xoshiro256++；SplitMix64 展开单值初态，内部 Jump 为每个批量 lane 派生起点；单值与批量状态相互隔离，批量 lane 数取运行时的 `Vector<T>.Count`；增加播种与状态体积成本。 |
 | [SPEC-0011](SPEC-0011-bat-batched-simd/spec.md) | 候选内批量采样及 SIMD；允许给未选中的扰动分支预生成随机样本；保持相等边界不消费对应样本。 |
 | [SPEC-0012](SPEC-0012-cuckoo-batched-simd/spec.md) | 用 StandardNormal.Fill 替代私有正态及 spare；批量 Lévy 与遗弃计算；保留逐候选替换和 best 更新顺序。 |
 | [SPEC-0013](SPEC-0013-pso-simd-refinement/spec.md) | 评估速度、限幅、位置融合及初始化批量化；每个粒子仍共享一对 cognitive/social 系数。 |
@@ -25,7 +25,7 @@
 
 ## 后续交付顺序
 
-详细 Plan 已整理于 [联合技术计划](simd-plan.md)，包括 lane/缓存及播种细节、批次布局、数值容差、基准对照矩阵、速度门槛、删除清单和影响矩阵。Plan 再经批准后生成 Tasks 并实现。
+随机源的详细 Plan 见 [SPEC-0010 技术计划](SPEC-0010-simd-random-sampling/plan.md)；SPEC-0011 至 SPEC-0014 的 Plan 尚未创建，本轮只实施 SPEC-0010，不修改算法实现。
 
 验证需分别隔离随机源收益、算法批量化收益、算术 SIMD 收益和最终组合收益；基线为本次改造前代码，PSO/Firefly 基线包含已有 SIMD。完整 run 计入随机源创建、ResetForRun 和固定工作量执行。保留路径须有内核与端到端数据；每轮 BenchmarkDotNet 前展示待测代码和完整命令并取得反馈。
 

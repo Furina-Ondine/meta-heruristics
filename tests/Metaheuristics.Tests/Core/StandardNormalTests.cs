@@ -1,3 +1,4 @@
+using System.Numerics;
 using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Tests.Core;
@@ -20,6 +21,72 @@ public sealed class StandardNormalTests
         var expected = new RandomSource(123);
         StandardNormal.Fill(source, Span<double>.Empty);
         Xunit.Assert.Equal(expected.NextULong(), source.NextULong());
+    }
+
+    /// <summary>
+    /// 验证批量正态的相邻 lane 配对、尾部处理、向量数学结果与整轮消费量。
+    /// </summary>
+    [Xunit.Fact]
+    public void VectorFillMatchesScalarBoxMullerReferenceAndConsumesWholeRounds()
+    {
+        const ulong seed = 0x0BADF00D_12345678;
+        var laneCount = Vector<double>.Count;
+        foreach (var length in new[] { 1, 2, laneCount - 1, laneCount, laneCount + 1, (3 * laneCount) + 2 })
+        {
+            var source = new RandomSource(seed);
+            var units = new RandomSource(seed);
+            var untouched = new RandomSource(seed);
+            var values = new double[length];
+
+            StandardNormal.Fill(source, values);
+
+            var expected = new List<double>(length);
+            while (expected.Count < length)
+            {
+                var unit = units.NextDoubleVector();
+                for (var lane = 0; lane < laneCount; lane += 2)
+                {
+                    if (expected.Count == length)
+                    {
+                        break;
+                    }
+
+                    var radius = Math.Sqrt(-2 * Math.Log(1 - unit[lane]));
+                    var angle = 2 * Math.PI * unit[lane + 1];
+                    expected.Add(radius * Math.Cos(angle));
+                    if (expected.Count < length)
+                    {
+                        expected.Add(radius * Math.Sin(angle));
+                    }
+                }
+            }
+
+            for (var index = 0; index < length; index++)
+            {
+                var reference = expected[index];
+                Xunit.Assert.True(double.IsFinite(values[index]));
+                Xunit.Assert.True(
+                    Math.Abs(values[index] - reference) <= 1e-12 + (1e-12 * Math.Abs(reference)),
+                    $"index {index}: {values[index]} vs {reference}");
+            }
+
+            // 每个非空调用恰好消费 ceil(length / L) 轮批量状态，且完全不推进单值状态。
+            var rounds = ((length + laneCount) - 1) / laneCount;
+            var advanced = new RandomSource(seed);
+            for (var round = 0; round < rounds; round++)
+            {
+                _ = advanced.NextDoubleVector();
+            }
+
+            var expectedNext = advanced.NextDoubleVector();
+            var actualNext = source.NextDoubleVector();
+            for (var lane = 0; lane < laneCount; lane++)
+            {
+                Xunit.Assert.Equal(expectedNext[lane], actualNext[lane]);
+            }
+
+            Xunit.Assert.Equal(untouched.NextULong(), source.NextULong());
+        }
     }
 
     /// <summary>
