@@ -37,9 +37,13 @@
 | 实测宽度 | 128 → `Vector<ulong>.Count=2`；256 → 4；512 → 8（基准程序启动时打印） |
 | 固定种子 | `0x0123456789ABCDEF` |
 
+软件路径另测一次：`DOTNET_EnableHWIntrinsic=0` 时 `Vector<ulong>.Count=2`、`Vector.IsHardwareAccelerated=False`，因此该配置的测试跑的是 128 位形状的矢量软件实现，用于 FR-006 的“无硬件加速”验收。
+
 ## 三宽度性能结果
 
 ### 批量填充（候选 B 相对改动前 A）
+
+每列原始报告见 `evidence/width-128/`、`evidence/width-256/`、`evidence/width-512/`（文件名前缀 `Anastasya.Metaheuristics.Benchmarks.Rs*Benchmarks-report-github.md`）。
 
 | 场景 | 128 位 | 256 位 | 512 位 |
 | --- | ---: | ---: | ---: |
@@ -91,7 +95,7 @@
 1. **有界 int 填充的重复落栈**：早先版本在 lane 循环内部每次都把整条向量写回栈再按偏移读取（512 位下每轮 8 次 64 字节写）。现在整轮只落栈一次，再按 lane 顺序读。
 2. **循环内的 64 位除法**：拒绝阈值 `2^64 mod range` 原来在 lane 循环里重算，反汇编中能看到 `div`；现在每次调用只算一次。这两处合计把 512 位下的有界 int 填充从**慢 2.0 倍**改成**快 1.10 倍**。
 
-反汇编同时确认：原始状态推进使用向量加法/异或/移位/或；`StandardNormal.Fill` 的 `Log`、`SquareRoot`、`SinCos` 都在向量上执行。
+反汇编同时确认：原始状态推进使用向量加法/异或/移位/或；`StandardNormal.Fill` 的 `Log`、`SquareRoot`、`SinCos` 都在向量上执行。三个宽度的完整反汇编见各自证据目录下的 `Anastasya.Metaheuristics.Benchmarks.RsJitDiagnosticsBenchmarks-asm.md`。
 
 ## 工程验证
 
