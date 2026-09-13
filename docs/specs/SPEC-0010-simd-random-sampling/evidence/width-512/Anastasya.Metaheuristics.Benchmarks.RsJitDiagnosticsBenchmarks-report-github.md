@@ -11,13 +11,13 @@ IterationCount=12  WarmupCount=5
 ```
 | Method         | Length | Mean       | Error     | StdDev    | Code Size |
 |--------------- |------- |-----------:|----------:|----------:|----------:|
-| **RawFill**        | **32**     |   **7.675 ns** | **0.0126 ns** | **0.0099 ns** |   **1,008 B** |
-| UnitFill       | 32     |   7.971 ns | 0.0026 ns | 0.0019 ns |   1,144 B |
-| BoundedIntFill | 32     |  30.429 ns | 0.0332 ns | 0.0240 ns |     687 B |
-| NormalFill     | 32     | 232.749 ns | 0.2030 ns | 0.1585 ns |   2,668 B |
-| VectorApi      | 32     |   3.295 ns | 0.0018 ns | 0.0012 ns |     182 B |
-| **RawFill**        | **128**    |  **25.857 ns** | **0.0560 ns** | **0.0437 ns** |   **1,008 B** |
-| UnitFill       | 128    |  28.183 ns | 0.0110 ns | 0.0080 ns |   1,144 B |
-| BoundedIntFill | 128    | 110.765 ns | 0.4100 ns | 0.2965 ns |     687 B |
-| NormalFill     | 128    | 909.367 ns | 0.5388 ns | 0.3564 ns |   2,668 B |
-| VectorApi      | 128    |   3.298 ns | 0.0051 ns | 0.0039 ns |     182 B |
+| **RawFill**        | **32**     |   **6.201 ns** | **0.0071 ns** | **0.0055 ns** |     **852 B** |
+| UnitFill       | 32     |   6.888 ns | 0.0173 ns | 0.0125 ns |     988 B |
+| BoundedIntFill | 32     |  29.101 ns | 0.0361 ns | 0.0261 ns |     650 B |
+| NormalFill     | 32     | 188.329 ns | 0.1130 ns | 0.0817 ns |   2,652 B |
+| VectorApi      | 32     |   3.193 ns | 0.0036 ns | 0.0028 ns |     156 B |
+| **RawFill**        | **128**    |  **17.870 ns** | **0.0233 ns** | **0.0139 ns** |     **852 B** |
+| UnitFill       | 128    |  20.871 ns | 0.0591 ns | 0.0391 ns |     988 B |
+| BoundedIntFill | 128    | 116.408 ns | 5.3310 ns | 4.1621 ns |     650 B |
+| NormalFill     | 128    | 741.836 ns | 4.8003 ns | 3.7478 ns |   2,652 B |
+| VectorApi      | 128    |   3.197 ns | 0.0033 ns | 0.0024 ns |     156 B |

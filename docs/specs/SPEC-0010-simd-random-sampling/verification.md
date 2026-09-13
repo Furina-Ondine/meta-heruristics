@@ -5,143 +5,91 @@
 - Spec：[`spec.md`](./spec.md)
 - Plan：[`plan.md`](./plan.md)
 - Tasks：[`tasks.md`](./tasks.md)
-- 验证日期：2026-09-12
+- 验证日期：2026-09-13
 - 最终结果：`Failed`
+
+## 结论
+
+1. **实现完成**：`RandomSource` 现在有两套互不推进的状态——四个 `ulong` 单值状态字，加四个“一轮 `Vector<T>.Count` 个样本”的批量状态向量。新增 `NextULongVector`/`NextDoubleVector`；四个 `Fill` 重载和 `StandardNormal.Fill` 改走批量状态；单值入口的序列和行为与之前完全一致。
+2. **正确性通过**：170 个测试在 128 位、256 位、512 位与“关闭硬件内建”四种配置下全部通过；批量输出与测试工程里独立的逐 lane 参考实现逐位一致；所有采样调用 0 B 分配。
+3. **性能**：批量填充比旧实现快 1.1–5.3 倍（向量越宽收益越大），有界 double 快 1.4–5.0 倍，单值入口基本持平。
+4. **唯一未达标**：128 位下的正态填充比旧实现慢约 40%。它在 256/512 位是快的（1.1–1.3 倍），但 128 位不行——原因见最后一节。
+5. 构造随机源要为每个 lane 做一次 Jump，所以比旧实现贵很多（128/256/512 位分别约 471/903/1790 ns）。这是 Spec 规定的播种规则，不是缺陷，但短 run 需要留意。
 
 ## 名词对照（报告里的简称对应哪个 API）
 
 | 报告里的写法 | 对应 API | 写出来的东西 |
 | --- | --- | --- |
-| 原始填充、原始 `Fill(n)` | `RandomSource.Fill(Span<ulong>)` | n 个完整 64 位范围的均匀**原始**生成器输出（xoshiro256++ 的 raw 值） |
-| 单位 double 填充、单位填充 | `RandomSource.Fill(Span<double>)` | n 个半开区间 `[0,1)` 的 double，即 `(raw >> 11) * 2^-53` |
-| 有界 double 填充 | `RandomSource.Fill(Span<double>, minimum, maximum)` | n 个半开区间 `[min,max)` 的 double，含上界舍入修正 |
-| 有界 int 填充 | `RandomSource.Fill(Span<int>, minimum, maximum)` | n 个半开区间 `[min,max)` 的无偏整数（乘高位 + 拒绝采样） |
-| 正态填充 | `StandardNormal.Fill(random, Span<double>)` | n 个标准正态样本（Box–Muller，向量数学） |
-| 向量 API：原始 / 单位 | `RandomSource.NextULongVector()` / `NextDoubleVector()` | 一个向量宽度的**一轮**样本；后者是前者的 `[0,1)` 映射 |
+| 原始填充、原始 `Fill(n)` | `RandomSource.Fill(Span<ulong>)` | n 个完整 64 位范围的均匀原始值（生成器直接输出） |
+| 单位 double 填充、单位填充 | `RandomSource.Fill(Span<double>)` | n 个 `[0,1)` 的 double，即 `(raw >> 11) * 2^-53` |
+| 有界 double 填充 | `RandomSource.Fill(Span<double>, minimum, maximum)` | n 个 `[min,max)` 的 double，含上界舍入修正 |
+| 有界 int 填充 | `RandomSource.Fill(Span<int>, minimum, maximum)` | n 个 `[min,max)` 的无偏整数（乘高位 + 拒绝采样） |
+| 正态填充 | `StandardNormal.Fill(random, Span<double>)` | n 个标准正态样本（Box–Muller） |
+| 向量 API：原始 / 单位 | `NextULongVector()` / `NextDoubleVector()` | 一个向量宽度的“一轮”样本 |
 | 单值入口 | `NextULong()`、`NextDouble()`、`NextInt()`、`StandardNormal.Sample()` | 只推进标量状态的逐次采样 |
 
-“原始/单位”是 Spec 里 `raw` / `unit` 的中文写法；“一轮（round）”指状态推进一次、一次产出 `Vector<T>.Count` 个样本；`L` 就是 `Vector<ulong>.Count`（本机三种配置分别是 2/4/8）。“比原实现快 X 倍”一律是 `改动前耗时 ÷ 现在耗时`。
-
-## 先说结论
-
-双状态随机源、两个向量采样入口和向量正态填充都已实现，正确性测试在 128、256、512 三种向量宽度和软件路径下全部通过。性能结论分三档：
-
-- **512 位（每轮 8 个样本）**：批量填充比原实现快 2.6–3.7 倍，有界 double 快约 4 倍，正态快 1.1–1.35 倍。
-- **256 位（每轮 4 个样本）**：批量填充快 1.4–1.5 倍，有界 double 快约 2 倍，正态快 8–12%。
-- **128 位（每轮 2 个样本）**：2026-09-12 的原始矩阵里批量原始/单位填充比原实现慢 27–39%，正态慢 66%；在 2026-09-13 接入 ISA 旋转指令后，原始填充变为快 18–20%、单位填充快 9%，**只有正态仍慢 39%**。正态是当前唯一未达门槛的场景，因此本报告结论仍是 `Failed`。
-
-单值随机入口（`NextULong`、`NextDouble`、`NextInt`、`StandardNormal.Sample`）在所有宽度下与原实现一致，差异在 ±3% 以内。构造一个随机源需要为每个 lane 做一次 Jump，成本随宽度线性上升：128 位约 455 ns、256 位约 903 ns、512 位约 1796 ns（原实现约 2 ns，不构造 lane 状态）。
-
-## 怎么读下面的表
-
-- **A**：改动前的实现（SPEC-0009 单状态版本，提交 `56c1f57` 的副本）。
-- **B**：本次候选，即现在 `src` 里的实现。
-- **R**：只给基准用的标量参考——播种和排放规则与 B 相同，但每个 lane 用标量状态推进。
-- 表里的数字是**候选比对照快几倍**（`对照耗时 ÷ 候选耗时`）：2.00× 表示候选快一倍，0.75× 表示候选慢 25%。
-- 比值与分配都取自同一次 BenchmarkDotNet 运行内的同参数对照（BenchmarkDotNet 的 `Ratio` 列），因此不受两次运行之间的频率漂移影响。长度 32/128 指一次 `Fill` 写出的元素个数；有界区间是 `[-5, 5)`。
-
-## 环境
+## 环境与读法
 
 | 项目 | 值 |
 | --- | --- |
-| CPU / OS | AMD Ryzen 7 9800X3D 4.70 GHz / Windows 11 25H2（10.0.26200） |
-| 运行时 | .NET 10.0.11，X64 RyuJIT `x86-64-v4` |
-| 基准 | BenchmarkDotNet 0.15.8，`MemoryDiagnoser`，5 次 warmup、12 次 measurement |
-| 宽度设置 | `DOTNET_MaxVectorTBitWidth=128/256/512`；`DOTNET_PreferredVectorBitWidth` 只能在上限内下调，单独设 512 无效 |
-| 实测宽度 | 128 → `Vector<ulong>.Count=2`；256 → 4；512 → 8（基准程序启动时打印） |
-| 固定种子 | `0x0123456789ABCDEF` |
+| 机器 | AMD Ryzen 7 9800X3D 4.70 GHz，Windows 11 25H2，.NET 10.0.11（X64 RyuJIT `x86-64-v4`） |
+| 基准 | BenchmarkDotNet 0.15.8，`MemoryDiagnoser`，5 次 warmup、12 次 measurement，固定种子 `0x0123456789ABCDEF` |
+| 宽度设置 | `DOTNET_MaxVectorTBitWidth=128/256/512`，实测 `Vector<ulong>.Count` = 2/4/8（基准程序启动时会打印） |
 
-软件路径另测一次：`DOTNET_EnableHWIntrinsic=0` 时 `Vector<ulong>.Count=2`、`Vector.IsHardwareAccelerated=False`，因此该配置的测试跑的是 128 位形状的矢量软件实现，用于 FR-006 的“无硬件加速”验收。
+- **旧实现**：SPEC-0009 的单状态实现（提交 `56c1f57` 的副本），只推进一组四字状态。它是所有倍数的分母。
+- **倍数**：`2.00×` = 现在比旧实现快一倍；`0.60×` = 现在比旧实现慢 40%。每个数字都取自同一次运行的同一进程。
+- **长度 32/128**：一次 `Fill` 写出的样本个数。
+- 所有采样场景的分配都是 0 B/op，因此表中不再单列；只有构造会分配（128/256/512 位分别 112/176/304 B，正好是批量状态本身）。
 
-## 三宽度性能结果
+## 性能结果（2026-09-13 一套矩阵，三种宽度）
 
-### 批量填充（候选 B 相对改动前 A）
-
-下表是 2026-09-12 的整体矩阵，尚未包含 2026-09-13 的 ISA 旋转指令改动；当前状态见下文“2026-09-13 追加”。每列原始报告见 `evidence/width-128/`、`evidence/width-256/`、`evidence/width-512/`（文件名前缀 `Anastasya.Metaheuristics.Benchmarks.Rs*Benchmarks-report-github.md`）。
-
-| 场景 | 128 位 | 256 位 | 512 位 |
+| 场景 | 128 位（2 lane） | 256 位（4 lane） | 512 位（8 lane） |
 | --- | ---: | ---: | ---: |
-| 原始 `Fill(32)` | 0.79× | 1.41× | 2.94× |
-| 原始 `Fill(128)` | 0.75× | 1.49× | 3.64× |
-| 单位 double `Fill(32)` | 0.74× | 1.47× | 2.63× |
-| 单位 double `Fill(128)` | 0.72× | 1.43× | 2.79× |
-| 有界 double `Fill(32)` | 1.06× | 2.00× | 3.70× |
-| 有界 double `Fill(128)` | 1.02× | 1.96× | 4.00× |
-| 有界 int `Fill(32)` | 1.10× | 1.09× | 1.10× |
-| 有界 int `Fill(128)` | 1.08× | 1.04× | 1.10× |
-| 正态 `Fill(32)` | 0.60× | 1.12× | 1.35× |
-| 正态 `Fill(128)` | 0.60× | 1.08× | 1.10× |
+| 原始 `Fill(32)` | 1.15× | 2.08× | 3.85× |
+| 原始 `Fill(128)` | 1.14× | 2.22× | 5.26× |
+| 单位 double `Fill(32)` | 1.12× | 1.89× | 2.94× |
+| 单位 double `Fill(128)` | 1.06× | 2.08× | 4.00× |
+| 有界 double `Fill(32)` | 1.43× | 2.63× | 4.55× |
+| 有界 double `Fill(128)` | 1.41× | 2.86× | 5.00× |
+| 有界 int `Fill(32)` | 1.01× | 1.03× | 0.97× |
+| 有界 int `Fill(128)` | 1.03× | 1.03× | 1.05× |
+| 正态 `Fill(32)` | **0.61×** | 1.10× | 1.10× |
+| 正态 `Fill(128)` | **0.60×** | 1.14× | 1.33× |
+| 单值 `NextULong`/`NextDouble`/`NextInt`/`Sample` | 0.94–1.02× | 0.96–1.02× | 0.99–1.04× |
+| 向量 API `NextULongVector` / `NextDoubleVector` | 3.70× / 4.35–4.55× | 4.35× / 5.00× | 4.55× / 4.76–5.00× |
 
-原始/单位填充在 128 位下没有达到 Plan 的门槛（要求不低于 0.90×），其余各点都通过与“不慢于原实现”的要求。
+两点读表说明：
 
-### 向量 API 与单值入口
+- 有界 int 三种宽度都约 1.0×：它的瓶颈是“每个 lane 都要做一次 64 位乘高位 + 拒绝判断 + 写 int”，这部分工作量随 lane 数线性增长，向量化只加速了状态推进。
+- 向量 API 那一行的对照不是旧实现（旧实现没有同签名 API），而是与候选语义相同的标量 lane 参考实现。
+- 跨列比较请留余量：同一份旧实现代码在不同 run 之间会落在约 ±20% 的两个频率档位；表内每个数字都来自同一 run 内的对照，各自有效，但“512 位比 256 位快多少”这类结论会被档位差放大。
 
-| 场景 | 128 位 | 256 位 | 512 位 |
-| --- | ---: | ---: | ---: |
-| `NextULongVector`（相对 R） | 3.2× | 3.7× | 4.5× |
-| `NextDoubleVector`（相对 R） | 3.1× | 4.2× | 4.8× |
-| `NextULong`（相对 A） | 1.00× | 0.99× | 1.00× |
-| `NextDouble`（相对 A） | 0.99× | 0.92–1.01× | 0.99× |
-| `NextInt(-5,5)`（相对 A） | 1.00× | 0.97–1.12× | 0.99× |
-| `StandardNormal.Sample`（相对 A） | 1.00× | 1.03× | 1.03× |
+## 正确性、随机质量与 SIMD 证据
 
-单值入口改动前后是同一段代码，表中的小差异属于测量波动：同一批场景在不同宽度下方向不一致（0.92×–1.12×），且都在 ±12% 以内。向量 API 的对照对象是标量参考 R，不是改动前的实现——改动前没有同签名的向量入口。
+- **独立参考**：测试工程里有一份逐 lane 标量参考（自己实现 SplitMix64、Jump、状态转换、乘高位拒绝与区间映射），与生产代码不共享路径。
+- **覆盖**：五种 seed 的初始化与 512 轮输出；长度 0/1/2/3/`L±1`/`2L±1`/31/32/33/127/128/129/1024；有界 int 的拒绝顺序（含宽度 1 与 2 的幂区间）；有界 double 与标量公式逐位一致；单值/批量双向隔离；空目标与非法区间不消费状态；正态尾块、配对、相对误差 ≤1e-12 与恰好 `ceil(N/L)` 轮。
+- **随机质量**：固定 seed、每 lane 2^20 轮，检查每 bit 的 1 计数、每字节桶计数（7σ 预算）与相邻值相关性；正态另有 100 万样本统计。失败不重试、不换种子。
+- **SIMD 证据**（FR-006）：批量状态推进全程在向量寄存器里完成，循环左移在支持的平台上用硬件旋转指令。512 位宽度的循环体（`RsJitDiagnosticsBenchmarks.RawFill`，本轮实测反汇编摘录）：
 
-### 构造与分配
+  ```asm
+  M00_L01:
+         vpaddq    zmm0,zmm6,zmm9      ; s0 + s3
+         vprolq    zmm0,zmm0,17        ; rotl(x, 23)
+         vpxord    zmm2,zmm6,zmm8      ; s2 ^= s0
+         vpxord    zmm3,zmm7,zmm9      ; s3 ^= s1
+         vpaddq    zmm0,zmm6,zmm0      ; result = rotl(...) + s0
+         vprolq    zmm3,zmm3,2D        ; rotl(x, 45)
+  ```
 
-| 场景 | A | B（128 位） | B（256 位） | B（512 位） |
-| --- | ---: | ---: | ---: | ---: |
-| 构造 + 首次采样 | 2.0 ns / 0 B | 455 ns / 112 B | 903 ns / 176 B | 1796 ns / 304 B |
-| 构造 + `Fill(32)` | 19–24 ns / 0 B | 478 ns / 112 B | 909 ns / 176 B | 1786 ns / 304 B |
-
-多出的字节就是批量状态本身：`32 + 32×lane 数` 加上对象头。构造里每个 lane 要做一次 Jump（4 个多项式 × 64 步），这是 Spec 要求的播种规则，没有用懒初始化把它藏到首次采样后面。所有采样调用本身是 0 B/op。
-
-## 正确性与随机质量
-
-- 测试工程里有一份独立的逐 lane 标量参考实现（自己的 SplitMix64、Jump、状态转换、乘高位拒绝和区间映射），与生产代码不共享代码路径。
-- 覆盖：五种 seed 的 lane 初始化与 512 轮输出；长度 0/1/2/3/`L±1`/`2L±1`/31/32/33/127/128/129/1024 的排放、轮尾丢弃与后续状态；有界 int 的拒绝顺序（含宽度 1 与 2 的幂区间）；有界 double 的标量公式逐位一致；单值/批量互不推进的双向隔离；空目标与非法区间不消费状态；正态尾块、相邻 lane 配对、相对误差 ≤1e-12 以及恰好消费 `ceil(N/L)` 轮。
-- 随机质量：固定 seed、每 lane 2^20 轮，检查每 bit 的 1 计数、每字节桶计数（7σ 预算）与相邻值的 Pearson 相关性；正态沿用 100 万样本的均值/方差/分位/尾部门槛。失败不重试、不换 seed。
-
-## JIT 证据（这轮性能改动从哪里来）
-
-### 2026-09-13 追加：ISA 旋转指令（AVX-512F / AVX-512VL `vprolq`，三种宽度全接入）
-
-按项目作者指示，`RotateLeft` 增加了 ISA 探测：宽度匹配且支持时走 `Avx512F.RotateLeft`（512 位）或 `Avx512F.VL.RotateLeft`／`Avx10v1.RotateLeft`（256 位与 128 位），否则回退到“两次移位 + 或”。宽度转换使用 `Vector<T>.AsVector512/256/128()` 与 `Vector512/256/128<T>.AsVector()`；与上一版 `Unsafe.BitCast` 的逐指令反汇编比较完全一致（144 行、唯一差异是 `call` 里的运行时地址），因此两种转换方式没有性能差异。
-
-复测（同一档位、同一次运行内对照）：
-
-| 场景 | 改动前候选 | 改动后候选 | 同档位基线 | 相对基线 |
-| --- | ---: | ---: | ---: | ---: |
-| 原始 `Fill(32)`，128 位 | 25.00 ns | 17.050 ns | 20.520 ns | 1.20× |
-| 原始 `Fill(128)`，128 位 | 97.15 ns | 64.480 ns | 76.130 ns | 1.18× |
-| 单位 double `Fill(128)`，128 位 | 108.83 ns | 73.260 ns | 79.860 ns | 1.09× |
-| 原始 `Fill(32)`，256 位 | 14.10 ns | 8.999 ns | 19.091 ns | 2.12× |
-| 原始 `Fill(128)`，256 位 | 49.06 ns | 32.834 ns | 73.212 ns | 2.23× |
-| 单位 double `Fill(128)`，256 位 | 54.72 ns | 36.950 ns | 78.020 ns | 2.11× |
-| 原始 `Fill(32)`，512 位 | 7.969 ns | 6.633 ns | 23.979 ns | 3.62× |
-| 原始 `Fill(128)`，512 位 | 25.887 ns | 17.946 ns | 94.585 ns | 5.27× |
-| 单位 double `Fill(128)`，512 位 | 28.209 ns | 19.971 ns | 84.379 ns | 4.22× |
-
-每轮成本：128 位原始填充 1.52 → 1.01 ns，256 位 1.53 → 1.03 ns，512 位 1.62 → 1.12 ns。四套配置的 170 个测试全部通过。
-
-128 位唯一仍未达门槛的是正态填充：候选 1682.3 ns、改动前 1031.3 ns（0.61×），瓶颈是 `Vector.Log`/`Vector.SinCos` 的软件实现与每对重复的超越函数计算，不随旋转指令改善。
-
-本节数字来自局部复测；`width-128/`、`width-256/` 与 `width-512/` 目录里其余场景（有界 double/int、正态、单值、构造）仍是 2026-09-12 整体矩阵的快照，将在下一次整体矩阵运行中刷新。原始报告见 `evidence/isa-rotate/`。
-
-反汇编显示批量转换体把四个状态向量一直放在寄存器里（512 位下为 `zmm0`–`zmm3`），循环里每轮只有一次 64 字节写入，状态字段只在进入和退出时各访问一次。这解决了两处实测出来的内存/计算浪费：
-
-1. **有界 int 填充的重复落栈**：早先版本在 lane 循环内部每次都把整条向量写回栈再按偏移读取（512 位下每轮 8 次 64 字节写）。现在整轮只落栈一次，再按 lane 顺序读。
-2. **循环内的 64 位除法**：拒绝阈值 `2^64 mod range` 原来在 lane 循环里重算，反汇编中能看到 `div`；现在每次调用只算一次。这两处合计把 512 位下的有界 int 填充从**慢 2.0 倍**改成**快 1.10 倍**。
-
-反汇编同时确认：原始状态推进使用向量加法/异或/移位/或；`StandardNormal.Fill` 的 `Log`、`SquareRoot`、`SinCos` 都在向量上执行。三个宽度的完整反汇编见各自证据目录下的 `Anastasya.Metaheuristics.Benchmarks.RsJitDiagnosticsBenchmarks-asm.md`。
+  `RotateLeft` 按宽度与指令集选择：512 位用 `Avx512F`，256/128 位用 `Avx512F.VL` 或 `Avx10v1`，其余平台（含 ARM64 的 NEON/SVE/SVE2）回退到“两次移位 + 或”。反汇编文件不入库，可用文末命令随时再生。
 
 ## 工程验证
 
-- Release 构建：`Metaheuristics.NET.slnx` 0 警告 0 错误。
-- 测试：`Metaheuristics.Tests` 在默认宽度、`DOTNET_MaxVectorTBitWidth=128`、`=512` 与 `DOTNET_EnableHWIntrinsic=0` 四种配置下各 170/170 通过。
-- 格式：`dotnet format --verify-no-changes`。
-- 文档：`eng/test-documentation-verifier.ps1` 与 `eng/verify-documentation.ps1`（既有缺口单独报告）。
-- 基准证据：三个宽度的 `-report-github.md` 与 `-asm.md`，见下文清单。
+- `dotnet build Metaheuristics.NET.slnx -c Release`：0 警告 0 错误。
+- `dotnet test tests/Metaheuristics.Tests`：默认、`DOTNET_MaxVectorTBitWidth=128`、`=512`、`DOTNET_EnableHWIntrinsic=0` 四种配置各 170/170 通过；软件路径实测 `Vector<ulong>.Count=2`、`IsHardwareAccelerated=False`。
+- `dotnet format --verify-no-changes`：通过。
+- `eng/test-documentation-verifier.ps1`：通过；`eng/verify-documentation.ps1` 只剩既有缺口（`SPEC-0008` 空目录，`SPEC-0011`–`SPEC-0014` 缺 Plan/Tasks/Verification），SPEC-0010 自身无错误。
+- DocFX：0 警告 0 错误。
 
 ## 需求覆盖
 
@@ -151,42 +99,27 @@
 | FR-002 | `NextULongVector`/`NextDoubleVector` 与路由 | `UnitVectorMatchesRawVectorMapping`、隔离测试 | spec、plan、XML 注释 | Passed |
 | FR-003 | 四个 `Fill` 重载的排放与拒绝 | `RawFillMatchesReferenceEmissionForAllShapeBoundaries`、`BoundedIntegerFillMatchesReferenceRejectionOrder` | spec、plan | Passed |
 | FR-004 | `StandardNormal.Fill` 向量数学 | `VectorFillMatchesScalarBoxMullerReferenceAndConsumesWholeRounds`、100 万样本统计 | spec、plan | Passed |
-| FR-005 | 单值数值/异常/确定性边界 | `RandomSourceTests` 既有用例、`EmptyAndInvalidOperationsPreserveStateAndTargets` | spec、plan | Passed |
-| FR-006 | 四 ref 向量内核与 SIMD 证据 | 三宽度测试、软件路径测试、`-asm.md` | spec、plan、ADR-0024 | Passed |
-| NFR-001 | 冻结候选与三宽度基准 | 本报告的 128/256/512 矩阵 | spec、plan | Failed |
+| FR-005 | 单值数值/异常/确定性边界 | `RandomSourceTests`、`EmptyAndInvalidOperationsPreserveStateAndTargets` | spec、plan | Passed |
+| FR-006 | 向量内核与 SIMD 证据 | 三宽度测试、软件路径测试、上面的反汇编摘录 | spec、plan、ADR-0024 | Passed |
+| NFR-001 | 三宽度性能矩阵 | 本报告的性能表 | spec、plan | Failed |
 | NFR-002 | 固定种子随机质量 | `BatchStreamsPassFixedSeedStatisticalChecks`、`FixedSeedMillionSampleStatisticsMeetTheApprovedThresholds` | spec、plan | Passed |
 
-NFR-001 为 `Failed`：接入 ISA 旋转指令后 128 位的原始与单位填充已是 1.09×–1.20×，但 128 位的正态填充仍是 0.61×，低于 Plan 事先写下的 0.90× 门槛。原因是 `StandardNormal.Fill` 的瓶颈在超越函数（`Vector.Log`/`Vector.SinCos` 的软件实现 + 相邻 lane 配对导致每对算两遍），不在状态推进，旋转指令无法改善。
+NFR-001 记 `Failed` 的唯一原因是 128 位正态填充（0.60×），Plan 对它写的要求是“不低于 0.90×”。
 
-## 删除与残留检查
+## 未达标项与待决定
 
-| 被替代概念 | 预期处理 | 残留搜索结果 | 结果 |
-| --- | --- | --- | --- |
-| 单组四字状态被全部入口共享 | 单值与批量状态分离 | `rg "NextRawFromFields\|_state0"` 只在单值路径与测试参考出现 | Passed |
-| `BatchCursor`/`BeginBatch`/`EndBatch` | 不引入 | 全仓库无匹配 | Passed |
-| 固定宽度 `Vector128/256/512` 与 ISA 专属 API | 生产代码不引入 | `src/Metaheuristics.Core` 无匹配 | Passed |
-| 中间脚本、临时工程与原始日志 | 删除，只留报告需要的证据 | 基准只保留 `-report-github.md` 与 `-asm.md` | Passed |
+128 位正态为什么慢：`StandardNormal.Fill` 按 Spec 的“相邻 lane 配对”实现，于是每个 pair 的 `log`/`sqrt` 在两个 lane 上各算一遍，`SinCos` 也算出 cos/sin 各两份（4 个值只用 2 个）。256/512 位时这点浪费被向量宽度摊平（仍有 1.1–1.3 倍），128 位时向量超越函数本身又不比标量 `Math` 快，浪费的一半就暴露成 0.60×。
 
-## 架构一致性
+两条路（需要项目作者决定）：
 
-- 策略职责保持独立：随机能力仍由 Core 的封闭 `RandomSource`/`StandardNormal` 提供，算法层不改。
-- 未新增无消费者抽象：没有接口、工厂、后端配置或游标类型。
-- 职责位置正确：状态与分布留在 Core Randomness，基准参考只在基准程序集，参考实现只在测试程序集。
-- 未引入兼容层：单值入口沿用 SPEC-0009 的行为，批量入口按 Spec 的新语义。
+1. 按 SIMD 重写正态：把两个 unit 向量打包后一次算完（消灭重复计算），用 ISA 门控的 lane 重排指令；估计 512 位从 7.1 ns/输出降到约 3.9 ns/输出，128 位也能回到 1.0× 附近。
+2. 接受现状：128 位（只有 2 lane 的环境）不使用批量正态，或接受它比标量慢。
 
-## 未解决问题
+另有一个不涉及性能的决定：`Fill(Span<int>, int, int)` 目前没有任何生产调用点（全仓库只有基准与测试用它），而它是唯一 SIMD 无收益的路径；建议删掉，将来 SPEC-0012 做批量索引抽样时再按 SIMD 方式重新设计。
 
-128 位宽度下批量路径慢于原实现，这是本轮唯一未达门槛的点，原因是结构性的：
+## 证据与复现
 
-- 原始状态推进在 `Vector<T>` 上必须写成“两次移位 + 一次或”来模拟循环左移（三条指令），而标量侧是一条 `rol`；本机 128 位整数向量运算的每周期吞吐也不高于标量整数运算，于是每轮 2 个样本没有换来吞吐收益。
-- 正态的 `Log`/`SinCos` 向量实现在只有 2 个 lane 时要贵于两次标量 `Math` 调用。
-- Spec 的 FR-006 要求批量内核只接受四个 `ref Vector<ulong>` 并使用向量运算，因此不能用标量 lane 专用路径绕过；要改变这一点需要先修订 Spec（以及 ADR-0024）并重新批准。
-
-可选处理方式（需要项目作者决定）：接受当前结论并在文档里标注 128 位不划算；或者先修订 Spec/ADR，允许对 128 位宽度使用标量 lane 推进后再实施并复测。
-
-## 证据清单与复现
-
-每个宽度一份目录：`evidence/width-{128,256,512}/`，其中包含本次基准全部场景的 `-report-github.md`（BenchmarkDotNet 原始汇总表）与 `-asm.md`（反汇编诊断）。
+证据只保留 BenchmarkDotNet 的 `-report-github.md` 汇总表：`evidence/width-128/`、`evidence/width-256/`、`evidence/width-512/`，每个目录 14 个文件（13 个对照场景类 + 1 个 JIT 诊断类）。没有脚本、原始日志或反汇编文件。
 
 ```sh
 dotnet build Metaheuristics.NET.slnx -c Release
@@ -194,5 +127,10 @@ dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj -c Release --
 DOTNET_MaxVectorTBitWidth=128 dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj -c Release --no-build
 DOTNET_MaxVectorTBitWidth=512 dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj -c Release --no-build
 DOTNET_EnableHWIntrinsic=0 dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj -c Release --no-build
-DOTNET_MaxVectorTBitWidth=512 dotnet run -c Release --project benchmarks/Metaheuristics.Benchmarks -- --filter "*Rs*Benchmarks*"
+
+# 性能矩阵：三个宽度各跑一次（--artifacts 可指向临时目录，只保留需要的报告文件）
+DOTNET_MaxVectorTBitWidth=128 dotnet run -c Release --project benchmarks/Metaheuristics.Benchmarks -- --filter "*Rs*Benchmarks*"
+
+# 上面摘录的反汇编（只跑诊断类，不需要保留文件）
+DOTNET_MaxVectorTBitWidth=512 dotnet run -c Release --project benchmarks/Metaheuristics.Benchmarks -- --filter "*RsJitDiagnostics*" --job Short
 ```

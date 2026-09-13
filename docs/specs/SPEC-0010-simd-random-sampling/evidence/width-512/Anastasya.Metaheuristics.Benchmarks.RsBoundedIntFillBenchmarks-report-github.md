@@ -9,10 +9,10 @@ AMD Ryzen 7 9800X3D 4.70GHz, 1 CPU, 16 logical and 8 physical cores
 IterationCount=12  WarmupCount=5  
 
 ```
-| Method        | Length | Mean      | Error    | StdDev   | Ratio | Allocated | Alloc Ratio |
-|-------------- |------- |----------:|---------:|---------:|------:|----------:|------------:|
-| **BaselineFill**  | **32**     |  **31.89 ns** | **0.018 ns** | **0.013 ns** |  **1.00** |         **-** |          **NA** |
-| CandidateFill | 32     |  29.08 ns | 0.051 ns | 0.040 ns |  0.91 |         - |          NA |
-|               |        |           |          |          |       |           |             |
-| **BaselineFill**  | **128**    | **121.20 ns** | **0.090 ns** | **0.065 ns** |  **1.00** |         **-** |          **NA** |
-| CandidateFill | 128    | 110.47 ns | 0.104 ns | 0.075 ns |  0.91 |         - |          NA |
+| Method        | Length | Mean      | Error    | StdDev   | Ratio | RatioSD | Allocated | Alloc Ratio |
+|-------------- |------- |----------:|---------:|---------:|------:|--------:|----------:|------------:|
+| **BaselineFill**  | **32**     |  **32.05 ns** | **0.040 ns** | **0.027 ns** |  **1.00** |    **0.00** |         **-** |          **NA** |
+| CandidateFill | 32     |  32.94 ns | 0.671 ns | 0.524 ns |  1.03 |    0.02 |         - |          NA |
+|               |        |           |          |          |       |         |           |             |
+| **BaselineFill**  | **128**    | **128.13 ns** | **1.348 ns** | **1.052 ns** |  **1.00** |    **0.01** |         **-** |          **NA** |
+| CandidateFill | 128    | 121.73 ns | 1.262 ns | 0.835 ns |  0.95 |    0.01 |         - |          NA |

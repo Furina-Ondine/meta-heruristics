@@ -9,12 +9,12 @@ AMD Ryzen 7 9800X3D 4.70GHz, 1 CPU, 16 logical and 8 physical cores
 IterationCount=12  WarmupCount=5  
 
 ```
-| Method              | Length | Mean      | Error    | StdDev   | Ratio | RatioSD | Allocated | Alloc Ratio |
-|-------------------- |------- |----------:|---------:|---------:|------:|--------:|----------:|------------:|
-| **BaselineFill**        | **32**     |  **19.82 ns** | **1.177 ns** | **0.919 ns** |  **1.00** |    **0.06** |         **-** |          **NA** |
-| CandidateFill       | 32     |  14.10 ns | 0.104 ns | 0.082 ns |  0.71 |    0.03 |         - |          NA |
-| ScalarReferenceFill | 32     |  65.42 ns | 2.154 ns | 1.682 ns |  3.31 |    0.16 |         - |          NA |
-|                     |        |           |          |          |       |         |           |             |
-| **BaselineFill**        | **128**    |  **73.28 ns** | **0.895 ns** | **0.647 ns** |  **1.00** |    **0.01** |         **-** |          **NA** |
-| CandidateFill       | 128    |  49.06 ns | 0.158 ns | 0.114 ns |  0.67 |    0.01 |         - |          NA |
-| ScalarReferenceFill | 128    | 254.48 ns | 1.769 ns | 1.170 ns |  3.47 |    0.03 |         - |          NA |
+| Method              | Length | Mean       | Error     | StdDev    | Ratio | RatioSD | Allocated | Alloc Ratio |
+|-------------------- |------- |-----------:|----------:|----------:|------:|--------:|----------:|------------:|
+| **BaselineFill**        | **32**     |  **19.103 ns** | **0.0469 ns** | **0.0310 ns** |  **1.00** |    **0.00** |         **-** |          **NA** |
+| CandidateFill       | 32     |   9.115 ns | 0.0062 ns | 0.0041 ns |  0.48 |    0.00 |         - |          NA |
+| ScalarReferenceFill | 32     |  64.485 ns | 0.2717 ns | 0.1965 ns |  3.38 |    0.01 |         - |          NA |
+|                     |        |            |           |           |       |         |           |             |
+| **BaselineFill**        | **128**    |  **73.277 ns** | **0.4672 ns** | **0.3378 ns** |  **1.00** |    **0.01** |         **-** |          **NA** |
+| CandidateFill       | 128    |  33.279 ns | 0.0348 ns | 0.0271 ns |  0.45 |    0.00 |         - |          NA |
+| ScalarReferenceFill | 128    | 255.452 ns | 0.8417 ns | 0.5567 ns |  3.49 |    0.02 |         - |          NA |

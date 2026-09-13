@@ -11,5 +11,5 @@ IterationCount=12  WarmupCount=5
 ```
 | Method             | Mean       | Error     | StdDev    | Ratio  | RatioSD | Gen0   | Allocated | Alloc Ratio |
 |------------------- |-----------:|----------:|----------:|-------:|--------:|-------:|----------:|------------:|
-| BaselineConstruct  |   2.072 ns | 0.0447 ns | 0.0323 ns |   1.00 |    0.02 |      - |         - |          NA |
-| CandidateConstruct | 903.199 ns | 3.0055 ns | 2.1732 ns | 435.90 |    6.67 | 0.0029 |     176 B |          NA |
+| BaselineConstruct  |   2.021 ns | 0.0075 ns | 0.0050 ns |   1.00 |    0.00 |      - |         - |          NA |
+| CandidateConstruct | 902.978 ns | 3.0997 ns | 2.4200 ns | 446.79 |    1.56 | 0.0029 |     176 B |          NA |

@@ -11,10 +11,10 @@ IterationCount=12  WarmupCount=5
 ```
 | Method              | Length | Mean       | Error     | StdDev    | Ratio | Allocated | Alloc Ratio |
 |-------------------- |------- |-----------:|----------:|----------:|------:|----------:|------------:|
-| **BaselineFill**        | **32**     |  **20.556 ns** | **0.0271 ns** | **0.0212 ns** |  **1.00** |         **-** |          **NA** |
-| CandidateFill       | 32     |   7.874 ns | 0.0065 ns | 0.0047 ns |  0.38 |         - |          NA |
-| ScalarReferenceFill | 32     |  67.606 ns | 0.1766 ns | 0.1379 ns |  3.29 |         - |          NA |
+| **BaselineFill**        | **32**     |  **20.469 ns** | **0.0232 ns** | **0.0181 ns** |  **1.00** |         **-** |          **NA** |
+| CandidateFill       | 32     |   6.927 ns | 0.0023 ns | 0.0017 ns |  0.34 |         - |          NA |
+| ScalarReferenceFill | 32     |  67.884 ns | 0.1039 ns | 0.0811 ns |  3.32 |         - |          NA |
 |                     |        |            |           |           |       |           |             |
-| **BaselineFill**        | **128**    |  **78.794 ns** | **0.0965 ns** | **0.0753 ns** |  **1.00** |         **-** |          **NA** |
-| CandidateFill       | 128    |  28.209 ns | 0.0097 ns | 0.0070 ns |  0.36 |         - |          NA |
-| ScalarReferenceFill | 128    | 268.183 ns | 0.5223 ns | 0.4078 ns |  3.40 |         - |          NA |
+| **BaselineFill**        | **128**    |  **78.771 ns** | **0.0824 ns** | **0.0545 ns** |  **1.00** |         **-** |          **NA** |
+| CandidateFill       | 128    |  19.720 ns | 0.0095 ns | 0.0063 ns |  0.25 |         - |          NA |
+| ScalarReferenceFill | 128    | 265.406 ns | 0.5193 ns | 0.3755 ns |  3.37 |         - |          NA |
