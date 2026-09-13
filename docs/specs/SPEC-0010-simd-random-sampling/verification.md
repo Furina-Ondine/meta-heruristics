@@ -8,6 +8,20 @@
 - 验证日期：2026-09-12
 - 最终结果：`Failed`
 
+## 名词对照（报告里的简称对应哪个 API）
+
+| 报告里的写法 | 对应 API | 写出来的东西 |
+| --- | --- | --- |
+| 原始填充、原始 `Fill(n)` | `RandomSource.Fill(Span<ulong>)` | n 个完整 64 位范围的均匀**原始**生成器输出（xoshiro256++ 的 raw 值） |
+| 单位 double 填充、单位填充 | `RandomSource.Fill(Span<double>)` | n 个半开区间 `[0,1)` 的 double，即 `(raw >> 11) * 2^-53` |
+| 有界 double 填充 | `RandomSource.Fill(Span<double>, minimum, maximum)` | n 个半开区间 `[min,max)` 的 double，含上界舍入修正 |
+| 有界 int 填充 | `RandomSource.Fill(Span<int>, minimum, maximum)` | n 个半开区间 `[min,max)` 的无偏整数（乘高位 + 拒绝采样） |
+| 正态填充 | `StandardNormal.Fill(random, Span<double>)` | n 个标准正态样本（Box–Muller，向量数学） |
+| 向量 API：原始 / 单位 | `RandomSource.NextULongVector()` / `NextDoubleVector()` | 一个向量宽度的**一轮**样本；后者是前者的 `[0,1)` 映射 |
+| 单值入口 | `NextULong()`、`NextDouble()`、`NextInt()`、`StandardNormal.Sample()` | 只推进标量状态的逐次采样 |
+
+“原始/单位”是 Spec 里 `raw` / `unit` 的中文写法；“一轮（round）”指状态推进一次、一次产出 `Vector<T>.Count` 个样本；`L` 就是 `Vector<ulong>.Count`（本机三种配置分别是 2/4/8）。“比原实现快 X 倍”一律是 `改动前耗时 ÷ 现在耗时`。
+
 ## 先说结论
 
 双状态随机源、两个向量采样入口和向量正态填充都已实现，正确性测试在 128、256、512 三种向量宽度和软件路径下全部通过。性能结论分三档：
@@ -142,7 +156,7 @@
 | NFR-001 | 冻结候选与三宽度基准 | 本报告的 128/256/512 矩阵 | spec、plan | Failed |
 | NFR-002 | 固定种子随机质量 | `BatchStreamsPassFixedSeedStatisticalChecks`、`FixedSeedMillionSampleStatisticsMeetTheApprovedThresholds` | spec、plan | Passed |
 
-NFR-001 为 `Failed`：128 位宽度下的批量原始/单位填充是 0.72×–0.79×，低于 Plan 事先写下的 0.90× 门槛。
+NFR-001 为 `Failed`：接入 ISA 旋转指令后 128 位的原始与单位填充已是 1.09×–1.20×，但 128 位的正态填充仍是 0.61×，低于 Plan 事先写下的 0.90× 门槛。原因是 `StandardNormal.Fill` 的瓶颈在超越函数（`Vector.Log`/`Vector.SinCos` 的软件实现 + 相邻 lane 配对导致每对算两遍），不在状态推进，旋转指令无法改善。
 
 ## 删除与残留检查
 
