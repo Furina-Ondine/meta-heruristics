@@ -1,6 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace Anastasya.Metaheuristics.Core.Randomness;
 
@@ -389,7 +392,7 @@ public sealed class RandomSource
         {
             // 一轮的原始字整轮只落栈一次，再按 lane 顺序检查：被拒绝的 lane 由后续轮次补足，
             // 轮尾未用样本丢弃。映射参数（拒绝阈值）在进入循环前算好，循环内不再做除法。
-            NextRaw(ref state0, ref state1, ref state2, ref state3).CopyTo(roundValues);
+            NextRaw(ref state0, ref state1, ref state2, ref state3).StoreUnsafe(ref roundSource);
             for (var lane = 0; lane < laneCount && index < destination.Length; lane++)
             {
                 if (TryMapBounded(Unsafe.Add(ref roundSource, lane), range, threshold, out var offset))
@@ -475,8 +478,8 @@ public sealed class RandomSource
     private static void WriteTail(ref ulong destination, Vector<ulong> values, int length)
     {
         Span<ulong> lanes = stackalloc ulong[Vector<ulong>.Count];
-        values.CopyTo(lanes);
         ref var source = ref MemoryMarshal.GetReference(lanes);
+        values.StoreUnsafe(ref source);
         for (var index = 0; index < length; index++)
         {
             Unsafe.Add(ref destination, index) = Unsafe.Add(ref source, index);
@@ -487,8 +490,8 @@ public sealed class RandomSource
     private static void WriteTail(ref double destination, Vector<double> values, int length)
     {
         Span<double> lanes = stackalloc double[Vector<double>.Count];
-        values.CopyTo(lanes);
         ref var source = ref MemoryMarshal.GetReference(lanes);
+        values.StoreUnsafe(ref source);
         for (var index = 0; index < length; index++)
         {
             Unsafe.Add(ref destination, index) = Unsafe.Add(ref source, index);
@@ -628,9 +631,31 @@ public sealed class RandomSource
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector<ulong> RotateLeft(Vector<ulong> value, int offset)
+    private static Vector<ulong> RotateLeft(Vector<ulong> value, [ConstantExpected(Min = 1, Max = 63)] byte offset)
     {
-        return (value << offset) | (value >> (WordBits - offset));
+        // 宽度匹配的硬件旋转指令优先：AVX-512F 的 vprolq（512 位）与 AVX10.1 的
+        // 128/256 位变体。Vector<T>.Count 与 IsSupported 都是 JIT 常量，未选中的分支会被
+        // 完全消除，因此这里没有运行时分派。ARM64（NEON/SVE/SVE2）没有 64 位 lane 的通用
+        // 旋转指令，落到下面的“两次移位 + 或”回退。
+        if (Vector<ulong>.Count == Vector512<ulong>.Count && Avx512F.IsSupported)
+        {
+            return Unsafe.BitCast<Vector512<ulong>, Vector<ulong>>(
+                Avx512F.RotateLeft(Unsafe.BitCast<Vector<ulong>, Vector512<ulong>>(value), offset));
+        }
+
+        if (Vector<ulong>.Count == Vector256<ulong>.Count && Avx10v1.IsSupported)
+        {
+            return Unsafe.BitCast<Vector256<ulong>, Vector<ulong>>(
+                Avx10v1.RotateLeft(Unsafe.BitCast<Vector<ulong>, Vector256<ulong>>(value), offset));
+        }
+
+        if (Vector<ulong>.Count == Vector128<ulong>.Count && Avx10v1.IsSupported)
+        {
+            return Unsafe.BitCast<Vector128<ulong>, Vector<ulong>>(
+                Avx10v1.RotateLeft(Unsafe.BitCast<Vector<ulong>, Vector128<ulong>>(value), offset));
+        }
+
+        return (value << offset) | (value >>> (WordBits - offset));
     }
 
     private static void Jump(
