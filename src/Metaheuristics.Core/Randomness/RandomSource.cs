@@ -634,22 +634,38 @@ public sealed class RandomSource
     private static Vector<ulong> RotateLeft(Vector<ulong> value, [ConstantExpected(Min = 1, Max = 63)] byte offset)
     {
         // 宽度匹配的硬件旋转指令优先：AVX-512F 的 vprolq（512 位），以及 AVX-512VL /
-        // AVX10.1 的 256 位变体。Vector<T>.Count 与 IsSupported 都是 JIT 常量，未选中的
-        // 分支会被完全消除，因此这里没有运行时分派。128 位按项目作者要求暂不接入；
-        // ARM64（NEON/SVE/SVE2）没有 64 位 lane 的通用旋转指令，落到下面的“两次移位 + 或”回退。
+        // AVX10.1 的 256/128 位变体。Vector<T>.Count 与 IsSupported 都是 JIT 常量，
+        // 未选中的分支会被完全消除，因此这里没有运行时分派。ARM64（NEON/SVE/SVE2）没有
+        // 64 位 lane 的通用旋转指令，落到下面的“两次移位 + 或”回退。
         if (Avx512F.IsSupported && Vector<ulong>.Count == Vector512<ulong>.Count)
         {
             return Avx512F.RotateLeft(value.AsVector512(), offset).AsVector();
         }
 
-        if (Avx512F.VL.IsSupported && Vector<ulong>.Count == Vector256<ulong>.Count)
+        if (Avx512F.VL.IsSupported)
         {
-            return Avx512F.VL.RotateLeft(value.AsVector256(), offset).AsVector();
+            if (Vector<ulong>.Count == Vector256<ulong>.Count)
+            {
+                return Avx512F.VL.RotateLeft(value.AsVector256(), offset).AsVector();
+            }
+
+            if (Vector<ulong>.Count == Vector128<ulong>.Count)
+            {
+                return Avx512F.VL.RotateLeft(value.AsVector128(), offset).AsVector();
+            }
         }
 
-        if (Avx10v1.IsSupported && Vector<ulong>.Count == Vector256<ulong>.Count)
+        if (Avx10v1.IsSupported)
         {
-            return Avx10v1.RotateLeft(value.AsVector256(), offset).AsVector();
+            if (Vector<ulong>.Count == Vector256<ulong>.Count)
+            {
+                return Avx10v1.RotateLeft(value.AsVector256(), offset).AsVector();
+            }
+
+            if (Vector<ulong>.Count == Vector128<ulong>.Count)
+            {
+                return Avx10v1.RotateLeft(value.AsVector128(), offset).AsVector();
+            }
         }
 
         return (value << offset) | (value >>> (WordBits - offset));
