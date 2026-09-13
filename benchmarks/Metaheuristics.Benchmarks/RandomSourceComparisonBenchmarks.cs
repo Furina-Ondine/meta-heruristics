@@ -26,7 +26,6 @@ public abstract class RandomSourceComparisonBenchmarksBase
     private protected RandomSourceScalarReference Reference = null!;
     private protected ulong[] RawValues = null!;
     private protected double[] DoubleValues = null!;
-    private protected int[] IntValues = null!;
 
     [Params(32, 128)]
     public int Length { get; set; }
@@ -39,7 +38,6 @@ public abstract class RandomSourceComparisonBenchmarksBase
         Reference = new RandomSourceScalarReference(Seed);
         RawValues = new ulong[Length];
         DoubleValues = new double[Length];
-        IntValues = new int[Length];
     }
 
     private protected static double Last(ulong[] values) => values.Length == 0 ? 0 : values[^1];
@@ -70,13 +68,6 @@ public class RsJitDiagnosticsBenchmarks : RandomSourceComparisonBenchmarksBase
     {
         Candidate.Fill(DoubleValues);
         return Last(DoubleValues);
-    }
-
-    [Benchmark]
-    public double BoundedIntFill()
-    {
-        Candidate.Fill(IntValues, BoundedIntegerMinimum, BoundedIntegerMaximum);
-        return Last(IntValues);
     }
 
     [Benchmark]
@@ -164,27 +155,6 @@ public class RsBoundedDoubleFillBenchmarks : RandomSourceComparisonBenchmarksBas
     {
         Candidate.Fill(DoubleValues, BoundedDoubleMinimum, BoundedDoubleMaximum);
         return Last(DoubleValues);
-    }
-}
-
-/// <summary>
-/// 有界整数批量填充：候选相对旧单流基线。
-/// </summary>
-[MemoryDiagnoser]
-public class RsBoundedIntFillBenchmarks : RandomSourceComparisonBenchmarksBase
-{
-    [Benchmark(Baseline = true)]
-    public double BaselineFill()
-    {
-        Baseline.Fill(IntValues, BoundedIntegerMinimum, BoundedIntegerMaximum);
-        return Last(IntValues);
-    }
-
-    [Benchmark]
-    public double CandidateFill()
-    {
-        Candidate.Fill(IntValues, BoundedIntegerMinimum, BoundedIntegerMaximum);
-        return Last(IntValues);
     }
 }
 

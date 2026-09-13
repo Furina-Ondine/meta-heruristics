@@ -9,7 +9,7 @@ AMD Ryzen 7 9800X3D 4.70GHz, 1 CPU, 16 logical and 8 physical cores
 IterationCount=12  WarmupCount=5  
 
 ```
-| Method             | Mean         | Error      | StdDev     | Ratio  | RatioSD | Gen0   | Allocated | Alloc Ratio |
-|------------------- |-------------:|-----------:|-----------:|-------:|--------:|-------:|----------:|------------:|
-| BaselineConstruct  |     2.006 ns |  0.0040 ns |  0.0029 ns |   1.00 |    0.00 |      - |         - |          NA |
-| CandidateConstruct | 1,789.963 ns | 17.3141 ns | 13.5177 ns | 892.36 |    6.59 | 0.0057 |     304 B |          NA |
+| Method             | Mean         | Error      | StdDev    | Ratio  | RatioSD | Gen0   | Allocated | Alloc Ratio |
+|------------------- |-------------:|-----------:|----------:|-------:|--------:|-------:|----------:|------------:|
+| BaselineConstruct  |     2.007 ns |  0.0046 ns | 0.0036 ns |   1.00 |    0.00 |      - |         - |          NA |
+| CandidateConstruct | 1,800.708 ns | 11.2222 ns | 8.7615 ns | 897.39 |    4.47 | 0.0057 |     304 B |          NA |

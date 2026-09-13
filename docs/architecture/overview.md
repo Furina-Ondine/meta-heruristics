@@ -10,7 +10,7 @@
 
 | 项目 | 实现现状 |
 | --- | --- |
-| `Metaheuristics.Core` | 已提供连续问题、有序扩展实数评估与比较、有状态 Optimizer、run Context、停止、轨迹、结果、单次 Runner API，以及由 Context 所有的封闭 `RandomSource`/`StandardNormal` 采样入口；run seed 和 Experiment seed 均为 `ulong`。`RandomSource` 同时持有四个标量状态字与四个运行时宽度（`Vector<T>.Count` 个 lane）的批量状态向量：单值入口只推进标量状态，`NextULongVector`、`NextDoubleVector`、全部 `Fill` 重载与 `StandardNormal.Fill` 只推进批量状态，批量状态由 `Jump` 为每个 lane 派生起点。内置 Clamp、Reflect 与 RandomReset 仅支持同形状的标量端点或逐维向量端点，工厂在创建时分派到专用私有类型。Clamp 使用 `System.Numerics.Tensors` 的逐元素实现；Reflect 以对应标量端点或逐维端点的简单标量循环逐元素处理，保留既有特殊值和镜像数值语义。Core 不再使用 SIMD 源码生成；仓库私有生成器只服务 Algorithms 的固定宽度向量算术，运行时不加载生成器。 |
+| `Metaheuristics.Core` | 已提供连续问题、有序扩展实数评估与比较、有状态 Optimizer、run Context、停止、轨迹、结果、单次 Runner API，以及由 Context 所有的封闭 `RandomSource`/`StandardNormal` 采样入口；run seed 和 Experiment seed 均为 `ulong`。`RandomSource` 同时持有四个标量状态字与四个运行时宽度（`Vector<T>.Count` 个 lane）的批量状态向量：单值入口只推进标量状态，`NextULongVector`、`NextDoubleVector`、三个 `Fill` 重载与 `StandardNormal.Fill` 只推进批量状态，批量状态由 `Jump` 为每个 lane 派生起点；批量状态推进在支持的平台上使用 ISA 旋转指令，其余平台回退到移位+或。内置 Clamp、Reflect 与 RandomReset 仅支持同形状的标量端点或逐维向量端点，工厂在创建时分派到专用私有类型。Clamp 使用 `System.Numerics.Tensors` 的逐元素实现；Reflect 以对应标量端点或逐维端点的简单标量循环逐元素处理，保留既有特殊值和镜像数值语义。Core 不再使用 SIMD 源码生成；仓库私有生成器只服务 Algorithms 的固定宽度向量算术，运行时不加载生成器。 |
 | `Metaheuristics.Algorithms` | 已提供连续蝙蝠、PSO、萤火虫和布谷鸟算法；每种算法都有强类型配置、RunGroup 私有工作区与顺序 run 复用。PSO 的候选速度公式以及 Firefly 的距离/位置移动在直接 TensorPrimitives 组合未通过各自门槛后，由 Algorithms 私有 512/256/128 位级联计算；PSO 的速度限幅和位置更新仍使用 TensorPrimitives。级联、硬件门及仅随位宽变化的块体在编译期由受限模板展开，算法公式、标量尾部、随机/Repair 时点和工作区继续由 Algorithms 私有实现；运行时不引入共享 SIMD 抽象。 |
 | `Metaheuristics.Experiments` | 已提供强类型 Case、RunGroup 规划、有界并发、共享 seed、部分失败/取消结果，以及可显式表达 Infinity 未定义项的基本统计。 |
 | `Metaheuristics.Examples` | 已提供四种内置算法的单次运行和可替换 Optimizer 的 Experiment 示例。 |
@@ -19,7 +19,7 @@
 
 ## 已批准、尚未实现的演进
 
-[SIMD 联合规格](../specs/simd-review.md) 已批准原始随机状态 SIMD 和四种算法增量优化。随机源部分已实施：[SPEC-0010](../specs/SPEC-0010-simd-random-sampling/spec.md) 的双状态自适应向量实现已落地并通过正确性验证，其[验证报告](../specs/SPEC-0010-simd-random-sampling/verification.md)记录 128 位宽度下批量填充慢于原实现，因此 Spec 仍为 `Implementing`。SPEC-0011 至 SPEC-0014 的算法批量化与 SIMD 增量尚未制定 Plan，也未实施。决策见 [ADR-0024](../decisions/0024-adaptive-vector-random-api.md)（替代 [ADR-0023](../decisions/0023-separate-scalar-and-batch-random-state.md) 与 [ADR-0021](../decisions/0021-run-private-simd-random-lanes.md)）和 [ADR-0022](../decisions/0022-batched-algorithm-simd-fusion.md)。
+[SIMD 联合规格](../specs/simd-review.md) 已批准原始随机状态 SIMD 和四种算法增量优化。随机源部分已完成：[SPEC-0010](../specs/SPEC-0010-simd-random-sampling/spec.md) 的双状态自适应向量实现与其[验证报告](../specs/SPEC-0010-simd-random-sampling/verification.md)显示三种向量宽度下批量填充比原实现快 1.1–4.0 倍、正态快 2.2–5.9 倍，Spec 状态为 `Implemented`。SPEC-0011 至 SPEC-0014 的算法批量化与 SIMD 增量尚未制定 Plan，也未实施。决策见 [ADR-0024](../decisions/0024-adaptive-vector-random-api.md)（替代 [ADR-0023](../decisions/0023-separate-scalar-and-batch-random-state.md) 与 [ADR-0021](../decisions/0021-run-private-simd-random-lanes.md)）和 [ADR-0022](../decisions/0022-batched-algorithm-simd-fusion.md)。
 
 ## 项目依赖
 

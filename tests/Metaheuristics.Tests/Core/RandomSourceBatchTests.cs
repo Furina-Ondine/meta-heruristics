@@ -140,36 +140,6 @@ public sealed class RandomSourceBatchTests
     }
 
     /// <summary>
-    /// 验证有界整数批量填充的无偏映射、拒绝顺序与宽度为 1 的区间。
-    /// </summary>
-    [Xunit.Fact]
-    public void BoundedIntegerFillMatchesReferenceRejectionOrder()
-    {
-        var ranges = new (int Minimum, int Maximum)[]
-        {
-            (-5, 5),
-            (0, 64),
-            (17, 18),
-            (0, 1_073_741_825),
-            (int.MinValue, int.MaxValue),
-        };
-        foreach (var (minimum, maximum) in ranges)
-        {
-            foreach (var length in new[] { 1, LaneCount, LaneCount + 1, 1000 })
-            {
-                var source = new RandomSource(0x5EED_0002);
-                var lanes = CreateReferenceLanes(0x5EED_0002);
-                var values = new int[length];
-
-                source.Fill(values, minimum, maximum);
-
-                Xunit.Assert.Equal(ReferenceFillBoundedInt(lanes, length, minimum, maximum), values);
-                AssertLanesEqual(ReferenceNextRound(lanes), source.NextULongVector());
-            }
-        }
-    }
-
-    /// <summary>
     /// 验证单值入口与批量入口互不推进，且各自与独立参考一致。
     /// </summary>
     [Xunit.Fact]
@@ -181,7 +151,6 @@ public sealed class RandomSourceBatchTests
         var lanes = CreateReferenceLanes(seed);
         var rawBuffer = new ulong[LaneCount + 3];
         var unitBuffer = new double[LaneCount + 3];
-        var intBuffer = new int[LaneCount + 3];
 
         for (var iteration = 0; iteration < 64; iteration++)
         {
@@ -199,9 +168,6 @@ public sealed class RandomSourceBatchTests
             {
                 Xunit.Assert.Equal((unitReference[index] >> 11) * (1.0 / 9007199254740992.0), unitBuffer[index]);
             }
-
-            source.Fill(intBuffer, -3, 4);
-            Xunit.Assert.Equal(ReferenceFillBoundedInt(lanes, intBuffer.Length, -3, 4), intBuffer);
         }
     }
 
@@ -288,14 +254,12 @@ public sealed class RandomSourceBatchTests
         var source = new RandomSource(0x1234_5678);
         var rawBuffer = new ulong[33];
         var unitBuffer = new double[33];
-        var intBuffer = new int[33];
         for (var iteration = 0; iteration < 16; iteration++)
         {
             _ = source.NextULongVector();
             _ = source.NextDoubleVector();
             source.Fill(rawBuffer);
             source.Fill(unitBuffer);
-            source.Fill(intBuffer, -5, 5);
         }
 
         var before = GC.GetAllocatedBytesForCurrentThread();
@@ -305,7 +269,6 @@ public sealed class RandomSourceBatchTests
             _ = source.NextDoubleVector();
             source.Fill(rawBuffer);
             source.Fill(unitBuffer);
-            source.Fill(intBuffer, -5, 5);
         }
 
         Xunit.Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
@@ -373,47 +336,6 @@ public sealed class RandomSourceBatchTests
                 }
 
                 values.Add(value);
-            }
-        }
-
-        return [.. values];
-    }
-
-    private static int[] ReferenceFillBoundedInt(ulong[][] lanes, int length, int minimum, int maximum)
-    {
-        var range = (ulong)((long)maximum - minimum);
-        var threshold = unchecked((0UL - range) % range);
-        var values = new List<int>(length);
-        while (values.Count < length)
-        {
-            foreach (var raw in ReferenceNextRound(lanes))
-            {
-                if (values.Count == length)
-                {
-                    break;
-                }
-
-                ulong offset;
-                if (range == 1)
-                {
-                    offset = 0;
-                }
-                else if ((range & (range - 1)) == 0)
-                {
-                    offset = raw >> (64 - BitOperations.TrailingZeroCount(range));
-                }
-                else
-                {
-                    var product = (UInt128)raw * range;
-                    if ((ulong)product < threshold)
-                    {
-                        continue;
-                    }
-
-                    offset = (ulong)(product >> 64);
-                }
-
-                values.Add((int)((long)minimum + (long)offset));
             }
         }
 

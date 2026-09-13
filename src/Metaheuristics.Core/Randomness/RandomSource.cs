@@ -363,51 +363,6 @@ public sealed class RandomSource
         return (int)((long)minimum + (long)offset);
     }
 
-    /// <summary>
-    /// 将半开区间 <c>[minimum, maximum)</c> 内无偏的整数写入调用方拥有的 span。
-    /// </summary>
-    /// <param name="destination">要写入的 span；无效端点会在状态或目标发生变化前被拒绝。</param>
-    /// <param name="minimum">包含下端点。</param>
-    /// <param name="maximum">排除上端点。</param>
-    /// <exception cref="ArgumentException"><paramref name="minimum"/> 不小于 <paramref name="maximum"/>。</exception>
-    public void Fill(Span<int> destination, int minimum, int maximum)
-    {
-        ValidateIntegerRange(minimum, maximum);
-        if (destination.IsEmpty)
-        {
-            return;
-        }
-
-        var laneCount = Vector<ulong>.Count;
-        var range = (ulong)((long)maximum - minimum);
-        var state0 = _batchState0;
-        var state1 = _batchState1;
-        var state2 = _batchState2;
-        var state3 = _batchState3;
-        var threshold = BoundedThreshold(range);
-        Span<ulong> roundValues = stackalloc ulong[laneCount];
-        ref var roundSource = ref MemoryMarshal.GetReference(roundValues);
-        var index = 0;
-        while (index < destination.Length)
-        {
-            // 一轮的原始字整轮只落栈一次，再按 lane 顺序检查：被拒绝的 lane 由后续轮次补足，
-            // 轮尾未用样本丢弃。映射参数（拒绝阈值）在进入循环前算好，循环内不再做除法。
-            NextRaw(ref state0, ref state1, ref state2, ref state3).StoreUnsafe(ref roundSource);
-            for (var lane = 0; lane < laneCount && index < destination.Length; lane++)
-            {
-                if (TryMapBounded(Unsafe.Add(ref roundSource, lane), range, threshold, out var offset))
-                {
-                    destination[index++] = (int)((long)minimum + (long)offset);
-                }
-            }
-        }
-
-        _batchState0 = state0;
-        _batchState1 = state1;
-        _batchState2 = state2;
-        _batchState3 = state3;
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ValidateDoubleRange(double minimum, double maximum)
     {

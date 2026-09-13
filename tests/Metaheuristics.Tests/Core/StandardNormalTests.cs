@@ -24,7 +24,7 @@ public sealed class StandardNormalTests
     }
 
     /// <summary>
-    /// 验证批量正态的相邻 lane 配对、尾部处理、向量数学结果与整轮消费量。
+    /// 验证批量正态的双向量配对、尾部处理、向量数学结果与块消费量。
     /// </summary>
     [Xunit.Fact]
     public void VectorFillMatchesScalarBoxMullerReferenceAndConsumesWholeRounds()
@@ -43,16 +43,12 @@ public sealed class StandardNormalTests
             var expected = new List<double>(length);
             while (expected.Count < length)
             {
-                var unit = units.NextDoubleVector();
-                for (var lane = 0; lane < laneCount; lane += 2)
+                var radiusInput = units.NextDoubleVector();
+                var angleInput = units.NextDoubleVector();
+                for (var lane = 0; lane < laneCount && expected.Count < length; lane++)
                 {
-                    if (expected.Count == length)
-                    {
-                        break;
-                    }
-
-                    var radius = Math.Sqrt(-2 * Math.Log(1 - unit[lane]));
-                    var angle = 2 * Math.PI * unit[lane + 1];
+                    var radius = Math.Sqrt(-2 * Math.Log(1 - radiusInput[lane]));
+                    var angle = 2 * Math.PI * angleInput[lane];
                     expected.Add(radius * Math.Cos(angle));
                     if (expected.Count < length)
                     {
@@ -70,8 +66,9 @@ public sealed class StandardNormalTests
                     $"index {index}: {values[index]} vs {reference}");
             }
 
-            // 每个非空调用恰好消费 ceil(length / L) 轮批量状态，且完全不推进单值状态。
-            var rounds = ((length + laneCount) - 1) / laneCount;
+            // 每个块消耗两轮批量状态（2*L 个输出），尾部不足一块时仍消耗完整一块；
+            // 整个调用完全不推进单值状态。
+            var rounds = 2 * (((length + (2 * laneCount)) - 1) / (2 * laneCount));
             var advanced = new RandomSource(seed);
             for (var round = 0; round < rounds; round++)
             {

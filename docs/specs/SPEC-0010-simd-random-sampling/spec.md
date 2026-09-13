@@ -3,7 +3,7 @@
 ## 元数据
 
 - 编号：`SPEC-0010`
-- 状态：`Implementing`
+- 状态：`Implemented`
 - 创建日期：2026-09-06
 - 修订日期：2026-09-08
 - 批准人：项目作者
@@ -76,16 +76,18 @@ public Vector<double> NextDoubleVector();
 - 前置条件：合法非空 Fill。
 - 触发行为：生成目标样本。
 - 预期结果：每轮推进 L 个 lane，按 lane 0 至 L-1 使用原始字；完整块后继续下一轮，公开调用末尾丢弃未用原始字。raw/unit/bounded double 各输出消耗一个原始字，推进轮数为 ceil(length/L)。可直接调用四 ref Vector 内核，不要求每个 RandomSource.Fill 经公开向量方法逐层转发。
-- 边界情况：有界整数按同一交织顺序检查原始字，拒绝就继续取下一个，直至填满目标；宽度 1 仍消费原始字。使用调用内普通局部输出向量/索引处理剩余 lane，不引入游标类型或跨调用缓存。内部分块不得额外丢弃原始字。
-- 验收标准：独立参考覆盖 0、1、2、L-1、L、L+1、2L-1、2L、2L+1、31、32、33、127、128、129、1024，验证输出和后续批量状态；拒绝跨轮测试通过。
+- 边界情况：使用调用内普通局部输出向量/索引处理剩余 lane，不引入游标类型或跨调用缓存。内部分块不得额外丢弃原始字。
+- 验收标准：独立参考覆盖 0、1、2、L-1、L、L+1、2L-1、2L、2L+1、31、32、33、127、128、129、1024，验证输出和后续批量状态。
+
+2026-09-13 项目作者决定：删除 `Fill(Span<int>, int, int)` 重载。它没有生产消费者，且是唯一向量化无收益的路径（每个 lane 都要做一次 64 位乘高位 + 拒绝判断）。批量有界整数将来由 SPEC-0012 的 Plan 按 SIMD 方式重新设计；无偏整数映射继续由 `NextInt` 单值路径承担，宽度为 1 的区间仍消费一个原始字。
 
 ### FR-004：StandardNormal.Fill 使用向量采样
 
 - 前置条件：random 非 null，目标合法。
 - 触发行为：StandardNormal.Fill。
-- 预期结果：每块调用一次 `random.NextDoubleVector()`，在返回向量内部按相邻 lane 配对：lane 2j 为半径输入 u、lane 2j+1 为角度输入 v，计算 `r = sqrt(-2*log(1-u))`、`a = 2*pi*v`，按 r*cos(a)、r*sin(a) 顺序写入。一个完整向量提供 L 个正态输出。当前 Vector<double> 支持的 Count 为偶数，按其实际 Count 分块。取得单位向量后，半径、角度及 Log/Sqrt/Sin/Cos 计算必须使用 System.Numerics.Vector API（允许合并的 SinCos）；不得逐 lane 调用 Math.Log、Math.Sqrt、Math.Sin、Math.Cos 或 Math.SinCos。
-- 边界情况：不足 L 个输出仍调用一次向量方法，只写剩余目标；最后一个单独输出使用完整的一对输入并丢弃配对第二个正态值，未使用的 lane 也不跨调用保留。尾块仍执行完整向量数学，只限制最终写入数量，不能退回标量超越函数。空目标不调用向量方法；null 仍在空目标之前验证。Sample 继续调用原标量路径。
-- 验收标准：对非空长度 N，恰好消费 ceil(N/L) 轮批量状态；用逐 lane 参考验证配对、尾部及后续状态，不调用标量 NextDouble 补尾。不承诺与连续 Sample 或不同 Fill 切分等价。正态向量结果不要求与逐 lane Math 逐位一致；Plan 固定数值容差，并用统计与真实向量调用/JIT 证据共同验收。
+- 预期结果：每个块取两个单位样本向量：第一个提供半径输入 u，第二个提供角度输入 v，同一 lane 的 u、v 配成一对，计算 `r = sqrt(-2*log(1-u))`、`a = 2*pi*v`，按 r*cos(a)、r*sin(a) 顺序交错写入。一个块产出 2L 个正态输出、消耗两轮批量状态，**每个 lane 都参与运算**（不存在重复计算）。取得单位向量后，半径、角度及 Log/Sqrt/Sin/Cos 计算必须使用 System.Numerics.Vector API（允许合并的 SinCos）；不得逐 lane 调用 Math.Log、Math.Sqrt、Math.Sin、Math.Cos 或 Math.SinCos。
+- 边界情况：最后一个不足 2L 个输出的块仍取两个向量、执行完整向量数学，只写剩余目标；未使用的 lane 不跨调用保留。空目标不调用向量方法；null 仍在空目标之前验证。Sample 继续调用原标量成对路径，与批量路径不保证同一序列。
+- 验收标准：对非空长度 N，恰好消费 `2*ceil(N/(2L))` 轮批量状态；用逐 lane 参考验证配对、尾部及后续状态，不调用标量 NextDouble 补尾。不承诺与连续 Sample 或不同 Fill 切分等价。正态向量结果不要求与逐 lane Math 逐位一致；Plan 固定数值容差，并用统计与真实向量调用/JIT 证据共同验收。
 
 ### FR-005：数值与确定性边界
 

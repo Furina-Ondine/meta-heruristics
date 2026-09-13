@@ -113,7 +113,7 @@ public sealed class RandomSourceTests
         Xunit.Assert.Empty(type.GetConstructors(BindingFlags.Public | BindingFlags.Instance));
         Xunit.Assert.DoesNotContain(type.GetInterfaces(), static interfaceType => interfaceType.Name == "IRandomSource");
         Xunit.Assert.Equal(
-            ["Fill", "Fill", "Fill", "Fill", "NextDouble", "NextDouble", "NextDoubleVector", "NextInt", "NextULong", "NextULongVector"],
+            ["Fill", "Fill", "Fill", "NextDouble", "NextDouble", "NextDoubleVector", "NextInt", "NextULong", "NextULongVector"],
             type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
                 .Where(static method => !method.IsSpecialName)
                 .Select(static method => method.Name)
@@ -133,7 +133,6 @@ public sealed class RandomSourceTests
         source.Fill(Span<ulong>.Empty);
         source.Fill(Span<double>.Empty);
         source.Fill(Span<double>.Empty, -1.0, 1.0);
-        source.Fill(Span<int>.Empty, -10, 10);
 
         // 空目标既不写目标，也不消费两套状态中的任何一套。
         Xunit.Assert.True(batchExpected.NextULongVector() == source.NextULongVector());
@@ -143,9 +142,8 @@ public sealed class RandomSourceTests
         Xunit.Assert.Throws<ArgumentOutOfRangeException>(() => source.Fill(target, 0, double.PositiveInfinity));
         Xunit.Assert.Equal([3.0, 4.0], target);
 
-        var intTarget = new[] { 3, 4 };
-        Xunit.Assert.Throws<ArgumentException>(() => source.Fill(intTarget, 10, 10));
-        Xunit.Assert.Equal([3, 4], intTarget);
+        Xunit.Assert.Throws<ArgumentException>(() => source.Fill(target, 1.0, 1.0));
+        Xunit.Assert.Equal([3.0, 4.0], target);
 
         // 失败之后两套状态都没有推进。
         Xunit.Assert.Equal(scalarExpected.NextULong(), source.NextULong());
@@ -179,15 +177,6 @@ public sealed class RandomSourceTests
     [Xunit.Fact]
     public void IntegerSamplesSupportTheFullIntRange()
     {
-        var source = new RandomSource(123);
-        var values = new int[10_000];
-        source.Fill(values, int.MinValue, int.MaxValue);
-        Xunit.Assert.All(values, static value => Xunit.Assert.InRange(value, int.MinValue, int.MaxValue - 1));
-
-        var single = new int[256];
-        source.Fill(single, -3, 4);
-        Xunit.Assert.All(single, static value => Xunit.Assert.InRange(value, -3, 3));
-
         var powerOfTwoSource = new RandomSource(456);
         var powerOfTwoState = CreateReferenceState(456);
         for (var index = 0; index < 10_000; index++)

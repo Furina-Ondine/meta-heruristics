@@ -11,8 +11,8 @@ IterationCount=12  WarmupCount=5
 ```
 | Method          | Length | Mean     | Error    | StdDev   | Ratio | Allocated | Alloc Ratio |
 |---------------- |------- |---------:|---------:|---------:|------:|----------:|------------:|
-| **BaselineSample**  | **32**     | **13.19 ns** | **0.055 ns** | **0.040 ns** |  **1.00** |         **-** |          **NA** |
-| CandidateSample | 32     | 13.17 ns | 0.056 ns | 0.040 ns |  1.00 |         - |          NA |
+| **BaselineSample**  | **32**     | **13.52 ns** | **0.058 ns** | **0.045 ns** |  **1.00** |         **-** |          **NA** |
+| CandidateSample | 32     | 13.13 ns | 0.062 ns | 0.049 ns |  0.97 |         - |          NA |
 |                 |        |          |          |          |       |           |             |
-| **BaselineSample**  | **128**    | **13.22 ns** | **0.080 ns** | **0.062 ns** |  **1.00** |         **-** |          **NA** |
-| CandidateSample | 128    | 13.19 ns | 0.063 ns | 0.049 ns |  1.00 |         - |          NA |
+| **BaselineSample**  | **128**    | **13.55 ns** | **0.079 ns** | **0.062 ns** |  **1.00** |         **-** |          **NA** |
+| CandidateSample | 128    | 13.14 ns | 0.060 ns | 0.047 ns |  0.97 |         - |          NA |

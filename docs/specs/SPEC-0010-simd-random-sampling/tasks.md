@@ -26,7 +26,7 @@
 - 依赖：T002
 - 实施内容：只比较随机源自身；`DOTNET_MaxVectorTBitWidth` 取 128/256/512 三种宽度；A 为 SPEC-0009 副本、R 为标量参考；记录每个宽度的 `Vector<ulong>.Count` 与分配；用反汇编确认批量状态算术与正态向量数学实际执行。
 - 验收门槛：见 [`plan.md`](./plan.md) 的“性能口径与门槛”。
-- 验证结果：三宽度矩阵与反汇编证据已完成并写入 [`verification.md`](./verification.md)。256/512 位全部达标；128 位的批量原始/单位填充为 0.72×–0.79×，低于 0.90× 门槛，NFR-001 记为 `Failed`，处理方式待项目作者决定。
+- 验证结果：三宽度矩阵与反汇编证据已完成并写入 [`verification.md`](./verification.md)。ISA 旋转指令、正态双向量重写与 int Fill 删除之后，三个宽度全部达标：原始/单位填充 1.09×–4.00×、有界 double 1.35×–4.55×、正态 2.17×–5.88×，NFR-001 记为 `Passed`。
 
 ## T004：文档与最终清理
 
@@ -34,4 +34,4 @@
 - 覆盖需求：FR-001、FR-002、FR-003、FR-004、FR-005、FR-006、NFR-001、NFR-002
 - 依赖：T003
 - 实施内容：`verification.md` 用直白语言写结论与读法；证据只保留最终报告需要的 BenchmarkDotNet 报告与反汇编；删除中间脚本、临时项目与原始日志；更新 Spec 状态与 ADR/架构说明。
-- 验证结果：`verification.md`、证据索引与三宽度产物已就位；Spec 与索引状态同步为 `Implementing`（因为 NFR-001 未通过，未标记 `Implemented`）；架构概览已同步。
+- 验证结果：`verification.md`、证据索引与三宽度产物已就位；Spec 与索引状态同步为 `Implemented`；架构概览与 ADR-0024 已同步。
