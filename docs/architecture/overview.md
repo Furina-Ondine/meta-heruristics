@@ -19,7 +19,7 @@
 
 ## 已批准、尚未实现的演进
 
-[SIMD 联合规格](../specs/simd-review.md) 已批准原始随机状态 SIMD 和四种算法增量优化。随机源部分已实现：[SPEC-0010](../specs/SPEC-0010-simd-random-sampling/spec.md) 的双状态自适应向量实现与其[验证报告](../specs/SPEC-0010-simd-random-sampling/verification.md)显示三种向量宽度下批量填充比原实现快 1.1–4.0 倍、正态快 2.25–7.4 倍；其中三处需求文字（删除 int Fill、正态双向量配对与向量粒度写出、ISA 旋转例外）是实施中按项目作者指示修改的，**正在等待重新批准**，因此 Spec 状态为 `Implementing`。SPEC-0011 至 SPEC-0014 的算法批量化与 SIMD 增量尚未制定 Plan，也未实施。决策见 [ADR-0024](../decisions/0024-adaptive-vector-random-api.md)（替代 [ADR-0023](../decisions/0023-separate-scalar-and-batch-random-state.md) 与 [ADR-0021](../decisions/0021-run-private-simd-random-lanes.md)）和 [ADR-0022](../decisions/0022-batched-algorithm-simd-fusion.md)。
+[SIMD 联合规格](../specs/simd-review.md) 已批准原始随机状态 SIMD 和四种算法增量优化。随机源部分已完成：[SPEC-0010](../specs/SPEC-0010-simd-random-sampling/spec.md) 的双状态自适应向量实现与其[验证报告](../specs/SPEC-0010-simd-random-sampling/verification.md)显示三种向量宽度下批量填充比原实现快 1.1–4.0 倍、正态快 2.25–7.4 倍；其中三处需求文字（删除 int Fill、正态双向量配对与向量粒度写出、ISA 旋转例外）已由项目作者于 2026-09-14 批准，Spec 状态为 `Implemented`。SPEC-0011 至 SPEC-0014 的算法批量化与 SIMD 增量尚未制定 Plan，也未实施。决策见 [ADR-0024](../decisions/0024-adaptive-vector-random-api.md)（替代 [ADR-0023](../decisions/0023-separate-scalar-and-batch-random-state.md) 与 [ADR-0021](../decisions/0021-run-private-simd-random-lanes.md)）和 [ADR-0022](../decisions/0022-batched-algorithm-simd-fusion.md)。
 
 ## 项目依赖
 

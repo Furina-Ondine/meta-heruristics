@@ -3,7 +3,7 @@
 ## 元数据
 
 - 编号：`SPEC-0010`
-- 状态：`Implementing`
+- 状态：`Implemented`
 - 创建日期：2026-09-06
 - 修订日期：2026-09-08
 - 批准人：项目作者
@@ -85,7 +85,7 @@ public Vector<double> NextDoubleVector();
 
 - 前置条件：random 非 null，目标合法。
 - 触发行为：StandardNormal.Fill。
-- 预期结果：每个块取两个单位样本向量：第一个提供半径输入 u，第二个提供角度输入 v，同一 lane 的 u、v 配成一对，计算 `r = sqrt(-2*log(1-u))`、`a = 2*pi*v`。一个块产出 2L 个正态输出、消耗两轮批量状态，**每个 lane 都参与运算**（不存在重复计算）。写出按向量粒度：先写入 L 个 r*cos(a)，再写入 L 个 r*sin(a)，不做逐值交错。取得单位向量后，半径、角度及 Log/Sqrt/Sin/Cos 计算必须使用 System.Numerics.Vector API（允许合并的 SinCos）；不得逐 lane 调用 Math.Log、Math.Sqrt、Math.Sin、Math.Cos 或 Math.SinCos。
+- 预期结果：每个块取两个单位样本向量：第一个提供半径输入 u，第二个提供角度输入 v，同一 lane 的 u、v 配成一对，计算 `r = sqrt(-2*log(1-u))`、`a = 2*pi*v`。一个块产出 2L 个正态输出、消耗两轮批量状态。写出按向量粒度：先写入 L 个 r*cos(a)，再写入 L 个 r*sin(a)，不做逐值交错。取得单位向量后，半径、角度及 Log/Sqrt/Sin/Cos 计算必须使用 System.Numerics.Vector API（允许合并的 SinCos）；不得逐 lane 调用 Math.Log、Math.Sqrt、Math.Sin、Math.Cos 或 Math.SinCos。
 - 边界情况：最后一个不足 2L 个输出的块仍取两个向量、执行完整向量数学，只写剩余目标；未使用的 lane 不跨调用保留。空目标不调用向量方法；null 仍在空目标之前验证。Sample 继续调用原标量成对路径，与批量路径不保证同一序列。
 - 验收标准：对非空长度 N，恰好消费 `2*ceil(N/(2L))` 轮批量状态；用逐 lane 参考验证配对、尾部及后续状态，不调用标量 NextDouble 补尾。不承诺与连续 Sample 或不同 Fill 切分等价。正态向量结果不要求与逐 lane Math 逐位一致；Plan 固定数值容差，并用统计与真实向量调用/JIT 证据共同验收。
 
@@ -148,12 +148,15 @@ public Vector<double> NextDoubleVector();
 
 - 2026-09-08：项目作者通过“同意”批准自适应 Vector 修订，并明确要求 StandardNormal.Fill 的 Sin/Cos 继续直接使用 Vector API；完整向量数学及尾部写入规则已同步。
 
-## 2026-09-13/14 修订（待项目作者批准）
+## 2026-09-13/14 修订批准记录
 
-实施过程中，项目作者以口头指示（“RotateLeft 加入 ISA 探测”“按我的写法来”“先删了吧”）改变了三处已批准需求。按本仓治理（`docs/specs/README.md`：Approved 后不得静默修改需求），以下修订**尚未重新批准**，Spec 状态保持 `Implementing`；批准后才写回批准记录，未批准则应回退对应实现与文字。
+实施过程中，项目作者以指示改变了三处已批准需求，并在 2026-09-14 明确“批准”以下修订。按本仓治理（`docs/specs/README.md`：Approved 后不得静默修改需求），这些改动先以“待批准”清单登记，随后转为本节批准记录；以下文字即现行的 FR-003、FR-004、FR-006 要求。
+
+- 批准人：项目作者
+- 批准日期：2026-09-14
 
 1. **FR-003**：删除 `Fill(Span<int>, int, int)` 重载；无偏整数映射继续由 `NextInt` 承担，批量有界整数留给 SPEC-0012 的 Plan 按 SIMD 重新设计。
 2. **FR-004**：正态改为“每个块取两个单位样本向量、同 lane 配对”，块消费量从 `ceil(N/L)` 改为 `2*ceil(N/(2L))`，写出改为向量粒度（先 L 个 `r*cos(a)`，再 L 个 `r*sin(a)`）。
 3. **FR-006**：允许在宽度匹配且指令集支持时使用 ISA 专属旋转指令（AVX-512F 的 512 位、AVX-512VL / AVX10.1 的 256/128 位），其余平台保留“两次移位 + 或”回退。
 
-受影响的其他产物：[ADR-0024](../../decisions/0024-adaptive-vector-random-api.md) 的 2026-09-13 补充、[`plan.md`](./plan.md) 的对应小节、[`verification.md`](./verification.md) 中已按新行为测量的结果。
+受影响的其他产物：[ADR-0024](../../decisions/0024-adaptive-vector-random-api.md) 的 2026-09-13 补充（同时批准）、[`plan.md`](./plan.md) 的对应小节、[`verification.md`](./verification.md) 中已按新行为测量的结果。
