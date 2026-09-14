@@ -3,7 +3,7 @@
 ## 元数据
 
 - 编号：`SPEC-0010`
-- 状态：`Implemented`
+- 状态：`Implementing`
 - 创建日期：2026-09-06
 - 修订日期：2026-09-08
 - 批准人：项目作者
@@ -147,3 +147,13 @@ public Vector<double> NextDoubleVector();
 - 批准时接受的风险：向量宽度影响批量序列和状态体积；公开 API 暴露机器自适应的样本数；构造与短批次成本仍需测量。
 
 - 2026-09-08：项目作者通过“同意”批准自适应 Vector 修订，并明确要求 StandardNormal.Fill 的 Sin/Cos 继续直接使用 Vector API；完整向量数学及尾部写入规则已同步。
+
+## 2026-09-13/14 修订（待项目作者批准）
+
+实施过程中，项目作者以口头指示（“RotateLeft 加入 ISA 探测”“按我的写法来”“先删了吧”）改变了三处已批准需求。按本仓治理（`docs/specs/README.md`：Approved 后不得静默修改需求），以下修订**尚未重新批准**，Spec 状态保持 `Implementing`；批准后才写回批准记录，未批准则应回退对应实现与文字。
+
+1. **FR-003**：删除 `Fill(Span<int>, int, int)` 重载；无偏整数映射继续由 `NextInt` 承担，批量有界整数留给 SPEC-0012 的 Plan 按 SIMD 重新设计。
+2. **FR-004**：正态改为“每个块取两个单位样本向量、同 lane 配对”，块消费量从 `ceil(N/L)` 改为 `2*ceil(N/(2L))`，写出改为向量粒度（先 L 个 `r*cos(a)`，再 L 个 `r*sin(a)`）。
+3. **FR-006**：允许在宽度匹配且指令集支持时使用 ISA 专属旋转指令（AVX-512F 的 512 位、AVX-512VL / AVX10.1 的 256/128 位），其余平台保留“两次移位 + 或”回退。
+
+受影响的其他产物：[ADR-0024](../../decisions/0024-adaptive-vector-random-api.md) 的 2026-09-13 补充、[`plan.md`](./plan.md) 的对应小节、[`verification.md`](./verification.md) 中已按新行为测量的结果。
