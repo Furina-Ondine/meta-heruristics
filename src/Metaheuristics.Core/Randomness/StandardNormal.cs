@@ -37,9 +37,13 @@ public static class StandardNormal
     /// <remarks>
     /// <para>
     /// 每个块取两个单位样本向量：第一个提供半径输入 <c>u</c>，第二个提供角度输入 <c>v</c>，
-    /// 同一 lane 的 <c>u</c>、<c>v</c> 配成一对，输出 <c>r*cos(a)</c>、<c>r*sin(a)</c>，
-    /// 其中 <c>r = sqrt(-2*log(1-u))</c>、<c>a = 2*pi*v</c>。每个 lane 都参与运算，
-    /// 因此不存在重复计算；一个块产出 <c>2*L</c> 个样本，消耗两轮批量状态。
+    /// 同一 lane 的 <c>u</c>、<c>v</c> 配成一对，其中
+    /// <c>r = sqrt(-2*log(1-u))</c>、<c>a = 2*pi*v</c>。每个 lane 都参与运算，因此不存在重复计算；
+    /// 一个块产出 <c>2*L</c> 个样本并消耗两轮批量状态。
+    /// </para>
+    /// <para>
+    /// 写出按向量粒度：每个块先写入 <c>L</c> 个 <c>r*cos(a)</c>，再写入 <c>L</c> 个 <c>r*sin(a)</c>，
+    /// 不做逐值交错。
     /// </para>
     /// <para>
     /// 最后一个不足 <c>2*L</c> 的块仍取两个向量、执行完整向量数学，只写入剩余目标；
@@ -56,40 +60,43 @@ public static class StandardNormal
         }
 
         var laneCount = Vector<double>.Count;
-        Span<double> block = stackalloc double[2 * laneCount];
+        Span<double> tail = stackalloc double[2 * laneCount];
         var negativeTwo = new Vector<double>(-2);
         var twoPi = new Vector<double>(TwoPi);
         var one = Vector<double>.One;
-        ref var blockStart = ref MemoryMarshal.GetReference(block);
+        ref var tailStart = ref MemoryMarshal.GetReference(tail);
         ref var current = ref MemoryMarshal.GetReference(destination);
         var remaining = destination.Length;
         while (remaining > 0)
         {
-            // 两个向量各提供一半输入，每个 lane 都参与到达数运算。
+            // 一个单位向量给半径输入、另一个给角度输入，每个 lane 都参与运算。
             var radiusInput = one - random.NextDoubleVector();
             var angleInput = random.NextDoubleVector();
             var radius = Vector.SquareRoot(negativeTwo * Vector.Log(radiusInput));
             var angle = twoPi * angleInput;
             var (sin, cos) = Vector.SinCos(angle);
-            (radius * cos).StoreUnsafe(ref blockStart);
-            (radius * sin).StoreUnsafe(ref Unsafe.Add(ref blockStart, laneCount));
-
-            // 输出顺序保持“同一对的 cos 结果紧跟 sin 结果”，因此按 stride 2 交错写出。
-            var writeCount = Math.Min(remaining, 2 * laneCount);
-            ref var blockSource = ref blockStart;
-            for (var lane = 0; lane < writeCount / 2; lane++)
+            var cosine = radius * cos;
+            var sine = radius * sin;
+            if (remaining >= 2 * laneCount)
             {
-                Unsafe.Add(ref current, 2 * lane) = Unsafe.Add(ref blockSource, lane);
-                Unsafe.Add(ref current, (2 * lane) + 1) = Unsafe.Add(ref blockSource, laneCount + lane);
+                // 向量粒度写出：整条 cos 结果先写，整条 sin 结果随后，写回只有两条向量存储。
+                cosine.StoreUnsafe(ref current);
+                sine.StoreUnsafe(ref Unsafe.Add(ref current, laneCount));
+                current = ref Unsafe.Add(ref current, 2 * laneCount);
+                remaining -= 2 * laneCount;
+                continue;
             }
 
-            if ((writeCount & 1) != 0)
+            // 尾块仍执行完整向量数学，只写需要的 lane。
+            cosine.StoreUnsafe(ref tailStart);
+            sine.StoreUnsafe(ref Unsafe.Add(ref tailStart, laneCount));
+            ref var tailSource = ref tailStart;
+            for (var lane = 0; lane < remaining; lane++)
             {
-                Unsafe.Add(ref current, writeCount - 1) = Unsafe.Add(ref blockSource, writeCount / 2);
+                Unsafe.Add(ref current, lane) = Unsafe.Add(ref tailSource, lane);
             }
 
-            current = ref Unsafe.Add(ref current, writeCount);
-            remaining -= writeCount;
+            remaining = 0;
         }
     }
 

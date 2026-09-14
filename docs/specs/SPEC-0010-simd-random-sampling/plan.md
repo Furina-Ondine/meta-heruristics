@@ -123,3 +123,5 @@ DOTNET_MaxVectorTBitWidth=<128|256|512> dotnet run -c Release --project benchmar
 - **正态按项目作者给出的形态重写**：每个块取两个单位样本向量，一个提供半径输入、一个提供角度输入，同索引配成一对；`r = sqrt(-2*log(1-u))`、`a = 2*pi*v`，输出按 `r*cos(a)`、`r*sin(a)` 交错写入。这样每个 lane 都参与运算，消除了此前“每对 log/sqrt 算两遍、SinCos 算双份”的浪费。配对方式与消费量随之改变：块大小 2L、每块两轮，非空长度 N 恰好消费 `2*ceil(N/(2L))` 轮。数值轨迹因此改变（分布不变），属于 FR-004 的修订。
 - **删除 `Fill(Span<int>, int, int)`**：全仓库没有生产消费者（只有基准与测试使用），且它是唯一向量化无收益的路径。无偏整数映射继续由 `NextInt` 承担；批量索引抽样留给 SPEC-0012 的 Plan 按 SIMD 重新设计。
 - 本次不引入新的 ISA 依赖：正态重写只用到 `Vector.Log`/`Vector.Sqrt`/`Vector.SinCos` 与一次栈上的交错写回（没有 lane permute 指令）。
+
+2026-09-14 项目作者补充：写回改成**向量粒度**——每个块先整条写入 L 个 `r*cos(a)`、再整条写入 L 个 `r*sin(a)`，不再按每个 pair 逐值交错。写回因此退化为两条向量存储（尾块仍走栈缓冲只写需要的 lane），不需要 lane permute 指令。代价是块内输出顺序从"逐对 cos/sin 交替"变为"先 cos 段、后 sin 段"，属于 FR-004 的输出顺序修订；分布、每输出一个原始字的消费率与 `2*ceil(N/(2L))` 的块消费量不变。

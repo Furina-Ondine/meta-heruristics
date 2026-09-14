@@ -85,7 +85,7 @@ public Vector<double> NextDoubleVector();
 
 - 前置条件：random 非 null，目标合法。
 - 触发行为：StandardNormal.Fill。
-- 预期结果：每个块取两个单位样本向量：第一个提供半径输入 u，第二个提供角度输入 v，同一 lane 的 u、v 配成一对，计算 `r = sqrt(-2*log(1-u))`、`a = 2*pi*v`，按 r*cos(a)、r*sin(a) 顺序交错写入。一个块产出 2L 个正态输出、消耗两轮批量状态，**每个 lane 都参与运算**（不存在重复计算）。取得单位向量后，半径、角度及 Log/Sqrt/Sin/Cos 计算必须使用 System.Numerics.Vector API（允许合并的 SinCos）；不得逐 lane 调用 Math.Log、Math.Sqrt、Math.Sin、Math.Cos 或 Math.SinCos。
+- 预期结果：每个块取两个单位样本向量：第一个提供半径输入 u，第二个提供角度输入 v，同一 lane 的 u、v 配成一对，计算 `r = sqrt(-2*log(1-u))`、`a = 2*pi*v`。一个块产出 2L 个正态输出、消耗两轮批量状态，**每个 lane 都参与运算**（不存在重复计算）。写出按向量粒度：先写入 L 个 r*cos(a)，再写入 L 个 r*sin(a)，不做逐值交错。取得单位向量后，半径、角度及 Log/Sqrt/Sin/Cos 计算必须使用 System.Numerics.Vector API（允许合并的 SinCos）；不得逐 lane 调用 Math.Log、Math.Sqrt、Math.Sin、Math.Cos 或 Math.SinCos。
 - 边界情况：最后一个不足 2L 个输出的块仍取两个向量、执行完整向量数学，只写剩余目标；未使用的 lane 不跨调用保留。空目标不调用向量方法；null 仍在空目标之前验证。Sample 继续调用原标量成对路径，与批量路径不保证同一序列。
 - 验收标准：对非空长度 N，恰好消费 `2*ceil(N/(2L))` 轮批量状态；用逐 lane 参考验证配对、尾部及后续状态，不调用标量 NextDouble 补尾。不承诺与连续 Sample 或不同 Fill 切分等价。正态向量结果不要求与逐 lane Math 逐位一致；Plan 固定数值容差，并用统计与真实向量调用/JIT 证据共同验收。
 

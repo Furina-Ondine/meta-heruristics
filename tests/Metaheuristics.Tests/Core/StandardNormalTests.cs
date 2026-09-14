@@ -45,15 +45,25 @@ public sealed class StandardNormalTests
             {
                 var radiusInput = units.NextDoubleVector();
                 var angleInput = units.NextDoubleVector();
-                for (var lane = 0; lane < laneCount && expected.Count < length; lane++)
+                var cosines = new List<double>(laneCount);
+                var sines = new List<double>(laneCount);
+                for (var lane = 0; lane < laneCount; lane++)
                 {
                     var radius = Math.Sqrt(-2 * Math.Log(1 - radiusInput[lane]));
                     var angle = 2 * Math.PI * angleInput[lane];
-                    expected.Add(radius * Math.Cos(angle));
-                    if (expected.Count < length)
+                    cosines.Add(radius * Math.Cos(angle));
+                    sines.Add(radius * Math.Sin(angle));
+                }
+
+                // 写出是向量粒度：整条 cos 结果在前，整条 sin 结果在后。
+                foreach (var value in cosines.Concat(sines))
+                {
+                    if (expected.Count == length)
                     {
-                        expected.Add(radius * Math.Sin(angle));
+                        break;
                     }
+
+                    expected.Add(value);
                 }
             }
 
