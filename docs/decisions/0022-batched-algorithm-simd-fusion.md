@@ -2,7 +2,9 @@
 
 ## 状态
 
-Accepted
+Superseded
+
+由 [ADR-0025](0025-direct-tensor-primitives-and-benchmark-execution.md) 替代。2026-09-14 项目作者修订直接 TensorPrimitives 优先和基准执行安排；以下保留历史决策，不作为现行测量批准门。
 
 替代 [ADR-0016](0016-algorithm-fixed-width-simd-cascade.md)。2026-09-06 项目作者批准联合规格；具体实现受 Plan 和性能门槛约束。
 
