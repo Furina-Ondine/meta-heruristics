@@ -77,7 +77,7 @@ public sealed class PsoOptimizer : IOptimizer
             }
 
             particle.Evaluation = context.Evaluate(particle.Position);
-            particle.Position.CopyTo(particle.PersonalBestPosition, 0);
+            particle.Position.AsSpan().CopyTo(particle.PersonalBestPosition);
             particle.PersonalBestEvaluation = particle.Evaluation;
             if (!hasBest || EvaluationComparer.IsBetter(
                     particle.Evaluation,
@@ -124,7 +124,7 @@ public sealed class PsoOptimizer : IOptimizer
                     particle.PersonalBestEvaluation,
                     _context.Problem.Direction))
             {
-                particle.Position.CopyTo(particle.PersonalBestPosition, 0);
+                particle.Position.AsSpan().CopyTo(particle.PersonalBestPosition);
                 particle.PersonalBestEvaluation = particle.Evaluation;
             }
 
@@ -247,13 +247,13 @@ public sealed class PsoOptimizer : IOptimizer
         TensorPrimitives.Add(source.Position, target.Velocity, target.Position);
 
         context.Repair(target.Position);
-        source.PersonalBestPosition.CopyTo(target.PersonalBestPosition, 0);
+        source.PersonalBestPosition.AsSpan().CopyTo(target.PersonalBestPosition);
         target.PersonalBestEvaluation = source.PersonalBestEvaluation;
     }
 
     private void CopyBest(PsoState source)
     {
-        source.Position.CopyTo(_bestPosition!, 0);
+        source.Position.AsSpan().CopyTo(_bestPosition!);
         _bestEvaluation = source.Evaluation;
     }
 

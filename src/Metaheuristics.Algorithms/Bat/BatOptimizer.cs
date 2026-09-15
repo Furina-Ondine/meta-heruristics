@@ -308,7 +308,7 @@ public sealed class BatOptimizer : IOptimizer
 
     private void CopyBest(BatState source)
     {
-        source.Position.CopyTo(_bestPosition!, 0);
+        source.Position.AsSpan().CopyTo(_bestPosition!);
         _bestEvaluation = source.Evaluation;
     }
 

@@ -321,13 +321,13 @@ public sealed class CuckooOptimizer : IOptimizer
 
     private void CopyBest(CuckooState source)
     {
-        source.Position.CopyTo(_bestPosition!, 0);
+        source.Position.AsSpan().CopyTo(_bestPosition!);
         _bestEvaluation = source.Evaluation;
     }
 
     private static void CopyState(CuckooState source, CuckooState target)
     {
-        source.Position.CopyTo(target.Position, 0);
+        source.Position.AsSpan().CopyTo(target.Position);
         target.Evaluation = source.Evaluation;
     }
 

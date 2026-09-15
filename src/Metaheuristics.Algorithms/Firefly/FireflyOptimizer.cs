@@ -184,7 +184,7 @@ public sealed class FireflyOptimizer : IOptimizer
         FireflyState target,
         double randomStep)
     {
-        source.Position.CopyTo(target.Position, 0);
+        source.Position.AsSpan().CopyTo(target.Position);
         foreach (var attractor in sourcePopulation)
         {
             if (!EvaluationComparer.IsBetter(
@@ -217,7 +217,7 @@ public sealed class FireflyOptimizer : IOptimizer
 
     private void CopyBest(FireflyState source)
     {
-        source.Position.CopyTo(_bestPosition!, 0);
+        source.Position.AsSpan().CopyTo(_bestPosition!);
         _bestEvaluation = source.Evaluation;
     }
 }
