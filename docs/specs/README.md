@@ -61,7 +61,7 @@ Plan 使用 `Draft`、`Approved`、`Superseded`；Tasks 使用 `Pending`、`InPr
 
 ## SIMD 演进
 
-[SPEC-0010 至 SPEC-0014 联合规格](simd-review.md)已批准。[随机源技术计划](SPEC-0010-simd-random-sampling/plan.md)已批准并实施；SPEC-0011 至 SPEC-0014 的技术 Plan 已形成 Draft，入口见[联合审查](simd-review.md)，共同验收设计见[验证计划附件](simd-plan.md)。算法 Plan 尚待批准，Tasks 尚未创建。
+[SPEC-0010 至 SPEC-0014 联合规格](simd-review.md)已批准。[随机源技术计划](SPEC-0010-simd-random-sampling/plan.md)已批准并实施；SPEC-0011 至 SPEC-0014 的技术 Plan 已于 2026-09-15 批准，入口见[联合审查](simd-review.md)，共同验收设计见[验证计划附件](simd-plan.md)。Tasks 已拆分且全部为 Pending，Verification 模板已建立；尚未启动实现或实验。
 
 ## 当前 package
 
