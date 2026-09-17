@@ -49,7 +49,6 @@
 
 - 测试覆盖多个严格更优 attractor 的顺序、相等/较差不移动、Repair 后位置的下一次距离、零 random step、尾部、特殊值、固定 seed、复用、取消/异常和 Group 隔离。
 - 搜索确认逐维 `NextDouble` 移动采样、跨移动预取、额外 scratch、旧 `UpdateFireflyPosition` 和生产双路径均不存在。
-- 正式局部产物位于 `%LOCALAPPDATA%/Temp/MetaheuristicsNetBench0011-01a0ad0a/BenchmarkDotNet.Artifacts/spec0014-formal` 和 `spec0011-0014-vector128`；H/A/B/C 分别位于四个 `MetaheuristicsNet0011{HistoricalH,BaselineA,IntermediateB,CandidateFinal}` 临时源副本的 `BenchmarkDotNet.Artifacts/spec0011-0014-*-e2e`。表中报告 Mean；原始报告保留 Error、StdDev、Median 和分配列。
 - Restore、Release Build、222 项测试、生成器测试、格式、文档验证器、DocFX 与 `git diff --check` 的最终结果见完成审计；均为 Passed。
 
 SPEC-0014 的全部 FR/NFR 已满足；固定工作量结果不构成收敛速度声明。

@@ -52,7 +52,6 @@ B/C 完整 run 的 D=32 点低于局部 1.10×，但完整门槛为 1.02×且全
 
 - 测试覆盖正态角色切片、奇数/尾部、独立标量差分、P=1/小 P、遗弃率 0/1、实时状态、取消/异常和连续 run。
 - 搜索确认不存在 `NextGaussian`、`_hasSpareGaussian`、`_spareGaussian`、生产 `Fill(Span<int>)`、索引预取缓冲或 C3 helper；Core 仍唯一拥有 StandardNormal 和无偏 `NextInt`。
-- 正式局部产物位于 `%LOCALAPPDATA%/Temp/MetaheuristicsNetBench0011-01a0ad0a/BenchmarkDotNet.Artifacts/spec0012-formal` 和 `spec0011-0014-vector128`；H/A/B/C 分别位于四个 `MetaheuristicsNet0011{HistoricalH,BaselineA,IntermediateB,CandidateFinal}` 临时源副本的 `BenchmarkDotNet.Artifacts/spec0011-0014-*-e2e`。表中报告 Mean；原始报告保留 Error、StdDev、Median 和分配列。
 - Restore、Release Build、222 项测试、生成器测试、格式、文档验证器、DocFX 与 `git diff --check` 的最终结果见完成审计；均为 Passed。
 
 SPEC-0012 的全部 FR/NFR 已满足；固定工作量结果不构成收敛速度声明。

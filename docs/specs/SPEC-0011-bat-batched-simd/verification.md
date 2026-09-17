@@ -60,7 +60,6 @@ Sphere、Clamp(-5,5)、P=64、seed `20260905`；单位 µs。B 是批量采样�
 
 ## 工程与残留证据
 
-- 正式局部产物位于 `%LOCALAPPDATA%/Temp/MetaheuristicsNetBench0011-01a0ad0a/BenchmarkDotNet.Artifacts/spec0011-formal` 和 `spec0011-0014-vector128`；H/A/B/C 完整 run 分别位于 `MetaheuristicsNet0011HistoricalH`、`MetaheuristicsNet0011BaselineA`、`MetaheuristicsNet0011IntermediateB`、`MetaheuristicsNet0011CandidateFinal` 下的 `BenchmarkDotNet.Artifacts/spec0011-0014-*-e2e`。表中报告 Mean；原始报告同时保留 Error、StdDev、Median 和分配列。
 - `BatOptimizerTests`、`VectorOpsTests` 及完整测试通过；旧逐维随机循环、失败候选和生产双路径未保留。
 - 固定代数完整 run 只证明相同工作量吞吐，不声称收敛速度或达到目标精度的时间。
 - Restore、Release Build、222 项测试、生成器测试、格式、文档验证器、DocFX 与 `git diff --check` 的最终结果见本次变更完成审计；均为 Passed。

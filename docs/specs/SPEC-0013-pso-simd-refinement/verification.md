@@ -51,7 +51,6 @@ A→C 首次分配增加 1056 B（D=32 与 128 相同），对应一块 `double[
 
 - 测试覆盖交错布局、零系数仍消费、相等速度范围、独立双输出参考、NaN/Infinity/有符号零、Repair/Evaluate 与 best 更新、复用和隔离。
 - 搜索确认旧 `ComputePsoVelocity`、失败候选、重复 runtime 入口和无消费者缓冲不存在。
-- 正式局部产物位于 `%LOCALAPPDATA%/Temp/MetaheuristicsNetBench0011-01a0ad0a/BenchmarkDotNet.Artifacts/spec0013-formal` 和 `spec0011-0014-vector128`；H/A/B/C 分别位于四个 `MetaheuristicsNet0011{HistoricalH,BaselineA,IntermediateB,CandidateFinal}` 临时源副本的 `BenchmarkDotNet.Artifacts/spec0011-0014-*-e2e`。表中报告 Mean；原始报告保留 Error、StdDev、Median 和分配列。
 - Restore、Release Build、222 项测试、生成器测试、格式、文档验证器、DocFX 与 `git diff --check` 的最终结果见完成审计；均为 Passed。
 
 SPEC-0013 的全部 FR/NFR 已满足；报告明确区分失败的 B 与通过的最终 B+C，不作收敛速度声明。

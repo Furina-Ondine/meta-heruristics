@@ -117,7 +117,7 @@ DOTNET_MaxVectorTBitWidth=128 dotnet test tests/Metaheuristics.Tests/Metaheurist
 DOTNET_MaxVectorTBitWidth=512 dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj -c Release --no-build
 DOTNET_EnableHWIntrinsic=0 dotnet test tests/Metaheuristics.Tests/Metaheuristics.Tests.csproj -c Release --no-build
 
-# 性能矩阵：三个宽度各跑一次（--artifacts 可指向临时目录，只保留需要的报告文件）
+# 性能矩阵：三个宽度各跑一次
 DOTNET_MaxVectorTBitWidth=128 dotnet run -c Release --project benchmarks/Metaheuristics.Benchmarks -- --filter "*Rs*Benchmarks*"
 
 # 上面摘录的反汇编（只跑诊断类，不需要保留文件）
