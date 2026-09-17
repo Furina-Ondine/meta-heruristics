@@ -161,6 +161,7 @@ public sealed class BatOptimizerTests
         var firstPopulationB = GetPopulation(optimizer, "_populationB");
         var firstPositions = GetStateVectors(firstPopulationA, "Position");
         var firstVelocities = GetStateVectors(firstPopulationA, "Velocity");
+        var firstRandomScratch = GetField<double[]>(optimizer, "_randomScratch");
 
         ExecuteWithSnapshot(
             problem,
@@ -173,6 +174,7 @@ public sealed class BatOptimizerTests
 
         Xunit.Assert.Same(firstPopulationA, secondPopulationA);
         Xunit.Assert.Same(firstPopulationB, secondPopulationB);
+        Xunit.Assert.Same(firstRandomScratch, GetField<double[]>(optimizer, "_randomScratch"));
         Xunit.Assert.Equal(
             firstPositions,
             GetStateVectors(secondPopulationA, "Position"),
@@ -377,8 +379,53 @@ public sealed class BatOptimizerTests
         var population = GetPopulation(optimizer, "_populationA");
         Xunit.Assert.Equal(1, GetStateVectors(population, "Velocity")[0][0]);
         var expected = new RandomSource(777);
-        _ = expected.NextULong();
-        Xunit.Assert.Equal(expected.NextULong(), initializer.Random!.NextULong());
+        Span<double> velocity = stackalloc double[1];
+        expected.Fill(velocity, 1, Math.BitIncrement(1));
+        Xunit.Assert.Equal(expected.NextDoubleVector(), initializer.Random!.NextDoubleVector());
+
+        var scalarExpected = new RandomSource(777);
+        Xunit.Assert.Equal(scalarExpected.NextULong(), initializer.Random.NextULong());
+    }
+
+    /// <summary>
+    /// Verifies a candidate consumes the three approved batch roles even when no branch uses perturbation.
+    /// </summary>
+    [Xunit.Fact]
+    public void AdvanceUsesTheApprovedSingleCandidateBatchLayout()
+    {
+        const int dimension = 7;
+        var initializer = new CapturingInitializer();
+        var optimizer = new BatOptimizer(
+            initializer,
+            new BatOptimizerOptions
+            {
+                PopulationSize = 1,
+                VelocityLowerBound = 0,
+                VelocityUpperBound = 0,
+                FrequencyLowerBound = 0,
+                FrequencyUpperBound = 0,
+                InitialLoudnessLowerBound = 0,
+                InitialLoudnessUpperBound = 0,
+                InitialPulseRateLowerBound = 1,
+                InitialPulseRateUpperBound = 1,
+            });
+
+        ExecuteWithSnapshot(
+            CreateProblem(dimension, new SphereObjective()),
+            optimizer,
+            StopAfterIterations(1),
+            seed: 778,
+            Xunit.TestContext.Current.CancellationToken);
+
+        var expected = new RandomSource(778);
+        Span<double> samples = stackalloc double[dimension];
+        expected.Fill(samples);
+        expected.Fill(samples, -1, 1);
+        expected.Fill(samples);
+
+        Xunit.Assert.Equal(expected.NextDoubleVector(), initializer.Random!.NextDoubleVector());
+        var scalarExpected = new RandomSource(778);
+        Xunit.Assert.Equal(scalarExpected.NextULong(), initializer.Random.NextULong());
     }
 
     private static ContinuousProblem CreateProblem(int dimension, IObjectiveFunction objective)
@@ -422,6 +469,14 @@ public sealed class BatOptimizerTests
             .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
             ?.GetValue(optimizer)
             ?? throw new InvalidOperationException($"Field '{fieldName}' was not initialized."));
+    }
+
+    private static T GetField<T>(BatOptimizer optimizer, string fieldName)
+    {
+        return (T)(typeof(BatOptimizer)
+            .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.GetValue(optimizer)
+            ?? throw new InvalidOperationException($"Missing {fieldName}."));
     }
 
     private static double[][] GetStateVectors(Array population, string propertyName)

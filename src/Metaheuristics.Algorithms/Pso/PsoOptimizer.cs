@@ -1,4 +1,3 @@
-using System.Numerics.Tensors;
 using Anastasya.Metaheuristics.Core.Comparison;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
@@ -18,6 +17,7 @@ public sealed class PsoOptimizer : IOptimizer
     private PsoState[]? _populationA;
     private PsoState[]? _populationB;
     private double[]? _bestPosition;
+    private double[]? _coefficientSamples;
     private Evaluation _bestEvaluation;
     private OptimizationRunContext? _context;
     private int _dimension;
@@ -68,10 +68,14 @@ public sealed class PsoOptimizer : IOptimizer
             context.CancellationToken.ThrowIfCancellationRequested();
             _initializer.Initialize(particle.Position, context.Random);
             context.Repair(particle.Position);
-            for (var dimensionIndex = 0; dimensionIndex < _dimension; dimensionIndex++)
+            if (_options.VelocityLowerBound == _options.VelocityUpperBound)
             {
-                particle.Velocity[dimensionIndex] = NextDouble(
-                    context.Random,
+                particle.Velocity.AsSpan().Fill(_options.VelocityLowerBound);
+            }
+            else
+            {
+                context.Random.Fill(
+                    particle.Velocity,
                     _options.VelocityLowerBound,
                     _options.VelocityUpperBound);
             }
@@ -106,10 +110,17 @@ public sealed class PsoOptimizer : IOptimizer
         var inertia = Math.Max(
             _options.MinimumInertia,
             _options.InitialInertia * Math.Pow(_options.InertiaDecay, _iteration));
+        var coefficientSamples = _coefficientSamples!;
+        _context.Random.Fill(coefficientSamples);
 
         for (var particleIndex = 0; particleIndex < sourcePopulation.Length; particleIndex++)
         {
-            GenerateCandidate(sourcePopulation[particleIndex], targetPopulation[particleIndex], inertia);
+            GenerateCandidate(
+                sourcePopulation[particleIndex],
+                targetPopulation[particleIndex],
+                inertia,
+                coefficientSamples[2 * particleIndex],
+                coefficientSamples[(2 * particleIndex) + 1]);
         }
 
         foreach (var particle in targetPopulation)
@@ -208,6 +219,7 @@ public sealed class PsoOptimizer : IOptimizer
         _populationA = CreatePopulation(_options.PopulationSize, dimension);
         _populationB = CreatePopulation(_options.PopulationSize, dimension);
         _bestPosition = new double[dimension];
+        _coefficientSamples = new double[checked(2 * _options.PopulationSize)];
     }
 
     private static PsoState[] CreatePopulation(int populationSize, int dimension)
@@ -221,16 +233,18 @@ public sealed class PsoOptimizer : IOptimizer
         return population;
     }
 
-    private void GenerateCandidate(PsoState source, PsoState target, double inertia)
+    private void GenerateCandidate(
+        PsoState source,
+        PsoState target,
+        double inertia,
+        double cognitiveRandom,
+        double socialRandom)
     {
         var context = _context!;
-        var random = context.Random;
-        var cognitiveRandom = random.NextDouble();
-        var socialRandom = random.NextDouble();
         var cognitiveScale = _options.CognitiveCoefficient * cognitiveRandom;
         var socialScale = _options.SocialCoefficient * socialRandom;
 
-        VectorOps.ComputePsoVelocity(
+        VectorOps.UpdatePsoCandidate(
             source.Position,
             source.Velocity,
             source.PersonalBestPosition,
@@ -238,13 +252,10 @@ public sealed class PsoOptimizer : IOptimizer
             inertia,
             cognitiveScale,
             socialScale,
-            target.Velocity);
-        TensorPrimitives.Clamp(
-            target.Velocity,
             _options.VelocityLowerBound,
             _options.VelocityUpperBound,
-            target.Velocity);
-        TensorPrimitives.Add(source.Position, target.Velocity, target.Position);
+            target.Velocity,
+            target.Position);
 
         context.Repair(target.Position);
         source.PersonalBestPosition.AsSpan().CopyTo(target.PersonalBestPosition);
@@ -257,10 +268,4 @@ public sealed class PsoOptimizer : IOptimizer
         _bestEvaluation = source.Evaluation;
     }
 
-    private static double NextDouble(RandomSource random, double lowerBound, double upperBound)
-    {
-        return lowerBound == upperBound
-            ? lowerBound
-            : random.NextDouble(lowerBound, upperBound);
-    }
 }

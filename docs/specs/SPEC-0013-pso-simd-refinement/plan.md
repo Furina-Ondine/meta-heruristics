@@ -61,7 +61,7 @@
 
 B-init 与 B-coeff 分别和 A 对照，再评估二者组合。算术融合 C 必须与相同采样布局的 B 对照，避免把整代预取的收益算入融合。B-coeff 的局部计时涵盖整代 Fill、缓冲读写及 P 个候选的相关调用，不仅测两个数组索引读取；同时报告每代与每粒子摊销成本。沿用共同门槛，完整 run 计入 16P 工作区的首次分配及后续复用；各项候选分别可以删除。
 
-融合内核拟为 Algorithms 私有 `UpdatePsoCandidate`，输入 source Position/Velocity、personal/global best、惯性、两个已缩放系数及速度上下界，输出 target Velocity 与 target Position。保持现有求值结构：
+融合内核拟为 Algorithms 私有 `UpdatePsoCandidate`，输入 source Position/Velocity、personal/global best、惯性、两个已缩放系数及速度上下界，输出 target Velocity 与 target Position。该内核从所需输入的多次读取开始，连续完成速度公式、Clamp 和位置更新，再写出目标字段；按共同附件整体视为一次局部操作，不能按读取次数或中间表达式拆成多个操作，也不能只测其中一个子内核来代表融合结果。保持现有求值结构：
 
 ```text
 v = ((inertia * sourceVelocity)
@@ -139,3 +139,4 @@ targetPosition = sourcePosition + bounded
 - 验收标准确认（2026-09-15）：项目作者确认共同验证计划的性能门槛、验证负载及本 Plan 的数值预算；该次确认仅针对验收标准。
 - 整体批准（2026-09-15）：项目作者通过“批准plan”批准本 Plan 和共同验证附件；候选采用仍须通过既定数值与性能门槛。该次仅记录批准，尚未创建 Tasks 或启动实现/实验。
 - 任务拆分（2026-09-16）：按项目作者授权建立 [Tasks](./tasks.md) 和 [Verification 模板](./verification.md)，任务及验证结果均为 Pending；尚未启动实现或实验。
+- 执行补充（2026-09-17）：项目作者确认连续多次读入、连贯计算并最终单次写回属于一次操作；融合局部基准必须覆盖完整数据流。受限 Vector128 路径只要求不弱于同公式标量参考，具体边界见共同附件。

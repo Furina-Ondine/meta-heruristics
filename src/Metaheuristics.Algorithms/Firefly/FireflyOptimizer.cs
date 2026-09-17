@@ -195,19 +195,17 @@ public sealed class FireflyOptimizer : IOptimizer
                 continue;
             }
 
-            for (var dimensionIndex = 0; dimensionIndex < _dimension; dimensionIndex++)
-            {
-                _randomWalk![dimensionIndex] = randomStep * (_context.Random.NextDouble() - 0.5);
-            }
+            _context.Random.Fill(_randomWalk!);
 
             var distanceSquared = VectorOps.DistanceSquared(target.Position, attractor.Position);
             var attractiveness = _options.BaseAttractiveness
                 * Math.Exp(-_options.DistanceAttenuation * distanceSquared);
 
-            VectorOps.UpdateFireflyPosition(
+            VectorOps.UpdateFireflyPositionFromUnitSamples(
                 target.Position,
                 attractor.Position,
                 _randomWalk!,
+                randomStep,
                 attractiveness,
                 target.Position);
 

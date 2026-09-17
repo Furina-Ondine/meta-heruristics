@@ -34,29 +34,30 @@
 | [PSO](SPEC-0013-pso-simd-refinement/plan.md) | Approved | 初始化 Fill 与整代 2P 系数预取分别评估、每粒子一对系数共享、速度/Clamp/位置融合 |
 | [Firefly](SPEC-0014-firefly-simd-refinement/plan.md) | Approved | 每次实际移动一次 Fill(D)，复用已有缓冲；逐次 Repair 与随机缩放融合 |
 
-[共同验证计划](simd-plan.md)是四份 Plan 的附件，固定直接生产基线、增量对照、数值通则与性能门槛；验收标准、四份完整 Plan 及本附件已于 2026-09-15 获项目作者批准。本轮 SIMD 工作交付规划文档、Pending Tasks 和 Verification 模板，尚未实施 SIMD 或继续运行基准；此前另行授权的数组复制改为 Span.CopyTo 独立提交，不作为 SIMD 实施或性能验收证据。
+[共同验证计划](simd-plan.md)是四份 Plan 的附件，固定直接生产基线、增量对照、数值通则与性能门槛；验收标准、四份完整 Plan 及本附件已于 2026-09-15 获项目作者批准。2026-09-17 已完成实施、候选取舍和正式验收；此前另行授权的数组复制改为 Span.CopyTo 只进入统一 H 适配，不作为 SIMD 收益。
 
 验证需分别隔离随机源收益、算法批量化收益、算术 SIMD 收益和最终组合收益；基线为本次改造前代码，PSO/Firefly 基线包含已有 SIMD。完整 run 计入随机源创建、ResetForRun 和固定工作量执行。保留路径须有内核与端到端数据；基准配置、完整命令、源 hash 和结果记录于 Verification。
 
 ## 执行文档
 
-2026-09-16，四份任务清单与验证模板已齐备，任务和验证结果均为 Pending。
+2026-09-17，四份任务清单全部完成，验证报告记录了局部、受限 Vector128、H/A/B/C 完整 run、分配和工程证据。
 
 | 算法 | 任务清单 | 验证模板 |
 | --- | --- | --- |
-| Bat | [Tasks：8 项](SPEC-0011-bat-batched-simd/tasks.md) | [Verification](SPEC-0011-bat-batched-simd/verification.md) |
-| Cuckoo | [Tasks：9 项](SPEC-0012-cuckoo-batched-simd/tasks.md) | [Verification](SPEC-0012-cuckoo-batched-simd/verification.md) |
-| PSO | [Tasks：7 项](SPEC-0013-pso-simd-refinement/tasks.md) | [Verification](SPEC-0013-pso-simd-refinement/verification.md) |
-| Firefly | [Tasks：5 项](SPEC-0014-firefly-simd-refinement/tasks.md) | [Verification](SPEC-0014-firefly-simd-refinement/verification.md) |
+| Bat | [Tasks：8 项，Completed](SPEC-0011-bat-batched-simd/tasks.md) | [Verification：Passed](SPEC-0011-bat-batched-simd/verification.md) |
+| Cuckoo | [Tasks：9 项，Completed](SPEC-0012-cuckoo-batched-simd/tasks.md) | [Verification：Passed](SPEC-0012-cuckoo-batched-simd/verification.md) |
+| PSO | [Tasks：7 项，Completed](SPEC-0013-pso-simd-refinement/tasks.md) | [Verification：Passed](SPEC-0013-pso-simd-refinement/verification.md) |
+| Firefly | [Tasks：5 项，Completed](SPEC-0014-firefly-simd-refinement/tasks.md) | [Verification：Passed](SPEC-0014-firefly-simd-refinement/verification.md) |
 
 ## 审批记录
 
 - 规格批准：项目作者，2026-09-06，通过“同意”批准联合规格。
-- 当前阶段：SPEC-0010 为 Implemented、其 Plan 为 Approved；SPEC-0011 至 SPEC-0014 为 Approved、对应 Plan 为 Approved。Cuckoo 整数范围已于 2026-09-15 明确。
+- 当前阶段：SPEC-0010 至 SPEC-0014 均为 Implemented；各 Plan 保持 Approved，Cuckoo 整数范围按已批准边界实施。
 - Spec 批准授权制定 Plan；实现和基准遵守明确批准范围，不设逐轮测量确认。
-- 当前工作边界（2026-09-15）：完善规划、拆分 Tasks 并建立 Verification 模板，不继续实验；Bat 的分支 SIMD 收益仍需后续阶段判定。
+- 实施完成（2026-09-17）：Bat 掩码分支 SIMD 有明确收益并采用；Cuckoo C3 Log/Exp 候选因回退删除；PSO 只以 B+C 最终组合通过；Firefly 采用随机缩放融合。
 - PSO 采样规则修订（2026-09-15）：项目作者批准以显式布局取代跨回调预取禁令；该次尚未批准具体布局、候选性能门槛及整份 Plan，不构成实验或实现授权。
 - Bat/Cuckoo/Firefly 采样规则修订（2026-09-15）：项目作者批准相应显式样本预取边界，保留实际回调和依赖状态读取时机；批准 Bat 常量区间不采样及 Cuckoo 使用现有 NextInt 的不同索引对映射、单巢不采样索引。本次同意授权修订文档并提交、推送，该次尚未批准整份 Plan。
 - 验收标准确认（2026-09-15）：项目作者确认局部 1.10×、主要完整 run 1.02×、诊断负载回退不超过 5%，以及既定数值预算、特殊值分类/回退与验证负载。主要维度为 32/128，补充 24/25/64/65 覆盖实际使用范围；具体对照和测试规则以共同附件及各 Plan 为准。
 - Plan 整体批准（2026-09-15）：项目作者通过“批准plan”批准 SPEC-0011 至 SPEC-0014 的完整 Plan 及共同验证附件。下一阶段为 Tasks 拆分；本次仅落实审批，未启动实现或实验。
 - Tasks 拆分授权（2026-09-15）：项目作者要求拆分四份 Tasks 并补入 Verification 模板；任务全部为 Pending，报告结果全部为 Pending，未启动实现或实验。
+- 执行口径补充（2026-09-17）：项目作者启动 SPEC-0011 至 SPEC-0014 的连续实施，并确认多次读入、连贯计算、最终单次写回视为一次完整局部操作；Bat 的 `if` 掩码向量化有收益则采用。受限 Algorithms Vector128 路径的性能门槛调整为不弱于同公式标量参考（`>=1.00×`），不指维度 `D=128`，其余门槛不变。

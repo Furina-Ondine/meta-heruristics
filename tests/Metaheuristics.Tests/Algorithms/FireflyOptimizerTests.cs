@@ -99,8 +99,13 @@ public sealed class FireflyOptimizerTests
             });
         var problem = new ContinuousProblem(1, new FirstCoordinateObjective(), CandidateRepairs.Clamp(-10, 10));
         var random = new RandomSource(seed);
-        var expectedFirst = 2 + (random.NextDouble() - 0.5) + (random.NextDouble() - 0.5);
-        var expectedSecond = 1 + (random.NextDouble() - 0.5);
+        Span<double> sample = stackalloc double[1];
+        random.Fill(sample);
+        var expectedFirst = 2 + (sample[0] - 0.5);
+        random.Fill(sample);
+        expectedFirst += sample[0] - 0.5;
+        random.Fill(sample);
+        var expectedSecond = 1 + (sample[0] - 0.5);
 
         ExecuteWithSnapshot(
             problem,

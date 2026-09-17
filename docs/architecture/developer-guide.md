@@ -31,7 +31,7 @@ Objective 和 Constraint 是否能被多个 RunGroup 并发调用由实现者负
 
 ## 实现 Initializer 或 Repair
 
-Initializer 只写入传入的位置并使用运行提供的 `RandomSource`。算法在 Initializer 返回后立即调用 `context.Repair`。`RandomSource` 是 Core 的封闭 `public sealed` 类型；调用方不构造它、不保存它，也不把 `OptimizationRunContext` 带出当前 run。标量和批量入口包括 `NextULong`、`NextDouble`、`NextInt` 以及对应的 `Fill`；需要标准正态时使用 `StandardNormal.Sample` 或 `StandardNormal.Fill`。
+Initializer 只写入传入的位置并使用运行提供的 `RandomSource`。算法在 Initializer 返回后立即调用 `context.Repair`。`RandomSource` 是 Core 的封闭 `public sealed` 类型；调用方不构造它、不保存它，也不把 `OptimizationRunContext` 带出当前 run。标量入口包括 `NextULong`、`NextDouble` 和 `NextInt`；批量入口只覆盖 `Span<ulong>`、单位 `Span<double>` 和有界 `Span<double>`。有界整数使用 `NextInt`，需要标准正态时使用 `StandardNormal.Sample` 或 `StandardNormal.Fill`。
 
 Repair 拥有自己的边界或其他恢复数据，并通过同一个 run 提供的 `RandomSource` 完成随机恢复。算法和 Problem 不读取这些数据；算法每次修改候选位置后都必须调用 `context.Repair`。向量端点等构造输入应在策略创建时复制和验证，避免在热路径重复处理配置。
 
@@ -72,7 +72,9 @@ OptimizationRunner.Execute
 
 `IOptimizer` 拥有种群、临时缓冲区和 `BestPosition`，不保证线程安全。一个实例只能由一个 RunGroup 顺序驱动；执行异常后不得复用。返回的最佳位置是借用工作区而不是快照，精确成员契约见生成式 API Reference。
 
-至少覆盖固定 seed、最小化/最大化、约束比较、取消、并发隔离、异常后不复用以及工作区复用测试。性能主张必须有端到端 BenchmarkDotNet 或分配证据。
+内置连续算法可以把一批已定义角色的随机样本写入 Optimizer 私有缓冲区，再用 Algorithms 私有 512/256/128 位级联和标量尾部完成连续算术；这不是公共 SIMD 扩展点。每个有效区间必须先完整写入再读取，缓冲区不得跨 Optimizer 或 RunGroup 共享；批量化不得越过实际的 Initializer、Repair、Evaluate、选择或 best 更新边界。当前 Bat、Cuckoo、PSO 和 Firefly 的具体布局、轨迹变化和性能证据见 [SIMD 联合规格](../specs/simd-review.md)。
+
+至少覆盖固定 seed、最小化/最大化、约束比较、取消、并发隔离、异常后不复用以及工作区复用测试。性能主张必须同时给出改动部分和代表性完整任务的 BenchmarkDotNet 证据；连续读入、计算并最终写回的热路径按完整数据流计量，不能用其中一个子表达式代替整次操作。
 
 ## 接入 Experiments
 

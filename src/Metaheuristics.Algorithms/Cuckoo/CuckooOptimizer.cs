@@ -1,6 +1,7 @@
 using Anastasya.Metaheuristics.Core.Comparison;
 using Anastasya.Metaheuristics.Core.Execution;
 using Anastasya.Metaheuristics.Core.Problems;
+using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Algorithms.Cuckoo;
 
@@ -18,12 +19,11 @@ public sealed class CuckooOptimizer : IOptimizer
     private CuckooState[]? _candidates;
     private int[]? _sortedIndices;
     private double[]? _bestPosition;
+    private double[]? _sampleScratch;
     private Evaluation _bestEvaluation;
     private OptimizationRunContext? _context;
     private int _dimension;
     private int _iteration;
-    private bool _hasSpareGaussian;
-    private double _spareGaussian;
     private bool _runInitialized;
 
     /// <summary>创建布谷鸟优化器。</summary>
@@ -62,7 +62,6 @@ public sealed class CuckooOptimizer : IOptimizer
         EnsureWorkspace(context.Problem.Dimension);
         _context = context;
         _iteration = 0;
-        _hasSpareGaussian = false;
 
         var hasBest = false;
         foreach (var cuckoo in _population!)
@@ -189,6 +188,7 @@ public sealed class CuckooOptimizer : IOptimizer
         _candidates = CreateStates(_options.PopulationSize, dimension);
         _sortedIndices = new int[_options.PopulationSize];
         _bestPosition = new double[dimension];
+        _sampleScratch = new double[checked(3 * dimension)];
     }
 
     private static CuckooState[] CreateStates(int populationSize, int dimension)
@@ -204,17 +204,31 @@ public sealed class CuckooOptimizer : IOptimizer
 
     private void GenerateLevyCandidate(CuckooState source, CuckooState target, double levyScale)
     {
+        var normalSamples = _sampleScratch.AsSpan(0, 2 * _dimension);
+        var numeratorSamples = normalSamples[.._dimension];
+        var denominatorSamples = normalSamples[_dimension..];
+        var unitSamples = _sampleScratch.AsSpan(2 * _dimension, _dimension);
+        StandardNormal.Fill(_context!.Random, normalSamples);
+        _context.Random.Fill(unitSamples);
+
+        var reciprocalExponent = 1 / _options.LevyExponent;
         for (var dimensionIndex = 0; dimensionIndex < _dimension; dimensionIndex++)
         {
-            var numerator = NextGaussian() * _levySigma * _options.GaussianScale;
-            var denominator = Math.Pow(Math.Abs(NextGaussian()) + 1e-10, 1 / _options.LevyExponent);
-            var levyStep = levyScale * numerator / denominator;
-            var guidance = (_bestPosition![dimensionIndex] - source.Position[dimensionIndex])
-                * _context!.Random.NextDouble();
-            target.Position[dimensionIndex] = source.Position[dimensionIndex]
-                + (0.8 * levyStep)
-                + (0.2 * guidance);
+            denominatorSamples[dimensionIndex] = Math.Pow(
+                Math.Abs(denominatorSamples[dimensionIndex]) + 1e-10,
+                reciprocalExponent);
         }
+
+        VectorOps.UpdateCuckooLevyCandidate(
+            source.Position,
+            _bestPosition!,
+            numeratorSamples,
+            denominatorSamples,
+            unitSamples,
+            _levySigma,
+            _options.GaussianScale,
+            levyScale,
+            target.Position);
 
         _context!.Repair(target.Position);
     }
@@ -280,43 +294,38 @@ public sealed class CuckooOptimizer : IOptimizer
     private void GenerateAbandonmentCandidate(CuckooState target, double decayFactor)
     {
         var random = _context!.Random;
-        var firstIndex = random.NextInt(0, _population!.Length);
-        var secondIndex = random.NextInt(0, _population.Length);
-        while (_population.Length > 1 && secondIndex == firstIndex)
+        int firstIndex;
+        int secondIndex;
+        if (_population!.Length == 1)
         {
-            secondIndex = random.NextInt(0, _population.Length);
+            firstIndex = 0;
+            secondIndex = 0;
+        }
+        else
+        {
+            firstIndex = random.NextInt(0, _population.Length);
+            secondIndex = random.NextInt(0, _population.Length - 1);
+            if (secondIndex >= firstIndex)
+            {
+                secondIndex++;
+            }
         }
 
         var first = _population[firstIndex];
         var second = _population[secondIndex];
         var differenceScale = 0.5 * decayFactor;
-        for (var dimensionIndex = 0; dimensionIndex < _dimension; dimensionIndex++)
-        {
-            var perturbation = (random.NextDouble() - 0.5) * _options.AbandonmentPerturbationScale;
-            target.Position[dimensionIndex] = _bestPosition![dimensionIndex]
-                + (differenceScale * (first.Position[dimensionIndex] - second.Position[dimensionIndex]))
-                + perturbation;
-        }
+        var unitSamples = _sampleScratch.AsSpan(2 * _dimension, _dimension);
+        random.Fill(unitSamples);
+        VectorOps.UpdateCuckooAbandonmentCandidate(
+            _bestPosition!,
+            first.Position,
+            second.Position,
+            unitSamples,
+            differenceScale,
+            _options.AbandonmentPerturbationScale,
+            target.Position);
 
         _context.Repair(target.Position);
-    }
-
-    private double NextGaussian()
-    {
-        if (_hasSpareGaussian)
-        {
-            _hasSpareGaussian = false;
-            return _spareGaussian;
-        }
-
-        var random = _context!.Random;
-        var first = Math.Max(random.NextDouble(), double.Epsilon);
-        var second = random.NextDouble();
-        var radius = Math.Sqrt(-2 * Math.Log(first));
-        var angle = 2 * Math.PI * second;
-        _spareGaussian = radius * Math.Sin(angle);
-        _hasSpareGaussian = true;
-        return radius * Math.Cos(angle);
     }
 
     private void CopyBest(CuckooState source)

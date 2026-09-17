@@ -76,7 +76,7 @@ Math.Exp 的代际因子是否移出逐维分支是另一项优化因素。算�
 
 后三步各自为一次公开 Fill，不合并为一次 3D Fill；非相等频率候选共消费 `4*ceil(D/L)` 轮批量状态，相等频率为 `3*ceil(D/L)`，不消费标量状态。扰动半开区间映射复用 Core，不手写近似范围公式。不会因 loudness=0、pulse=1 或分支预测而跳过本 Plan 固定的后三次采样。
 
-算术严格保持：新频率→`sourceVelocity + ((best-sourcePosition)*frequency)`→Clamp；`pulse > sourcePulse` 决定 best 扰动或 source+clampedVelocity；`accept < sourceLoudness` 决定新位置、衰减 loudness 和 pulse。拒绝分支仍写目标新 Frequency/Velocity，同时复制源 Position/Loudness/PulseRate；InitialPulseRate 始终复制源。Math.Exp 的代际因子为候选内共享标量，保持原表达式和迭代编号，不采用向量 Exp。生成所有目标状态后才 Repair。
+算术严格保持：新频率→`sourceVelocity + ((best-sourcePosition)*frequency)`→Clamp；`pulse > sourcePulse` 决定 best 扰动或 source+clampedVelocity；`accept < sourceLoudness` 决定新位置、衰减 loudness 和 pulse。频率驱动的速度公式虽然包含多次数组读取和连续中间计算，但只在末尾写一次目标 Velocity，按共同附件视为一次完整局部操作；基准不得只截取其中某个读取、减法、乘法或 Clamp。拒绝分支仍写目标新 Frequency/Velocity，同时复制源 Position/Loudness/PulseRate；InitialPulseRate 始终复制源。Math.Exp 的代际因子为候选内共享标量，保持原表达式和迭代编号，不采用向量 Exp。生成所有目标状态后才 Repair。
 
 ResetForRun 作为独立可删除候选：每个 bat 的 Initializer→Repair 后，依次对 Velocity、Frequency、Loudness、PulseRate 做有界 Fill；相等区间只填常量；PulseRate 复制至 InitialPulseRate；然后 Evaluate。每个非相等区间消费 ceil(D/L) 轮，不跨下一个 bat 的 Initializer 预取。独立测量该初始化改动，收益不通过时不与候选融合捆绑保留。
 
@@ -149,3 +149,4 @@ ResetForRun 作为独立可删除候选：每个 bat 的 Initializer→Repair �
 - 验收标准确认（2026-09-15）：项目作者确认共同验证计划的性能门槛、验证负载及本 Plan 的数值预算；该次确认仅针对验收标准。
 - 整体批准（2026-09-15）：项目作者通过“批准plan”批准本 Plan 和共同验证附件；候选采用仍须通过既定数值与性能门槛。该次仅记录批准，尚未创建 Tasks 或启动实现/实验。
 - 任务拆分（2026-09-16）：按项目作者授权建立 [Tasks](./tasks.md) 和 [Verification 模板](./verification.md)，任务及验证结果均为 Pending；尚未启动实现或实验。
+- 执行补充（2026-09-17）：项目作者要求把多次读入、连续计算、单次写回的速度更新视为一次完整操作；Bat 的逐维 `if` 掩码向量化若通过既定数值及调整后的性能门槛则采用，不因分支数量预先拒绝。受限 Vector128 的具体门槛见共同附件。

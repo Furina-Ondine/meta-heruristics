@@ -168,6 +168,7 @@ public sealed class CuckooOptimizerTests
             Xunit.TestContext.Current.CancellationToken);
         var firstPopulation = GetStateArray(optimizer, "_population");
         var firstCandidates = GetStateArray(optimizer, "_candidates");
+        var firstSampleScratch = GetField<double[]>(optimizer, "_sampleScratch");
         var firstPositions = GetVectors(firstPopulation);
 
         ExecuteWithSnapshot(
@@ -179,6 +180,8 @@ public sealed class CuckooOptimizerTests
 
         Xunit.Assert.Same(firstPopulation, GetStateArray(optimizer, "_population"));
         Xunit.Assert.Same(firstCandidates, GetStateArray(optimizer, "_candidates"));
+        Xunit.Assert.Same(firstSampleScratch, GetField<double[]>(optimizer, "_sampleScratch"));
+        Xunit.Assert.Equal(6, firstSampleScratch.Length);
         Xunit.Assert.Equal(firstPositions, GetVectors(firstPopulation), ReferenceEqualityComparer.Instance);
         Xunit.Assert.Throws<InvalidOperationException>(
             () => ExecuteWithSnapshot(
@@ -266,6 +269,14 @@ public sealed class CuckooOptimizerTests
     private static Array GetStateArray(CuckooOptimizer optimizer, string fieldName)
     {
         return (Array)(typeof(CuckooOptimizer)
+            .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.GetValue(optimizer)
+            ?? throw new InvalidOperationException($"Field '{fieldName}' was not initialized."));
+    }
+
+    private static T GetField<T>(CuckooOptimizer optimizer, string fieldName)
+    {
+        return (T)(typeof(CuckooOptimizer)
             .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
             ?.GetValue(optimizer)
             ?? throw new InvalidOperationException($"Field '{fieldName}' was not initialized."));

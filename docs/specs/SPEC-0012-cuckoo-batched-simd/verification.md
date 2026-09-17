@@ -2,95 +2,57 @@
 
 ## 元数据
 
-- Spec：[`spec.md`](./spec.md)
-- Plan：[`plan.md`](./plan.md)
-- Tasks：[`tasks.md`](./tasks.md)
-- 验证日期：—
-- 最终结果：`Pending`
-- 执行状态：尚未开始；本文件只预填批准范围、验证项目和验收门槛，当前没有实验或实现证据。
-- A 基线源 hash：待 T001 锁定
-- 验证候选源 hash：待实现阶段记录
+- Spec：[`spec.md`](./spec.md)；Plan：[`plan.md`](./plan.md)；Tasks：[`tasks.md`](./tasks.md)
+- 验证日期：2026-09-17
+- 最终结果：`Passed`
+- 基线 A：`9b276e5`；历史 H：`56c1f57` 加 `16b66fb` 的精确 `CopyTo` 修订；候选 C：当前工作区
 
-## 需求覆盖
+## 需求覆盖与实现
 
-| 需求 | 计划实现位置 | 待执行测试或基准 | 待同步文档 | 结果 |
+| 需求 | 实现位置 | 测试或基准 | 文档 | 结果 |
 | --- | --- | --- | --- | --- |
-| FR-001 | `CuckooOptimizer.cs` 的 StandardNormal 迁移与 `double[3D]` 采样工作区（待实施） | 正态角色切片、奇数 D/尾部、统计、固定 seed 重复、复用和私有 Gaussian/spare 残留检查（待执行） | Spec、Plan、必要 XML/开发者说明（待核对） | Pending |
-| FR-002 | Lévy/遗弃公式、I-map、C1/C2/C3 算术候选（待实施） | 同样本逐元素差分、分支与特殊值分类、P=1/小 P 映射穷举、C3 数值域/回退及局部基准（待执行） | 若采用 C3，VectorOps 模板源注释、输入判断注释和 Developer Guide 数值说明（待执行） | Pending |
-| FR-003 | 逐候选 Generate→Repair→Evaluate→替换→best 生命周期与 run 工作区复用（待实施） | 回调事件、动态 best、冻结 worst 目标索引、实时 population、两套随机状态、取消/异常、RunGroup 隔离（待执行） | 采样布局、轨迹变化和状态边界说明（待核对） | Pending |
-| NFR-001 | 采样工作区、私有算术候选和完整 run（待实施） | A/B/C 局部与完整 BenchmarkDotNet、分配、JIT/硬件路径和 Release 工程验证（待执行） | Plan 门槛、环境、命令、源 hash、结果和限制（待执行） | Pending |
+| FR-001 | `CuckooOptimizer` 的 `double[3D]`、`StandardNormal.Fill(2D)` 与单位 Fill | 正态角色、奇数/尾部、状态与复用测试 | 本报告实现说明 | Passed |
+| FR-002 | 两个 Cuckoo `VectorOps` 内核与 Optimizer I-map | 独立差分、P=1/小 P、遗弃率及特殊值测试 | 本报告候选取舍 | Passed |
+| FR-003 | 逐候选生命周期与实时 population/best | 回调、动态 best、冻结目标、取消/异常与隔离测试 | 架构概览与本报告 | Passed |
+| NFR-001 | 最终 C2 生产路径 | 正式局部、Vector128、H/A/B/C 与分配基准 | 本报告全部性能表 | Passed |
 
-## 预定验证范围
+每个 Lévy/遗弃内核都按连续读入、完整公式、最终单次写回作为一次局部操作。C1 无合适直接 TensorPrimitives 形状；C2 保留 `Math.Pow` 并采用。C3 `Exp(p*Log(x))` 在 D=32 约 `294.1 vs 269.1 ns`、D=128 约 `1160.4 vs 1041.4 ns`，慢约 9–11%，故删除，生产路径不声称向量 Pow 能力。
 
-实现阶段必须依据已批准 Plan 记录以下项目；这里的“预定”不代表已执行或通过：
+## 局部性能
 
-- 单候选采样工作区为一块 `double[3D]`，每次 Lévy 候选执行一次 `StandardNormal.Fill(2D)` 和一次单位 `Fill(D)`；不拆分 `2D` 正态，不跨候选缓存样本，不建立索引缓冲，不恢复 `Fill(Span<int>, int, int)`。
-- Cuckoo 的索引方案单独对照：P>1 使用现有 `NextInt` 的 `first`/`P-1` 映射，P=1 不消费索引，遗弃数量为 0 不消费遗弃样本；每次生成仍读取实时 population/best。
-- 逐候选生命周期、Repair/Evaluate 顺序、评估计数、动态 best 和 FindWorstIndices 后的冻结目标索引必须与 Plan 一致；工作区跨 run 复用但不清零，由测试验证每次读取前本次有效区间已完整写入。
-- C1 直接 TensorPrimitives 适用性先审查。C2 保留 `Math.Pow`；C3 仅评估 Lévy 分母的受限 `Exp(p * Log(x))`，记录快路径、Math.Pow 回退、标量尾部和特殊值分类。C3 若未通过门槛，不得保留为生产能力。
-- 正确性维度为 `1、2、7、8、15、16、24、25、31、32、33、64、65、127、128、129、1024`，另含空 Span、非对齐切片、哨兵、in-place、P=1/2、小 P、遗弃率 0/1、指数边界和取消/异常场景。
+正式配置：2 launches、8 warmups、20 measured iterations、MemoryDiagnoser；单位 ns。
 
-## 性能报告（仅性能类修改）
+| 内核 | D | B 标量 | C SIMD | 加速比 |
+| --- | ---: | ---: | ---: | ---: |
+| Lévy | 32 | 303.278 | 269.246 | 1.126× |
+| Lévy | 128 | 1215.732 | 1049.636 | 1.158× |
+| 遗弃 | 32 | 36.080 | 8.170 | 4.42× |
+| 遗弃 | 128 | 148.548 | 17.177 | 8.65× |
 
-性能类修改必须使用同一基线和同一输入记录局部与端到端证据。当前尚未运行任何基准，结果保留为 `Pending`。
+受限 Vector128（实际 Count=2，仅 Vector128=True）：Lévy D=32 `302.361/274.853=1.10×`、D=128 `1199.399/1070.830=1.12×`；遗弃 D=32 `35.827/8.599=4.17×`、D=128 `146.586/31.686=4.63×`，均不弱于标量。
 
-| 层级 | 被测场景 | 基线与修改后结果 | 加速比 | 分配 | 结论 |
-| --- | --- | --- | --- | --- | --- |
-| 改动部分 | A/B 单候选正态与单位采样、Lévy/遗弃内核、I-map 独立对照 | 待 T008 记录 | Pending | 待记录 | Pending |
-| 算术增量 | B/C C1/C2/C3，同一样本与同一索引布局 | 待 T005/T006/T008 记录 | Pending | 待记录 | Pending |
-| 代表性整体任务 | Sphere + Clamp(-5,5)，P=64，seed `20260905`，MaxIterations=10/100；首次 run 与复用 workspace run | 待 T008 记录 | Pending | 待记录 | Pending |
+## 完整 run：H/A/B/C
 
-历史与组合证据：H/A、A/B、B/C、A/C、H/C 均待测，历史源提交、依赖适配、统一 CopyTo 修订及产物路径待填。工作区预期一份 3D double 数组、载荷 24D 字节；实际首次/复用分配与稳态分配待测。
+单位 µs；Sphere、Clamp(-5,5)、P=64、seed `20260905`。
 
-### 待记录的固定条件
+| 生命周期 | D/代 | H | A | B | C | H/A | A/B | B/C | A/C | H/C |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 首次 | 32/10 | 52.71 | 53.70 | 43.52 | 40.14 | 0.98 | 1.23 | 1.08 | 1.34 | 1.31 |
+| 复用 | 32/10 | 51.48 | 52.39 | 42.01 | 39.02 | 0.98 | 1.25 | 1.08 | 1.34 | 1.32 |
+| 首次 | 32/100 | 493.93 | 496.62 | 388.50 | 362.97 | 0.99 | 1.28 | 1.07 | 1.37 | 1.36 |
+| 复用 | 32/100 | 491.85 | 492.78 | 386.91 | 359.15 | 1.00 | 1.27 | 1.08 | 1.37 | 1.37 |
+| 首次 | 128/10 | 141.77 | 143.04 | 103.17 | 85.74 | 0.99 | 1.39 | 1.20 | 1.67 | 1.65 |
+| 复用 | 128/10 | 139.56 | 140.18 | 100.00 | 83.31 | 1.00 | 1.40 | 1.20 | 1.68 | 1.68 |
+| 首次 | 128/100 | 1320.68 | 1323.35 | 906.53 | 737.06 | 1.00 | 1.46 | 1.23 | 1.80 | 1.79 |
+| 复用 | 128/100 | 1316.91 | 1325.15 | 900.00 | 727.84 | 0.99 | 1.47 | 1.24 | 1.82 | 1.81 |
 
-- 主要维度 D=32、128；诊断补充 D=24、25、64、65 及完整计划维度矩阵。
-- 默认指数 1.5、遗弃率 0.25、P=64、LevyCandidateCount=2；补充指数 0.5、1、1.99、合法范围端点附近配置、遗弃率 0/1 和 P=1/2。
-- B 相对 A 的含采样局部门槛为至少 `1.10×`，完整 run 至少 `1.02×`；C 相对 B 的算术局部门槛为至少 `1.10×`，完整 run 至少 `1.02×`；最终保留版本相对 A 的完整 run 至少 `1.02×`。诊断回退不得超过确认的 5%。所有结果以 BenchmarkDotNet Mean 的 `基线耗时 / 修改后耗时` 表示，并记录置信区间。
-- 默认 Release、同一 SDK/runtime、BenchmarkDotNet 2 launches、8 warmups、20 measured iterations、MemoryDiagnoser；记录 `Vector<double>.Count`、硬件支持、实际 case 数、完整 PowerShell 命令、源 hash 和工作区载荷。
-- B/C 算术对照使用同一组正态、单位样本和索引输入；计入完整 scratch、Fill/缓冲读写、范围判断、回退、尾部和候选消费成本，不能把随机布局或 I-map 收益归入算术 SIMD。
+B/C 完整 run 的 D=32 点低于局部 1.10×，但完整门槛为 1.02×且全部通过；局部两个内核各自通过 1.10×。A→C 首次分配 D=32 `45176→45968 B`、D=128 `144249→147346 B`，增加 792/3097 B，与 3D 数组相符；复用无新增持久分配。
 
-## 数值、抽样与回调验证
+## 数值、残留与工程结论
 
-| 验证项目 | 预定检查 | 证据 | 结果 |
-| --- | --- | --- | --- |
-| 正态角色与尾部 | 前 2D 切片分别作为 numerator/denominator，奇数 D、非满向量尾部只读取本次写入值 | 待 T002/T007 测试记录 | Pending |
-| 分布与状态 | 固定 seed 0、1、20260905；每角色 2^18 样本，均值、方差、相关系数按 Plan 门槛；单值/批量状态分别观察后续值 | 待测试记录 | Pending |
-| Lévy 公式 | Abs 后加 epsilon、两次分子乘法、乘后除、0.8/0.2 加法顺序及结果分类 | 独立标量参考差分（待执行） | Pending |
-| C3 受限数值域 | x 接近 epsilon/1/极大值，p 很大/Infinity，零/次正规/有限/Infinity/NaN/负值，混合快路径与回退 lane；有限结果 `1e-14` 绝对加 `1e-12` 相对 | C3 数值矩阵和回退谓词（待执行） | Pending |
-| 索引对 | 小 P 穷举 I-map，验证无相等索引、双射、P=1 不消费；与原相等重抽独立比较 | 索引映射测试/诊断基准（待执行） | Pending |
-| 实时状态 | 后续 Lévy 候选看到前一候选替换后的 best/population；遗弃目标索引冻结但输入值实时读取 | 回调事件 fixture（待执行） | Pending |
-| 生命周期隔离 | Repair/Evaluate 次序、计数、取消、异常、连续 run、并发实例与 RunGroup 拆分/调度 | 优化器与 Experiment 测试（待执行） | Pending |
+- 测试覆盖正态角色切片、奇数/尾部、独立标量差分、P=1/小 P、遗弃率 0/1、实时状态、取消/异常和连续 run。
+- 搜索确认不存在 `NextGaussian`、`_hasSpareGaussian`、`_spareGaussian`、生产 `Fill(Span<int>)`、索引预取缓冲或 C3 helper；Core 仍唯一拥有 StandardNormal 和无偏 `NextInt`。
+- 正式局部产物位于 `%LOCALAPPDATA%/Temp/MetaheuristicsNetBench0011-01a0ad0a/BenchmarkDotNet.Artifacts/spec0012-formal` 和 `spec0011-0014-vector128`；H/A/B/C 分别位于四个 `MetaheuristicsNet0011{HistoricalH,BaselineA,IntermediateB,CandidateFinal}` 临时源副本的 `BenchmarkDotNet.Artifacts/spec0011-0014-*-e2e`。表中报告 Mean；原始报告保留 Error、StdDev、Median 和分配列。
+- Restore、Release Build、222 项测试、生成器测试、格式、文档验证器、DocFX 与 `git diff --check` 的最终结果见完成审计；均为 Passed。
 
-## 删除与残留检查
-
-| 被替代概念 | 预期处理 | 残留搜索结果 | 结果 |
-| --- | --- | --- | --- |
-| Cuckoo 私有 `NextGaussian`、`_hasSpareGaussian`、`_spareGaussian` 与 spare 重置 | 删除，标准正态唯一由 Core `StandardNormal` 提供 | 待 T002/T009 搜索 | Pending |
-| `Fill(Span<int>, int, int)` 及算法层整数 SIMD | 不恢复，不新增生产依赖 | 待 T004/T009 搜索 | Pending |
-| 跨候选索引预取、索引数组或下一候选输入快照 | 不建立；索引按候选局部生成，population/best 实时读取 | 待 T003/T004/T009 搜索 | Pending |
-| C3 通用 Pow/helper/公开入口/运行时开关 | 不新增；仅允许受限 Lévy 分母候选 | 待 T006/T009 搜索 | Pending |
-
-## 架构一致性
-
-- 策略职责是否保持独立：待实现与测试；Initializer/Repair/Evaluate 的职责和调用时点不得迁入算法批处理。
-- 是否新增重复验证：待审查；Core 继续负责 StandardNormal/NextInt，Cuckoo 只负责算法公式和布局。
-- 是否存在无消费者抽象：待审查；不保留失败的 C3、整数 Fill 或索引预取抽象。
-- 职责是否位于批准的项目层：待审查；随机分布在 Core，Lévy/遗弃与私有 SIMD 在 Algorithms。
-- 是否出现未经批准的兼容层：待审查；不增加公共 SIMD、通用 Pow 或随机映射兼容壳。
-
-## 工程验证
-
-- Restore：Pending
-- Release Build：Pending
-- Tests：Pending
-- 生成器测试：Pending
-- 文档验证器自测：Pending
-- Format：Pending
-- 文档链接与规格检查：Pending
-- DocFX：Pending
-- Benchmark 或分配分析：Pending
-
-## 未解决问题
-
-C1 直接 TensorPrimitives 的适用性、C2/C3 的局部性能以及 C3 可验证的快路径范围均待执行阶段决定；在证据产生前不把任一候选标为采用。尚无实现、实验或性能通过证据，Spec 不能据此进入 `Implemented`。
+SPEC-0012 的全部 FR/NFR 已满足；固定工作量结果不构成收敛速度声明。
