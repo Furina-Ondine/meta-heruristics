@@ -21,12 +21,19 @@ public class FireflyMoveBenchmarks
     private double[] _randomWalk = null!;
     private double[] _scalarPosition = null!;
     private double[] _tensorPosition = null!;
-    private double[] _vectorOpsPosition = null!;
+    private double[] _fusedPosition = null!;
+    private double[] _unitRandom = null!;
     private double[] _difference = null!;
 
     /// <summary>获取或设置萤火虫位置维度。</summary>
-    [Params(2, 7, 8, 15, 16, 31, 32, 33, 127, 128, 129)]
+    [ParamsSource(nameof(Dimensions))]
     public int Dimension { get; set; }
+
+    /// <summary>提供完整诊断维度，或按环境开关只提供主要验收维度。</summary>
+    public static IEnumerable<int> Dimensions =>
+        Environment.GetEnvironmentVariable("METAHEURISTICS_BENCHMARK_PRIMARY_ONLY") == "1"
+            ? [32, 128]
+            : [2, 7, 8, 15, 16, 31, 32, 33, 127, 128, 129];
 
     /// <summary>获取当前运行时固定宽度向量的可用性和宽度，以写入基准报告。</summary>
     [ParamsSource(nameof(SimdConfigurations))]
@@ -48,7 +55,8 @@ public class FireflyMoveBenchmarks
         _randomWalk = new double[Dimension];
         _scalarPosition = new double[Dimension];
         _tensorPosition = new double[Dimension];
-        _vectorOpsPosition = new double[Dimension];
+        _fusedPosition = new double[Dimension];
+        _unitRandom = new double[Dimension];
         _difference = new double[Dimension];
 
         for (var index = 0; index < Dimension; index++)
@@ -56,9 +64,10 @@ public class FireflyMoveBenchmarks
             var position = (index % 11) - 5;
             _scalarPosition[index] = position;
             _tensorPosition[index] = position;
-            _vectorOpsPosition[index] = position;
+            _fusedPosition[index] = position;
             _attractorPosition[index] = position + ((index % 5) - 2);
             _randomWalk[index] = ((index % 7) - 3) * 0.01;
+            _unitRandom[index] = (_randomWalk[index] / 0.1) + 0.5;
         }
     }
 
@@ -94,20 +103,21 @@ public class FireflyMoveBenchmarks
         TensorPrimitives.Add(_tensorPosition, _difference, _tensorPosition);
     }
 
-    /// <summary>测量固定宽度 512→256→128→标量级联的 VectorOps 候选。</summary>
+    /// <summary>测量单位样本缩放与位置更新融合后的生产候选。</summary>
     [Benchmark]
-    public void VectorOpsMove()
+    public void FusedUnitSampleVectorOpsMove()
     {
         var distanceSquared = VectorOps.DistanceSquared(
-            _vectorOpsPosition,
+            _fusedPosition,
             _attractorPosition);
         var attractiveness = 0.7 * Math.Exp(-0.2 * distanceSquared);
-        VectorOps.UpdateFireflyPosition(
-            _vectorOpsPosition,
+        VectorOps.UpdateFireflyPositionFromUnitSamples(
+            _fusedPosition,
             _attractorPosition,
-            _randomWalk,
+            _unitRandom,
+            randomStep: 0.1,
             attractiveness,
-            _vectorOpsPosition);
+            _fusedPosition);
     }
 }
 
@@ -124,6 +134,10 @@ public class FireflyAdvanceBenchmarks
     /// <summary>获取或设置问题维度。</summary>
     [Params(32, 128)]
     public int Dimension { get; set; }
+
+    /// <summary>获取或设置固定迭代工作量。</summary>
+    [Params(10, 100)]
+    public int Iterations { get; set; }
 
     /// <summary>获取当前运行时固定宽度向量的可用性和宽度，以写入基准报告。</summary>
     [ParamsSource(nameof(SimdConfigurations))]
@@ -155,7 +169,7 @@ public class FireflyAdvanceBenchmarks
             new RandomPositionInitializer(),
             options,
             FireflyUpdatePath.VectorOps);
-        _runOptions = new OptimizationRunOptions(StoppingConditions.MaxIterations(10));
+        _runOptions = new OptimizationRunOptions(StoppingConditions.MaxIterations(Iterations));
 
         OptimizationRunner.Execute(_problem, _scalarOptimizer, _runOptions, seed: ulong.MaxValue);
         OptimizationRunner.Execute(_problem, _tensorPrimitivesOptimizer, _runOptions, seed: ulong.MaxValue);
@@ -178,11 +192,35 @@ public class FireflyAdvanceBenchmarks
             .BestEvaluation.Objective;
     }
 
-    /// <summary>测量 VectorOps 级联距离和移动、Repair 及目标求值的完整生命周期。</summary>
+    /// <summary>测量批量单位样本与融合 VectorOps 移动、Repair 及目标求值的完整生命周期。</summary>
     [Benchmark]
     public double VectorOpsAdvanceLifecycle()
     {
         return OptimizationRunner.Execute(_problem, _vectorOpsOptimizer, _runOptions, seed: 1)
+            .BestEvaluation.Objective;
+    }
+
+    /// <summary>测量含首次工作区分配的原标量完整生命周期。</summary>
+    [Benchmark]
+    public double ScalarFirstAdvanceLifecycle()
+    {
+        var optimizer = new FireflyBenchmarkOptimizer(
+            new RandomPositionInitializer(),
+            new FireflyOptimizerOptions { PopulationSize = 64 },
+            FireflyUpdatePath.Scalar);
+        return OptimizationRunner.Execute(_problem, optimizer, _runOptions, seed: 1)
+            .BestEvaluation.Objective;
+    }
+
+    /// <summary>测量含首次工作区分配的批量采样与融合移动完整生命周期。</summary>
+    [Benchmark]
+    public double VectorOpsFirstAdvanceLifecycle()
+    {
+        var optimizer = new FireflyBenchmarkOptimizer(
+            new RandomPositionInitializer(),
+            new FireflyOptimizerOptions { PopulationSize = 64 },
+            FireflyUpdatePath.VectorOps);
+        return OptimizationRunner.Execute(_problem, optimizer, _runOptions, seed: 1)
             .BestEvaluation.Objective;
     }
 
@@ -425,11 +463,12 @@ public class FireflyAdvanceBenchmarks
                     target.Position,
                     attractor.Position);
                 var attractiveness = GetAttractiveness(distanceSquared);
-                FillRandomWalk(randomStep);
-                VectorOps.UpdateFireflyPosition(
+                _context!.Random.Fill(_randomWalk!);
+                VectorOps.UpdateFireflyPositionFromUnitSamples(
                     target.Position,
                     attractor.Position,
                     _randomWalk!,
+                    randomStep,
                     attractiveness,
                     target.Position);
                 _context!.Repair(target.Position);

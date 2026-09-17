@@ -184,7 +184,7 @@ public sealed class FireflyOptimizer : IOptimizer
         FireflyState target,
         double randomStep)
     {
-        source.Position.CopyTo(target.Position, 0);
+        source.Position.AsSpan().CopyTo(target.Position);
         foreach (var attractor in sourcePopulation)
         {
             if (!EvaluationComparer.IsBetter(
@@ -195,19 +195,17 @@ public sealed class FireflyOptimizer : IOptimizer
                 continue;
             }
 
-            for (var dimensionIndex = 0; dimensionIndex < _dimension; dimensionIndex++)
-            {
-                _randomWalk![dimensionIndex] = randomStep * (_context.Random.NextDouble() - 0.5);
-            }
+            _context.Random.Fill(_randomWalk!);
 
             var distanceSquared = VectorOps.DistanceSquared(target.Position, attractor.Position);
             var attractiveness = _options.BaseAttractiveness
                 * Math.Exp(-_options.DistanceAttenuation * distanceSquared);
 
-            VectorOps.UpdateFireflyPosition(
+            VectorOps.UpdateFireflyPositionFromUnitSamples(
                 target.Position,
                 attractor.Position,
                 _randomWalk!,
+                randomStep,
                 attractiveness,
                 target.Position);
 
@@ -217,7 +215,7 @@ public sealed class FireflyOptimizer : IOptimizer
 
     private void CopyBest(FireflyState source)
     {
-        source.Position.CopyTo(_bestPosition!, 0);
+        source.Position.AsSpan().CopyTo(_bestPosition!);
         _bestEvaluation = source.Evaluation;
     }
 }

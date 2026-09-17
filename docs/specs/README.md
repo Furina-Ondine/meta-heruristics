@@ -59,6 +59,10 @@ Plan 使用 `Draft`、`Approved`、`Superseded`；Tasks 使用 `Pending`、`InPr
 
 `ENGINEERING.md` 和 Accepted ADR 约束所有 Spec。Approved/Implemented Spec 是对应功能公共意图和行为的权威来源。实现与 Spec 冲突时不默认以代码为准；先报告冲突，由用户决定修正实现、修订 Spec 或新增替代 ADR。
 
+## SIMD 演进
+
+[SPEC-0010 至 SPEC-0014 联合规格](simd-review.md)已全部实施。SPEC-0011 至 SPEC-0014 于 2026-09-17 完成批量采样、私有 SIMD、候选清理以及局部、Vector128、H/A/B/C 完整 run 验收；入口见[联合审查](simd-review.md)，共同验收设计见[验证计划附件](simd-plan.md)，详细数据见各 Verification。
+
 ## 当前 package
 
 | 编号 | 主题 | 状态 |
@@ -71,3 +75,8 @@ Plan 使用 `Draft`、`Approved`、`Superseded`；Tasks 使用 `Pending`、`InPr
 | [SPEC-0006](./SPEC-0006-zero-overhead-simd-cascade/spec.md) | 零开销 SIMD 级联源码生成 | `Implemented` |
 | [SPEC-0007](./SPEC-0007-repair-boundary-shape-specialization/spec.md) | Repair 边界形状专用化 | `Implemented` |
 | [SPEC-0009](./SPEC-0009-high-performance-random-sampling/spec.md) | 高性能随机源与批量分布采样 | `Implemented` |
+| [SPEC-0010](./SPEC-0010-simd-random-sampling/spec.md) | 随机采样 SIMD 化 | `Implemented` |
+| [SPEC-0011](./SPEC-0011-bat-batched-simd/spec.md) | Bat 批量采样与 SIMD | `Implemented` |
+| [SPEC-0012](./SPEC-0012-cuckoo-batched-simd/spec.md) | Cuckoo 批量采样与 SIMD | `Implemented` |
+| [SPEC-0013](./SPEC-0013-pso-simd-refinement/spec.md) | PSO SIMD 增量优化 | `Implemented` |
+| [SPEC-0014](./SPEC-0014-firefly-simd-refinement/spec.md) | Firefly SIMD 增量优化 | `Implemented` |

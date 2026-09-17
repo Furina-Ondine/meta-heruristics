@@ -125,13 +125,6 @@ public class RandomSourceBenchmarks
     }
 
     [Benchmark]
-    public double RandomSourceFillBoundedInt()
-    {
-        _source.Fill(_integerValues, BoundedIntegerMinimum, BoundedIntegerMaximum);
-        return Last(_integerValues);
-    }
-
-    [Benchmark]
     public double RandomSourceScalarBoundedInt()
     {
         for (var index = 0; index < _integerValues.Length; index++)

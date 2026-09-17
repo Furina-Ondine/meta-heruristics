@@ -19,6 +19,7 @@ public sealed class BatOptimizer : IOptimizer
     private BatState[]? _populationA;
     private BatState[]? _populationB;
     private double[]? _bestPosition;
+    private double[]? _randomScratch;
     private Evaluation _bestEvaluation;
     private OptimizationRunContext? _context;
     private int _dimension;
@@ -71,26 +72,27 @@ public sealed class BatOptimizer : IOptimizer
         {
             context.CancellationToken.ThrowIfCancellationRequested();
             InitializePosition(bat.Position, context);
-            for (var dimensionIndex = 0; dimensionIndex < _dimension; dimensionIndex++)
-            {
-                bat.Velocity[dimensionIndex] = NextDouble(
-                    context.Random,
-                    _options.VelocityLowerBound,
-                    _options.VelocityUpperBound);
-                bat.Frequency[dimensionIndex] = NextDouble(
-                    context.Random,
-                    _options.FrequencyLowerBound,
-                    _options.FrequencyUpperBound);
-                bat.Loudness[dimensionIndex] = NextDouble(
-                    context.Random,
-                    _options.InitialLoudnessLowerBound,
-                    _options.InitialLoudnessUpperBound);
-                bat.PulseRate[dimensionIndex] = NextDouble(
-                    context.Random,
-                    _options.InitialPulseRateLowerBound,
-                    _options.InitialPulseRateUpperBound);
-                bat.InitialPulseRate[dimensionIndex] = bat.PulseRate[dimensionIndex];
-            }
+            FillRange(
+                context.Random,
+                bat.Velocity,
+                _options.VelocityLowerBound,
+                _options.VelocityUpperBound);
+            FillRange(
+                context.Random,
+                bat.Frequency,
+                _options.FrequencyLowerBound,
+                _options.FrequencyUpperBound);
+            FillRange(
+                context.Random,
+                bat.Loudness,
+                _options.InitialLoudnessLowerBound,
+                _options.InitialLoudnessUpperBound);
+            FillRange(
+                context.Random,
+                bat.PulseRate,
+                _options.InitialPulseRateLowerBound,
+                _options.InitialPulseRateUpperBound);
+            bat.PulseRate.AsSpan().CopyTo(bat.InitialPulseRate);
 
             bat.Evaluation = context.Evaluate(bat.Position);
             if (!hasBest || EvaluationComparer.IsBetter(bat.Evaluation, _bestEvaluation, context.Problem.Direction))
@@ -237,6 +239,7 @@ public sealed class BatOptimizer : IOptimizer
         _populationA = CreatePopulation(_options.PopulationSize, dimension);
         _populationB = CreatePopulation(_options.PopulationSize, dimension);
         _bestPosition = new double[dimension];
+        _randomScratch = new double[checked(3 * dimension)];
     }
 
     private static BatState[] CreatePopulation(int populationSize, int dimension)
@@ -260,43 +263,39 @@ public sealed class BatOptimizer : IOptimizer
     {
         var context = _context!;
         var random = context.Random;
-        for (var dimensionIndex = 0; dimensionIndex < _dimension; dimensionIndex++)
-        {
-            target.Frequency[dimensionIndex] = NextDouble(
-                random,
-                _options.FrequencyLowerBound,
-                _options.FrequencyUpperBound);
+        var pulseSamples = _randomScratch.AsSpan(0, _dimension);
+        var perturbationSamples = _randomScratch.AsSpan(_dimension, _dimension);
+        var acceptanceSamples = _randomScratch.AsSpan(2 * _dimension, _dimension);
 
-            // fix 分支的关键修复：使用本轮新频率并只写目标速度，拒绝候选时源状态保持不变。
-            var velocity = source.Velocity[dimensionIndex]
-                + ((_bestPosition![dimensionIndex] - source.Position[dimensionIndex])
-                    * target.Frequency[dimensionIndex]);
-            target.Velocity[dimensionIndex] = Math.Clamp(
-                velocity,
-                _options.VelocityLowerBound,
-                _options.VelocityUpperBound);
-
-            var nextPosition = random.NextDouble() > source.PulseRate[dimensionIndex]
-                ? _bestPosition[dimensionIndex]
-                    + (NextDouble(random, -1, 1) * source.Loudness[dimensionIndex])
-                : source.Position[dimensionIndex] + target.Velocity[dimensionIndex];
-
-            target.InitialPulseRate[dimensionIndex] = source.InitialPulseRate[dimensionIndex];
-            if (random.NextDouble() < source.Loudness[dimensionIndex])
-            {
-                target.Position[dimensionIndex] = nextPosition;
-                target.Loudness[dimensionIndex] =
-                    _options.LoudnessDecay * source.Loudness[dimensionIndex];
-                target.PulseRate[dimensionIndex] = source.InitialPulseRate[dimensionIndex]
-                    * (1 - Math.Exp(-_options.PulseRateGrowth * _iteration));
-            }
-            else
-            {
-                target.Position[dimensionIndex] = source.Position[dimensionIndex];
-                target.Loudness[dimensionIndex] = source.Loudness[dimensionIndex];
-                target.PulseRate[dimensionIndex] = source.PulseRate[dimensionIndex];
-            }
-        }
+        FillRange(
+            random,
+            target.Frequency,
+            _options.FrequencyLowerBound,
+            _options.FrequencyUpperBound);
+        random.Fill(pulseSamples);
+        random.Fill(perturbationSamples, -1, 1);
+        random.Fill(acceptanceSamples);
+        var pulseRateFactor = 1 - Math.Exp(-_options.PulseRateGrowth * _iteration);
+        VectorOps.UpdateBatCandidate(
+            source.Position,
+            source.Velocity,
+            source.Loudness,
+            source.PulseRate,
+            source.InitialPulseRate,
+            _bestPosition!,
+            target.Frequency,
+            pulseSamples,
+            perturbationSamples,
+            acceptanceSamples,
+            _options.VelocityLowerBound,
+            _options.VelocityUpperBound,
+            _options.LoudnessDecay,
+            pulseRateFactor,
+            target.Position,
+            target.Velocity,
+            target.Loudness,
+            target.PulseRate,
+            target.InitialPulseRate);
 
         RepairPosition(target.Position, context);
     }
@@ -308,15 +307,23 @@ public sealed class BatOptimizer : IOptimizer
 
     private void CopyBest(BatState source)
     {
-        source.Position.CopyTo(_bestPosition!, 0);
+        source.Position.AsSpan().CopyTo(_bestPosition!);
         _bestEvaluation = source.Evaluation;
     }
 
-    private static double NextDouble(RandomSource random, double lowerBound, double upperBound)
+    private static void FillRange(
+        RandomSource random,
+        Span<double> destination,
+        double lowerBound,
+        double upperBound)
     {
-        return lowerBound == upperBound
-            ? lowerBound
-            : random.NextDouble(lowerBound, upperBound);
+        if (lowerBound == upperBound)
+        {
+            destination.Fill(lowerBound);
+            return;
+        }
+
+        random.Fill(destination, lowerBound, upperBound);
     }
 
 }

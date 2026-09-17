@@ -26,8 +26,14 @@ public class PsoCandidateUpdateBenchmarks
     private double[] _vectorOpsVelocity = null!;
 
     /// <summary>获取或设置候选位置的维度。</summary>
-    [Params(2, 7, 8, 15, 16, 31, 32, 33, 127, 128, 129)]
+    [ParamsSource(nameof(Dimensions))]
     public int Dimension { get; set; }
+
+    /// <summary>提供完整诊断维度，或按环境开关只提供主要验收维度。</summary>
+    public static IEnumerable<int> Dimensions =>
+        Environment.GetEnvironmentVariable("METAHEURISTICS_BENCHMARK_PRIMARY_ONLY") == "1"
+            ? [32, 128]
+            : [2, 7, 8, 15, 16, 31, 32, 33, 127, 128, 129];
 
     /// <summary>获取当前运行时固定宽度向量的可用性和宽度，以写入基准报告。</summary>
     [ParamsSource(nameof(SimdConfigurations))]
@@ -94,11 +100,11 @@ public class PsoCandidateUpdateBenchmarks
         TensorPrimitives.Add(_sourcePosition, _tensorVelocity, _tensorPosition);
     }
 
-    /// <summary>测量融合速度公式的私有 VectorOps 加直接 Clamp/Add 的生产组合。</summary>
+    /// <summary>测量速度、Clamp 与位置双输出的完整融合数据流。</summary>
     [Benchmark]
-    public void VectorOpsCandidateUpdate()
+    public void FusedVectorOpsCandidateUpdate()
     {
-        VectorOps.ComputePsoVelocity(
+        VectorOps.UpdatePsoCandidate(
             _sourcePosition,
             _sourceVelocity,
             _personalBestPosition,
@@ -106,9 +112,10 @@ public class PsoCandidateUpdateBenchmarks
             inertia: 0.79,
             cognitiveScale: 0.75,
             socialScale: 0.25,
-            destination: _vectorOpsVelocity);
-        TensorPrimitives.Clamp(_vectorOpsVelocity, -1, 1, _vectorOpsVelocity);
-        TensorPrimitives.Add(_sourcePosition, _vectorOpsVelocity, _vectorOpsPosition);
+            velocityLowerBound: -1,
+            velocityUpperBound: 1,
+            _vectorOpsVelocity,
+            _vectorOpsPosition);
     }
 }
 
@@ -124,6 +131,10 @@ public class PsoAdvanceBenchmarks
     /// <summary>获取或设置问题维度。</summary>
     [Params(32, 128)]
     public int Dimension { get; set; }
+
+    /// <summary>获取或设置固定迭代工作量。</summary>
+    [Params(10, 100)]
+    public int Iterations { get; set; }
 
     /// <summary>获取当前运行时固定宽度向量的可用性和宽度，以写入基准报告。</summary>
     [ParamsSource(nameof(SimdConfigurations))]
@@ -145,7 +156,7 @@ public class PsoAdvanceBenchmarks
         var options = new PsoOptimizerOptions { PopulationSize = 64 };
         _scalarOptimizer = new ScalarPsoBenchmarkOptimizer(new RandomPositionInitializer(), options);
         _vectorOpsOptimizer = new PsoOptimizer(new RandomPositionInitializer(), options);
-        _runOptions = new OptimizationRunOptions(StoppingConditions.MaxIterations(10));
+        _runOptions = new OptimizationRunOptions(StoppingConditions.MaxIterations(Iterations));
         OptimizationRunner.Execute(_problem, _scalarOptimizer, _runOptions, seed: ulong.MaxValue);
         OptimizationRunner.Execute(_problem, _vectorOpsOptimizer, _runOptions, seed: ulong.MaxValue);
     }
@@ -162,6 +173,26 @@ public class PsoAdvanceBenchmarks
     public double VectorOpsAdvanceLifecycle()
     {
         return OptimizationRunner.Execute(_problem, _vectorOpsOptimizer, _runOptions, seed: 1).BestEvaluation.Objective;
+    }
+
+    /// <summary>测量含首次工作区分配的原标量完整生命周期。</summary>
+    [Benchmark]
+    public double ScalarFirstAdvanceLifecycle()
+    {
+        var optimizer = new ScalarPsoBenchmarkOptimizer(
+            new RandomPositionInitializer(),
+            new PsoOptimizerOptions { PopulationSize = 64 });
+        return OptimizationRunner.Execute(_problem, optimizer, _runOptions, seed: 1).BestEvaluation.Objective;
+    }
+
+    /// <summary>测量含首次工作区分配的生产融合完整生命周期。</summary>
+    [Benchmark]
+    public double VectorOpsFirstAdvanceLifecycle()
+    {
+        var optimizer = new PsoOptimizer(
+            new RandomPositionInitializer(),
+            new PsoOptimizerOptions { PopulationSize = 64 });
+        return OptimizationRunner.Execute(_problem, optimizer, _runOptions, seed: 1).BestEvaluation.Objective;
     }
 
     private sealed class RandomPositionInitializer : ICandidateInitializer

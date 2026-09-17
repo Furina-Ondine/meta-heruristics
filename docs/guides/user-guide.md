@@ -168,7 +168,7 @@ Experiment 的目标统计可能无法定义：样本同时含正负 Infinity �
 
 ### 保持可复现
 
-每次运行都传入显式 `ulong` seed。Initializer 和 Repair 从当前 run 的 `RandomSource` 参数取样；不要在 Objective、Constraint、Initializer、Repair 或 Optimizer 中使用 `Random.Shared`、当前时间或跨运行共享的随机状态。需要高吞吐时，对 `Span<ulong>`、`Span<double>` 或 `Span<int>` 使用 `RandomSource.Fill`；需要标准正态时使用 `StandardNormal.Sample`/`StandardNormal.Fill`。
+每次运行都传入显式 `ulong` seed。Initializer 和 Repair 从当前 run 的 `RandomSource` 参数取样；不要在 Objective、Constraint、Initializer、Repair 或 Optimizer 中使用 `Random.Shared`、当前时间或跨运行共享的随机状态。需要高吞吐时，对 `Span<ulong>` 或 `Span<double>` 使用 `RandomSource.Fill`；有界整数使用 `NextInt`，标准正态使用 `StandardNormal.Sample`/`StandardNormal.Fill`。
 
 ## 什么时候使用 Experiment
 

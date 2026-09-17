@@ -1,3 +1,4 @@
+using System.Numerics;
 using Anastasya.Metaheuristics.Core.Randomness;
 
 namespace Anastasya.Metaheuristics.Tests.Core;
@@ -20,6 +21,79 @@ public sealed class StandardNormalTests
         var expected = new RandomSource(123);
         StandardNormal.Fill(source, Span<double>.Empty);
         Xunit.Assert.Equal(expected.NextULong(), source.NextULong());
+    }
+
+    /// <summary>
+    /// 验证批量正态的双向量配对、尾部处理、向量数学结果与块消费量。
+    /// </summary>
+    [Xunit.Fact]
+    public void VectorFillMatchesScalarBoxMullerReferenceAndConsumesWholeRounds()
+    {
+        const ulong seed = 0x0BADF00D_12345678;
+        var laneCount = Vector<double>.Count;
+        foreach (var length in new[] { 1, 2, laneCount - 1, laneCount, laneCount + 1, (3 * laneCount) + 2 })
+        {
+            var source = new RandomSource(seed);
+            var units = new RandomSource(seed);
+            var untouched = new RandomSource(seed);
+            var values = new double[length];
+
+            StandardNormal.Fill(source, values);
+
+            var expected = new List<double>(length);
+            while (expected.Count < length)
+            {
+                var radiusInput = units.NextDoubleVector();
+                var angleInput = units.NextDoubleVector();
+                var cosines = new List<double>(laneCount);
+                var sines = new List<double>(laneCount);
+                for (var lane = 0; lane < laneCount; lane++)
+                {
+                    var radius = Math.Sqrt(-2 * Math.Log(1 - radiusInput[lane]));
+                    var angle = 2 * Math.PI * angleInput[lane];
+                    cosines.Add(radius * Math.Cos(angle));
+                    sines.Add(radius * Math.Sin(angle));
+                }
+
+                // 写出是向量粒度：整条 cos 结果在前，整条 sin 结果在后。
+                foreach (var value in cosines.Concat(sines))
+                {
+                    if (expected.Count == length)
+                    {
+                        break;
+                    }
+
+                    expected.Add(value);
+                }
+            }
+
+            for (var index = 0; index < length; index++)
+            {
+                var reference = expected[index];
+                Xunit.Assert.True(double.IsFinite(values[index]));
+                Xunit.Assert.True(
+                    Math.Abs(values[index] - reference) <= 1e-12 + (1e-12 * Math.Abs(reference)),
+                    $"index {index}: {values[index]} vs {reference}");
+            }
+
+            // 每个块消耗两轮批量状态（2*L 个输出），尾部不足一块时仍消耗完整一块；
+            // 整个调用完全不推进单值状态。
+            var rounds = 2 * (((length + (2 * laneCount)) - 1) / (2 * laneCount));
+            var advanced = new RandomSource(seed);
+            for (var round = 0; round < rounds; round++)
+            {
+                _ = advanced.NextDoubleVector();
+            }
+
+            var expectedNext = advanced.NextDoubleVector();
+            var actualNext = source.NextDoubleVector();
+            for (var lane = 0; lane < laneCount; lane++)
+            {
+                Xunit.Assert.Equal(expectedNext[lane], actualNext[lane]);
+            }
+
+            Xunit.Assert.Equal(untouched.NextULong(), source.NextULong());
+        }
     }
 
     /// <summary>

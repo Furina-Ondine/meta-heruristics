@@ -111,6 +111,7 @@ public sealed class PsoOptimizerTests
             Xunit.TestContext.Current.CancellationToken);
         var firstPopulationA = GetPopulation(optimizer, "_populationA");
         var firstPopulationB = GetPopulation(optimizer, "_populationB");
+        var firstCoefficientSamples = GetField<double[]>(optimizer, "_coefficientSamples");
         var firstPositions = GetVectors(firstPopulationA, "Position");
         var firstVelocities = GetVectors(firstPopulationA, "Velocity");
 
@@ -123,6 +124,8 @@ public sealed class PsoOptimizerTests
 
         Xunit.Assert.Same(firstPopulationA, GetPopulation(optimizer, "_populationA"));
         Xunit.Assert.Same(firstPopulationB, GetPopulation(optimizer, "_populationB"));
+        Xunit.Assert.Same(firstCoefficientSamples, GetField<double[]>(optimizer, "_coefficientSamples"));
+        Xunit.Assert.Equal(6, firstCoefficientSamples.Length);
         Xunit.Assert.Equal(firstPositions, GetVectors(firstPopulationA, "Position"), ReferenceEqualityComparer.Instance);
         Xunit.Assert.Equal(firstVelocities, GetVectors(firstPopulationA, "Velocity"), ReferenceEqualityComparer.Instance);
         Xunit.Assert.Throws<InvalidOperationException>(
@@ -182,12 +185,12 @@ public sealed class PsoOptimizerTests
             });
         var problem = new ContinuousProblem(3, new SphereObjective(), CandidateRepairs.Clamp(-10, 10));
         var random = new RandomSource(seed);
-        for (var draw = 0; draw < 7; draw++)
-        {
-            _ = random.NextDouble();
-        }
-
-        var socialRandom = random.NextDouble();
+        Span<double> initialVelocity = stackalloc double[3];
+        random.Fill(initialVelocity, -10, 10);
+        random.Fill(initialVelocity, -10, 10);
+        Span<double> coefficients = stackalloc double[4];
+        random.Fill(coefficients);
+        var socialRandom = coefficients[1];
 
         ExecuteWithSnapshot(
             problem,
@@ -271,8 +274,11 @@ public sealed class PsoOptimizerTests
         var population = GetPopulation(optimizer, "_populationA");
         Xunit.Assert.Equal(1, GetVectors(population, "Velocity")[0][0]);
         var expected = new RandomSource(778);
-        _ = expected.NextULong();
-        Xunit.Assert.Equal(expected.NextULong(), initializer.Random!.NextULong());
+        Span<double> velocity = stackalloc double[1];
+        expected.Fill(velocity, 1, Math.BitIncrement(1));
+        Xunit.Assert.Equal(expected.NextDoubleVector(), initializer.Random!.NextDoubleVector());
+        var scalarExpected = new RandomSource(778);
+        Xunit.Assert.Equal(scalarExpected.NextULong(), initializer.Random.NextULong());
     }
 
     private static PsoOptimizer CreateOptimizer(PsoOptimizerOptions? options = null)
@@ -304,6 +310,14 @@ public sealed class PsoOptimizerTests
     private static Array GetPopulation(PsoOptimizer optimizer, string fieldName)
     {
         return (Array)(typeof(PsoOptimizer)
+            .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.GetValue(optimizer)
+            ?? throw new InvalidOperationException($"Field '{fieldName}' was not initialized."));
+    }
+
+    private static T GetField<T>(PsoOptimizer optimizer, string fieldName)
+    {
+        return (T)(typeof(PsoOptimizer)
             .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
             ?.GetValue(optimizer)
             ?? throw new InvalidOperationException($"Field '{fieldName}' was not initialized."));

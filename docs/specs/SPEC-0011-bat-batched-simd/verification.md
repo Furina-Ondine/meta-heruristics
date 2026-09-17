@@ -1,0 +1,70 @@
+# SPEC-0011 验证报告
+
+## 元数据
+
+- Spec：[`spec.md`](./spec.md)
+- Plan：[`plan.md`](./plan.md)
+- Tasks：[`tasks.md`](./tasks.md)
+- 共同验证附件：[`simd-plan.md`](../simd-plan.md)
+- 验证日期：2026-09-17
+- 最终结果：`Passed`
+- 基线 A：`9b276e5`；历史 H：`56c1f57` 加 `16b66fb` 的精确 `CopyTo` 修订；候选 C：当前工作区
+
+## 需求覆盖
+
+| 需求 | 实现位置 | 测试或基准 | 文档 | 结果 |
+| --- | --- | --- | --- | --- |
+| FR-001 | `BatOptimizer.GenerateCandidate`、`VectorOps.UpdateBatCandidate` | `VectorOpsTests` 独立参考、阈值、特殊值、尾部 | 本报告“实现与候选取舍” | Passed |
+| FR-002 | `BatOptimizer` 的 Frequency Fill 与 `double[3D]` scratch | `BatOptimizerTests` 的布局、状态推进与复用测试 | 本报告采样与分配说明 | Passed |
+| FR-003 | Optimizer 私有工作区及原 Generate/Repair/Evaluate/选择阶段 | 回调、取消、异常、源状态和隔离测试 | 架构概览与本报告 | Passed |
+| NFR-001 | 最终 C2 生产路径 | 正式局部、Vector128、H/A/B/C 与分配基准 | 本报告全部性能表 | Passed |
+
+## 实现与候选取舍
+
+- 每个候选使用完整、连续的数据流：读入 source/best/样本，计算 frequency→velocity→Clamp→两条 position 分支→掩码选择，最后一次写入目标字段。性能测量没有把该操作拆成更小表达式。
+- C1 没有可表达完整六字段分支和单次写回的直接 TensorPrimitives 形状，未建立生产候选。C2 私有 512→256→128→scalar-tail 掩码融合通过数值与性能门槛，已采用。
+- pulse 使用严格 `>`、accept 使用严格 `<`；额外计算未改变等于阈值时的选择。Clamp 使用比较选择，保持批准的 NaN/Infinity/有符号零分类。
+- `Math.Exp` 的代际共享因子已外提；它与 SIMD 候选使用相同公式位置，不把该收益冒充为掩码 SIMD 收益。
+
+## 局部性能
+
+正式配置为 BenchmarkDotNet 2 launches、8 warmups、20 measured iterations、MemoryDiagnoser；单位 ns，比例为标量/Batched SIMD。普通硬件路径使用 x86-64-v4、`.NET 10.0.11`、SDK `10.0.400`。
+
+| D | 标量完整数据流 | C2 融合 | 加速比 |
+| ---: | ---: | ---: | ---: |
+| 24 | 84.87 | 23.88 | 3.55× |
+| 25 | 88.06 | 24.60 | 3.58× |
+| 32 | 115.15 | 27.27 | 4.22× |
+| 64 | 226.20 | 48.18 | 4.69× |
+| 65 | 229.95 | 45.48 | 5.06× |
+| 128 | 454.88 | 106.59 | 4.27× |
+
+受限 Vector128 进程设置 `DOTNET_EnableAVX512F=0`、`DOTNET_EnableAVX2=0`、`DOTNET_MaxVectorTBitWidth=128`；实际 `Vector<double>.Count=2`、Vector128=True、Vector256/512=False。D=32 为 `115.38/40.05 ns = 2.88×`，D=128 为 `453.24/109.33 ns = 4.15×`，均满足用户确认的 `>=1.00×`。
+
+## 完整 run：H/A/B/C
+
+Sphere、Clamp(-5,5)、P=64、seed `20260905`；单位 µs。B 是批量采样加旧标量算术的隔离候选，C 是最终实现。
+
+| 生命周期 | D/代 | H | A | B | C | H/A | A/B | B/C | A/C | H/C |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 首次 | 32/10 | 253.90 | 250.80 | 131.40 | 71.26 | 1.01 | 1.91 | 1.84 | 3.52 | 3.56 |
+| 复用 | 32/10 | 249.40 | 243.30 | 127.70 | 67.10 | 1.03 | 1.91 | 1.90 | 3.63 | 3.72 |
+| 首次 | 32/100 | 3201.80 | 3185.50 | 2484.60 | 612.46 | 1.01 | 1.28 | 4.06 | 5.20 | 5.23 |
+| 复用 | 32/100 | 3199.50 | 3197.80 | 2424.40 | 609.31 | 1.00 | 1.32 | 3.98 | 5.25 | 5.25 |
+| 首次 | 128/10 | 1297.90 | 1285.10 | 906.30 | 244.33 | 1.01 | 1.42 | 3.71 | 5.26 | 5.31 |
+| 复用 | 128/10 | 1276.20 | 1268.10 | 926.50 | 228.38 | 1.01 | 1.37 | 4.06 | 5.55 | 5.59 |
+| 首次 | 128/100 | 13419.50 | 13490.00 | 10253.40 | 2146.75 | 0.99 | 1.32 | 4.78 | 6.28 | 6.25 |
+| 复用 | 128/100 | 13329.40 | 13523.10 | 10079.60 | 2077.24 | 0.99 | 1.34 | 4.85 | 6.51 | 6.42 |
+
+所有 A/B、B/C 与 A/C 主要点通过。A→C 首次分配为 D=32 `229226→230026 B`、D=128 `819825→822928 B`，分别增加 800/3103 B，与一块 `double[3D]` 的 768/3072 B 载荷加数组头一致；复用约 `328/330 B`。
+
+## 工程与残留证据
+
+- 正式局部产物位于 `%LOCALAPPDATA%/Temp/MetaheuristicsNetBench0011-01a0ad0a/BenchmarkDotNet.Artifacts/spec0011-formal` 和 `spec0011-0014-vector128`；H/A/B/C 完整 run 分别位于 `MetaheuristicsNet0011HistoricalH`、`MetaheuristicsNet0011BaselineA`、`MetaheuristicsNet0011IntermediateB`、`MetaheuristicsNet0011CandidateFinal` 下的 `BenchmarkDotNet.Artifacts/spec0011-0014-*-e2e`。表中报告 Mean；原始报告同时保留 Error、StdDev、Median 和分配列。
+- `BatOptimizerTests`、`VectorOpsTests` 及完整测试通过；旧逐维随机循环、失败候选和生产双路径未保留。
+- 固定代数完整 run 只证明相同工作量吞吐，不声称收敛速度或达到目标精度的时间。
+- Restore、Release Build、222 项测试、生成器测试、格式、文档验证器、DocFX 与 `git diff --check` 的最终结果见本次变更完成审计；均为 Passed。
+
+## 结论
+
+批量采样与完整六字段掩码 SIMD 均保留。随机轨迹按 Approved Spec 变化，但回调、Repair、Evaluate、选择、状态所有权和数值分类保持；SPEC-0011 的全部 FR/NFR 已满足。

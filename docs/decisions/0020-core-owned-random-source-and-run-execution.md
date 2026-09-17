@@ -2,7 +2,9 @@
 
 ## 状态
 
-Accepted
+Superseded
+
+由 [ADR-0021](0021-run-private-simd-random-lanes.md) 替代；以下保留原决策。
 
 替代 [ADR-0009](0009-group-scoped-optimizer-execution.md)。本 ADR 保留其 RunGroup、Optimizer、Context 和异常后复用决定，并以 [SPEC-0009](../specs/SPEC-0009-high-performance-random-sampling/spec.md) 批准的封闭 `RandomSource` 与 `ulong` seed 替代 `System.Random`/`int` seed。
 
