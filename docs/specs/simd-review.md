@@ -1,6 +1,12 @@
 # SIMD 规格联合审查
 
-本文只聚合已批准规格和审批边界；需求以各 Spec 为准，不是技术 Plan。
+本文是 SPEC-0010 至 SPEC-0014 的跨 Spec 范围、批准与证据导航：它聚合联合范围、依赖、审批记录和当前验收入口；具体需求以各 Spec 为准，共同验证口径以[共同验证计划](simd-plan.md)为准。本文不新增 Spec、Plan、批准或验收要求，也不代替各 Spec、Plan、Tasks 和 Verification。
+
+## 当前状态（2026-09-17）
+
+SPEC-0010 已完成；SPEC-0011 至 SPEC-0014 已于 2026-09-17 完成实施、候选取舍和正式验收。各 Verification 中的 `Passed` 是当时的历史验收结论；它不表示当前保留的性能资料可以完全复现，报告中的源身份、临时产物和平台覆盖限制仍须一并阅读。
+
+随机源证据及覆盖限制见 [SPEC-0010 Verification](SPEC-0010-simd-random-sampling/verification.md)，算法报告见下方“执行文档”。共同附件定义验收口径，增量与最终组合收益由各算法 Verification 分别判定；本文汇总结果，不增加独立的整体通过结论。
 
 ## 已确认范围
 
@@ -18,14 +24,14 @@
 
 ## 架构决策变更
 
-- 随机源方案要求替代 ADR-0020 的单组四字状态限制；保留封闭公共能力、Core 所有权、ulong seed 和 Group 生命周期。
-- PSO 融合要求替代 ADR-0016 对 Clamp/Add 必须使用 TensorPrimitives 的限制；当前直接 TensorPrimitives 与私有融合内核的选择、以及基准执行规则见 ADR-0025。
+- 随机源方案要求替代 ADR-0020 的单组四字状态限制；保留封闭公共能力、Core 所有权、ulong seed 和 Group 生命周期。ADR-0021 记录了此前 run 私有 SIMD lane 方案的历史原因；当前自适应随机状态与向量采样 API 见 [ADR-0024](../decisions/0024-adaptive-vector-random-api.md)。
+- PSO 融合要求替代 ADR-0016 对 Clamp/Add 必须使用 TensorPrimitives 的限制；当前直接 TensorPrimitives 与私有融合内核的选择、以及基准执行规则见 [ADR-0025](../decisions/0025-direct-tensor-primitives-and-benchmark-execution.md)。ADR-0022 保留此前算法私有 SIMD 与融合方案的历史原因。
 - ADR-0019 的 Reflect 标量和生成器仅服务 Algorithms 决策继续有效；Core 随机 SIMD 使用私有通用 intrinsic，不新增生成器引用。
-- 替代决策已记录为 ADR-0021、ADR-0022；旧 ADR 保留原文并标记 Superseded。
+- ADR-0021、ADR-0022 仅作历史记录，旧 ADR 保留原文并标记 `Superseded`；当前入口使用 ADR-0024、ADR-0025。替代关系和适用范围以 [ADR 索引](../decisions/README.md) 为准。
 
-## 后续交付顺序
+## 历史执行顺序与当前结果
 
-随机源已完成，详细证据见 [SPEC-0010 Verification](SPEC-0010-simd-random-sampling/verification.md)。2026-09-14 开始剩余算法规划，按既有编号顺序推进 Bat、Cuckoo、PSO、Firefly；每份 Plan 单独批准和验收，不以联合 Spec 批准代替实现批准。Cuckoo 本轮已明确使用现有 NextInt，不恢复公共整数 Fill；新增整数 SIMD 能力留待独立规格。
+随机源已完成，详细证据见 [SPEC-0010 Verification](SPEC-0010-simd-random-sampling/verification.md)。2026-09-14 曾开始剩余算法规划，按既有编号顺序推进 Bat、Cuckoo、PSO、Firefly；这是已完成工作的历史执行顺序，每份 Plan 仍单独批准和验收，不以联合 Spec 批准代替实现批准。Cuckoo 本轮已明确使用现有 NextInt，不恢复公共整数 Fill；新增整数 SIMD 能力留待独立规格。
 
 | Plan | 状态 | 主要审阅点 |
 | --- | --- | --- |
@@ -34,30 +40,30 @@
 | [PSO](SPEC-0013-pso-simd-refinement/plan.md) | Approved | 初始化 Fill 与整代 2P 系数预取分别评估、每粒子一对系数共享、速度/Clamp/位置融合 |
 | [Firefly](SPEC-0014-firefly-simd-refinement/plan.md) | Approved | 每次实际移动一次 Fill(D)，复用已有缓冲；逐次 Repair 与随机缩放融合 |
 
-[共同验证计划](simd-plan.md)是四份 Plan 的附件，固定直接生产基线、增量对照、数值通则与性能门槛；验收标准、四份完整 Plan 及本附件已于 2026-09-15 获项目作者批准。2026-09-17 已完成实施、候选取舍和正式验收；此前另行授权的数组复制改为 Span.CopyTo 只进入统一 H 适配，不作为 SIMD 收益。
+[共同验证计划](simd-plan.md)是四份 Plan 的附件，固定直接生产基线、增量对照、数值通则与性能门槛；验收标准、四份完整 Plan 及本附件已于 2026-09-15 获项目作者批准，2026-09-17 补充执行口径并完成实施、候选取舍和正式验收。共同附件中记录了批准版本标识的历史限制；后续实质修改按 [Specs 索引](README.md) 的跨 Spec 共同方案规则处理。此前另行授权的数组复制改为 Span.CopyTo 只进入统一 H 适配，不作为 SIMD 收益。
 
 验证需分别隔离随机源收益、算法批量化收益、算术 SIMD 收益和最终组合收益；基线为本次改造前代码，PSO/Firefly 基线包含已有 SIMD。完整 run 计入随机源创建、ResetForRun 和固定工作量执行。保留路径须有内核与端到端数据；基准配置、完整命令、源 hash 和结果记录于 Verification。
 
 ## 执行文档
 
-2026-09-17，四份任务清单全部完成，验证报告记录了局部、受限 Vector128、H/A/B/C 完整 run、分配和工程证据。
+2026-09-17，四份任务清单全部完成，验证报告记录了局部、受限 Vector128、H/A/B/C 完整 run、分配和工程证据。下表的 `Passed` 只表示各报告保留的历史验收结论；证据完整性和平台覆盖限制见文档顶部及各报告的限制章节。
 
-| 算法 | 任务清单 | 验证模板 |
+| 算法 | 任务清单 | 验证报告（历史验收结论） |
 | --- | --- | --- |
 | Bat | [Tasks：8 项，Completed](SPEC-0011-bat-batched-simd/tasks.md) | [Verification：Passed](SPEC-0011-bat-batched-simd/verification.md) |
 | Cuckoo | [Tasks：9 项，Completed](SPEC-0012-cuckoo-batched-simd/tasks.md) | [Verification：Passed](SPEC-0012-cuckoo-batched-simd/verification.md) |
 | PSO | [Tasks：7 项，Completed](SPEC-0013-pso-simd-refinement/tasks.md) | [Verification：Passed](SPEC-0013-pso-simd-refinement/verification.md) |
 | Firefly | [Tasks：5 项，Completed](SPEC-0014-firefly-simd-refinement/tasks.md) | [Verification：Passed](SPEC-0014-firefly-simd-refinement/verification.md) |
 
-## 审批记录
+## 审批记录（含历史过程）
 
 - 规格批准：项目作者，2026-09-06，通过“同意”批准联合规格。
 - 当前阶段：SPEC-0010 至 SPEC-0014 均为 Implemented；各 Plan 保持 Approved，Cuckoo 整数范围按已批准边界实施。
 - Spec 批准授权制定 Plan；实现和基准遵守明确批准范围，不设逐轮测量确认。
 - 实施完成（2026-09-17）：Bat 掩码分支 SIMD 有明确收益并采用；Cuckoo C3 Log/Exp 候选因回退删除；PSO 只以 B+C 最终组合通过；Firefly 采用随机缩放融合。
-- PSO 采样规则修订（2026-09-15）：项目作者批准以显式布局取代跨回调预取禁令；该次尚未批准具体布局、候选性能门槛及整份 Plan，不构成实验或实现授权。
-- Bat/Cuckoo/Firefly 采样规则修订（2026-09-15）：项目作者批准相应显式样本预取边界，保留实际回调和依赖状态读取时机；批准 Bat 常量区间不采样及 Cuckoo 使用现有 NextInt 的不同索引对映射、单巢不采样索引。本次同意授权修订文档并提交、推送，该次尚未批准整份 Plan。
+- 历史记录（2026-09-15，PSO 采样规则修订）：项目作者批准以显式布局取代跨回调预取禁令；该次尚未批准具体布局、候选性能门槛及整份 Plan，不构成实验或实现授权。
+- 历史记录（2026-09-15，Bat/Cuckoo/Firefly 采样规则修订）：项目作者批准相应显式样本预取边界，保留实际回调和依赖状态读取时机；批准 Bat 常量区间不采样及 Cuckoo 使用现有 NextInt 的不同索引对映射、单巢不采样索引。本次同意授权修订文档并提交、推送，该次尚未批准整份 Plan。
 - 验收标准确认（2026-09-15）：项目作者确认局部 1.10×、主要完整 run 1.02×、诊断负载回退不超过 5%，以及既定数值预算、特殊值分类/回退与验证负载。主要维度为 32/128，补充 24/25/64/65 覆盖实际使用范围；具体对照和测试规则以共同附件及各 Plan 为准。
-- Plan 整体批准（2026-09-15）：项目作者通过“批准plan”批准 SPEC-0011 至 SPEC-0014 的完整 Plan 及共同验证附件。下一阶段为 Tasks 拆分；本次仅落实审批，未启动实现或实验。
-- Tasks 拆分授权（2026-09-15）：项目作者要求拆分四份 Tasks 并补入 Verification 模板；任务全部为 Pending，报告结果全部为 Pending，未启动实现或实验。
+- 历史记录（2026-09-15，Plan 整体批准）：项目作者通过“批准plan”批准 SPEC-0011 至 SPEC-0014 的完整 Plan 及共同验证附件。当时下一阶段为 Tasks 拆分；该记录仅落实审批，未启动实现或实验。
+- 历史记录（2026-09-15，Tasks 拆分授权）：项目作者要求拆分四份 Tasks 并补入 Verification 模板；当时任务和报告结果全部为 Pending，未启动实现或实验。当前执行结果见上方及各 Verification。
 - 执行口径补充（2026-09-17）：项目作者启动 SPEC-0011 至 SPEC-0014 的连续实施，并确认多次读入、连贯计算、最终单次写回视为一次完整局部操作；Bat 的 `if` 掩码向量化有收益则采用。受限 Algorithms Vector128 路径的性能门槛调整为不弱于同公式标量参考（`>=1.00×`），不指维度 `D=128`，其余门槛不变。

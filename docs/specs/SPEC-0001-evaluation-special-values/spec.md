@@ -4,12 +4,19 @@
 
 - 编号：`SPEC-0001`
 - 状态：`Implemented`
+- 当前适用性：`Current`
 - 创建日期：2026-08-27
 - 批准人：项目作者
 - 批准日期：2026-08-27
 - 替代：无
 - 被替代：无
 - 相关 ADR：[ADR-0012](../../decisions/0012-repair-owned-candidate-boundaries.md)（现行有限值规则的历史来源）、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0015](../../decisions/0015-ordered-extended-evaluation-values.md)
+
+## 当前适用范围
+
+2026-09-18 按既有批准整理适用性，不改写历史需求正文或验收结果。
+
+FR-001 至 FR-005、NFR-001 继续有效，尚无后续替代。
 
 ## 问题与动机
 

@@ -4,6 +4,7 @@
 
 - 编号：`SPEC-0013`
 - 状态：`Implemented`
+- 当前适用性：`Current`
 - 实施日期：2026-09-17
 - 创建日期：2026-09-06
 - 修订日期：2026-09-15
@@ -12,6 +13,14 @@
 - 替代：无；增量优化 SPEC-0005 已有路径
 - 被替代：无
 - 相关 ADR：ADR-0014、ADR-0019、ADR-0021、ADR-0025
+
+## 当前适用范围
+
+2026-09-18 按既有批准整理适用性，不改写历史需求正文或验收结果。
+
+以本文件最新已批准修订为准，尚无后续替代。问题背景与带日期的批准记录描述各自历史时点；其中未实施、Plan Draft 等表述不覆盖元数据和当前 Plan/Tasks 的执行状态。平台覆盖与历史证据限制见本 package 的 Verification。
+
+本文 FR-001/FR-002、NFR-001 接替 [SPEC-0002 FR-003](../SPEC-0002-continuous-algorithm-migration/spec.md) 的抽样实现及 [SPEC-0005 FR-001/FR-003、NFR-002](../SPEC-0005-algorithm-private-simd/spec.md) 的旧 PSO 内核/验收；[SPEC-0009 FR-008](../SPEC-0009-high-performance-random-sampling/spec.md) 的阶段隔离由本稿落实。每粒子一对系数和公共状态边界保留。
 
 ## 问题与动机
 

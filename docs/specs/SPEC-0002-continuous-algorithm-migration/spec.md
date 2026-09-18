@@ -4,12 +4,24 @@
 
 - 编号：`SPEC-0002`
 - 状态：`Implemented`
+- 当前适用性：`Partial`
 - 创建日期：2026-08-27
 - 批准人：项目作者
 - 批准日期：2026-08-27
 - 替代：无
-- 被替代：无
+- 被替代：部分，见下方“当前适用范围”的条款映射。
 - 相关 ADR：[ADR-0009](../../decisions/0009-group-scoped-optimizer-execution.md)、[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0011](../../decisions/0011-bat-first-algorithm-migration.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0015](../../decisions/0015-ordered-extended-evaluation-values.md)
+
+## 当前适用范围
+
+2026-09-18 按既有批准整理适用性，不改写历史需求正文或验收结果。
+
+保留公开入口、生命周期、算法公式、Options、Repair/Evaluate 时点与隔离规则。
+
+- FR-003 的 PSO 抽样和算术实现、相关 NFR-001 的旧轨迹验收由 [SPEC-0013 FR-001/FR-002](../SPEC-0013-pso-simd-refinement/spec.md) 接替，保留每粒子一对系数。
+- FR-004 的 Firefly 抽样和融合由 [SPEC-0014 FR-001/FR-002](../SPEC-0014-firefly-simd-refinement/spec.md) 接替，保留吸引顺序与逐次 Repair。
+- FR-005 的 Cuckoo 抽样和算术由 [SPEC-0012 FR-001 至 FR-003](../SPEC-0012-cuckoo-batched-simd/spec.md) 接替。
+- 全文旧随机类型、seed 与旧轨迹描述按 [SPEC-0009 FR-006](../SPEC-0009-high-performance-random-sampling/spec.md) 的迁移和 [SPEC-0010 FR-001/FR-005](../SPEC-0010-simd-random-sampling/spec.md) 的当前复现边界读取。
 
 ## 问题与动机
 

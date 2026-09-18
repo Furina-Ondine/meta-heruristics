@@ -4,6 +4,8 @@
 
 Accepted
 
+当前适用范围（2026-09-18 整理）：本决策及下面已批准的历史补充已实施，当前行为见 [SPEC-0010](../specs/SPEC-0010-simd-random-sampling/spec.md)。正文的“尚未实现”是 2026-09-08 的历史时点描述；旋转指令例外以 2026-09-14 批准补充为准，不表示全部固定宽度或 ISA 用法均获授权。
+
 2026-09-08，项目作者明确要求统一使用自适应 Vector API、删除 BatchCursor、以四个 ref vector 推进状态，并新增两个向量返回采样方法供 StandardNormal.Fill 使用。替代 [ADR-0023](0023-separate-scalar-and-batch-random-state.md)。本记录确认用户指定方向；具体方法命名及完整行为见本次批准的 [SPEC-0010 修订稿](../specs/SPEC-0010-simd-random-sampling/spec.md)，尚未实现。
 
 ## 背景

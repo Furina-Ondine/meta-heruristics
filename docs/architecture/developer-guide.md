@@ -4,7 +4,7 @@ uid: developer-guide
 
 # 开发者架构手册
 
-本手册面向实现新策略、算法或修改现有职责的人。持续有效的规则以 [`ENGINEERING.md`](../../ENGINEERING.md) 为准，选择理由以 [ADR](../decisions/README.md) 为准，具体功能行为以 [Approved/Implemented Spec](../specs/README.md) 为准。
+本手册面向实现新策略、算法或修改现有职责的人。先用[当前系统概览](overview.md)定位职责、数据流与生命周期。持续有效的规则以 [`ENGINEERING.md`](../../ENGINEERING.md) 为准，选择理由以 [ADR 的当前适用部分](../decisions/README.md) 为准，具体功能行为以[经批准且当前适用的 Spec 条款](../specs/README.md) 为准；Implemented 本身不表示所有旧条款仍有效。
 
 ## 先选择扩展点
 

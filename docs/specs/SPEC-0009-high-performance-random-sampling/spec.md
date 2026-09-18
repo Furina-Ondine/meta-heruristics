@@ -4,16 +4,29 @@
 
 - 编号：`SPEC-0009`
 - 状态：`Implemented`
+- 当前适用性：`Partial`
 - 创建日期：2026-09-03
 - 批准人：项目作者
 - 批准日期：2026-09-05
 - 替代：现有运行时公共契约中由 `System.Random` 承担的随机源与 `int` seed 行为；长期决策由 ADR-0020 记录。
-- 被替代：无
+- 被替代：部分，见下方“当前适用范围”的条款映射。
 - 相关 ADR：[ADR-0003](../../decisions/0003-project-and-package-boundaries.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0020](../../decisions/0020-core-owned-random-source-and-run-execution.md)；本变更保持现有项目边界，ADR-0020 替代 ADR-0009 并记录 Randomness 职责、随机源所有权与 64 位 seed 迁移。
 
 ## 后续局部替代
 
 2026-09-08 批准的 [SPEC-0010](../SPEC-0010-simd-random-sampling/spec.md) 替代本文 FR-002 的“单组四字状态被全部入口共享”部分：`RandomSource` 现在同时持有单值状态与运行时宽度的批量状态，批量 lane 由内部 Jump 播种，单值入口与批量入口互不推进。当前决策见 [ADR-0024](../../decisions/0024-adaptive-vector-random-api.md)（替代 ADR-0023 与 ADR-0021）。其余封闭 API、分布、所有权、弱序列兼容、数值/异常规则和 seed 排程契约继续有效，单值路径仍沿用本文的序列；以下保留历史批准内容。
+
+## 当前适用范围
+
+2026-09-18 按既有批准整理适用性，不改写历史需求正文或验收结果。
+
+保留封闭 RandomSource、ulong seed、Core 所有权、单值序列、异常原子性、运行隔离和 seed 排程。以下映射补全原“后续局部替代”，不把旧整数 Fill 或共享状态继续作为当前 API。
+
+- FR-002 的单组共享状态由 [SPEC-0010 FR-001](../SPEC-0010-simd-random-sampling/spec.md) 的双状态和 Jump lane 初始化接替。
+- FR-003/FR-004 的 Fill 路由、整数 Fill 和批量序列自由度由 [SPEC-0010 FR-002/FR-003/FR-005/FR-006](../SPEC-0010-simd-random-sampling/spec.md) 接替：删除整数 Fill，明确向量 API、尾块消费与宽度边界。
+- FR-005 的批量正态实现由 [SPEC-0010 FR-004](../SPEC-0010-simd-random-sampling/spec.md) 的两向量 Box–Muller 接替；Sample 保留单值路线。
+- FR-008 阶段排除项及相关 FR-007 接线由 [SPEC-0011](../SPEC-0011-bat-batched-simd/spec.md)、[SPEC-0012](../SPEC-0012-cuckoo-batched-simd/spec.md)、[SPEC-0013](../SPEC-0013-pso-simd-refinement/spec.md)、[SPEC-0014](../SPEC-0014-firefly-simd-refinement/spec.md) 各自授权的批量化/融合接替。
+- NFR-002/NFR-003/NFR-005 涉及旧批量测试、性能与 API 范围的部分由 [SPEC-0010 FR-002 至 FR-006、NFR-001/NFR-002](../SPEC-0010-simd-random-sampling/spec.md) 接替；旧数据仅证明旧版本。
 
 ## 问题与动机
 

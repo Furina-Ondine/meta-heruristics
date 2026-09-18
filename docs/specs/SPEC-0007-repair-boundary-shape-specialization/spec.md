@@ -4,12 +4,21 @@
 
 - 编号：`SPEC-0007`
 - 状态：`Implemented`
+- 当前适用性：`Current`
 - 创建日期：2026-08-31
 - 批准人：项目作者
 - 批准日期：2026-08-31
 - 替代：无；实施后替代 [ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md) 对内置 Repair 四种边界形状的决定。
 - 被替代：无
 - 相关 ADR：[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0019](../../decisions/0019-scalar-reflect-and-algorithm-only-simd-generation.md)
+
+## 当前适用范围
+
+2026-09-18 按既有批准整理适用性，不改写历史需求正文或验收结果。
+
+FR-001 至 FR-005、NFR-001 至 NFR-004 继续有效，以已批准的标量 Reflect 修订为准。接替的旧 SIMD 与生成器范围见 SPEC-0003、SPEC-0004、SPEC-0006 的适用范围。
+
+接替来源：[SPEC-0003](../SPEC-0003-simd-repairs/spec.md) 的四形状 API 与 Reflect 路径、[SPEC-0004](../SPEC-0004-masked-simd-reflect/spec.md) 的掩码实现及数值约束、[SPEC-0006](../SPEC-0006-zero-overhead-simd-cascade/spec.md) 的 Core 生成接入。本文 FR-003/FR-004 和 NFR-003 承接保留的特殊值与数值规则，FR-001/FR-004 与 NFR-004 定义当前形状和实现范围。
 
 ## 问题与动机
 

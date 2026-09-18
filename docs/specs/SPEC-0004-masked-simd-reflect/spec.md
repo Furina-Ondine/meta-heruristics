@@ -4,12 +4,23 @@
 
 - 编号：`SPEC-0004`
 - 状态：`Implemented`
+- 当前适用性：`Superseded`
 - 创建日期：2026-08-28
 - 批准人：项目作者
 - 批准日期：2026-08-28
 - 替代：[SPEC-0003](../SPEC-0003-simd-repairs/spec.md) 的 FR-003 内部 Reflect 分派规则（整段安全预扫描与任一 lane 不安全即整段标量回退）
-- 被替代：无
+- 被替代：全部，见下方“当前适用范围”的条款映射。
 - 相关 ADR：[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)
+
+## 当前适用范围
+
+2026-09-18 按既有批准整理适用性，不改写历史需求正文或验收结果。
+
+本文掩码实现已退出当前契约，不再要求 Core 存在 SIMD、级联或 lane 修补。全部规范性内容的当前接替位置如下：
+
+- FR-001/FR-003/FR-004、NFR-002 的 SIMD 与复杂度边界由 [SPEC-0007 FR-004、NFR-004](../SPEC-0007-repair-boundary-shape-specialization/spec.md) 的标量 Reflect 及 Core 生成器删除要求接替。
+- FR-002、NFR-001 的特殊值/数值兼容由 [SPEC-0007 FR-003/FR-004、NFR-001/NFR-003](../SPEC-0007-repair-boundary-shape-specialization/spec.md) 接替；保留特殊值、端点及明确继承的最多 1 ULP 许可，不恢复旧 SIMD 要求。
+- FR-005 的候选性能准入由 [SPEC-0007 FR-005、NFR-002](../SPEC-0007-repair-boundary-shape-specialization/spec.md) 与 [ADR-0019](../../decisions/0019-scalar-reflect-and-algorithm-only-simd-generation.md) 的拒绝候选及标量实现证据接替。
 
 ## 问题与动机
 

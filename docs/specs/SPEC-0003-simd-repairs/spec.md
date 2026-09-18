@@ -4,12 +4,23 @@
 
 - 编号：`SPEC-0003`
 - 状态：`Implemented`
+- 当前适用性：`Partial`
 - 创建日期：2026-08-28
 - 批准人：项目作者
 - 批准日期：2026-08-28
 - 替代：无
-- 被替代：[SPEC-0004](../SPEC-0004-masked-simd-reflect/spec.md) 的 FR-003 内部 Reflect 分派规则（整段安全预扫描与任一 lane 不安全即整段标量回退）；[SPEC-0005](../SPEC-0005-algorithm-private-simd/spec.md) 的 FR-001 中“只有 Core 直接引用 `System.Numerics.Tensors`”的项目引用限制
+- 被替代：部分，见下方“当前适用范围”；SPEC-0004 是 Reflect 的中间历史方案，当前已由 SPEC-0007 接替。
 - 相关 ADR：[ADR-0001](../../decisions/0001-platform-and-toolchain.md)、[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)
+
+## 当前适用范围
+
+2026-09-18 按既有批准整理适用性，不改写历史需求正文或验收结果。
+
+保留 Clamp、RandomReset、DoNothing 的独立职责及未被后续规格改变的数值/异常语义。
+
+- FR-001 的 Tensor 仅限 Core 范围由 [SPEC-0005 FR-001/NFR-003](../SPEC-0005-algorithm-private-simd/spec.md) 的 Algorithms 私有算术范围接替。
+- FR-002/FR-004 的四形状 API 由 [SPEC-0007 FR-001 至 FR-003](../SPEC-0007-repair-boundary-shape-specialization/spec.md) 的同形状工厂接替。
+- FR-003、FR-005/NFR-002 中 Reflect 的实现与性能要求由 [SPEC-0007 FR-004/FR-005、NFR-002 至 NFR-004](../SPEC-0007-repair-boundary-shape-specialization/spec.md) 的标量实现与候选拒绝证据接替；中间 SPEC-0004 掩码实现只作历史。NFR-001 的特殊值与兼容要求由 SPEC-0007 FR-003、NFR-003 承接，最多 1 ULP 的许可保留，不要求恢复 SIMD。
 
 ## 问题与动机
 

@@ -4,12 +4,23 @@
 
 - 编号：`SPEC-0006`
 - 状态：`Implemented`
+- 当前适用性：`Partial`
 - 创建日期：2026-08-30
 - 批准人：项目作者
 - 批准日期：2026-08-30
 - 替代：无；若实施，只替代 [SPEC-0004](../SPEC-0004-masked-simd-reflect/spec.md) 与 [SPEC-0005](../SPEC-0005-algorithm-private-simd/spec.md) 已批准固定宽度级联中的重复手写展开，不替代其行为、数值或职责契约。
-- 被替代：无
+- 被替代：部分，见下方“当前适用范围”的条款映射。
 - 相关 ADR：[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0016](../../decisions/0016-algorithm-fixed-width-simd-cascade.md)、[ADR-0017](../../decisions/0017-repository-private-simd-source-generation.md)
+
+## 当前适用范围
+
+2026-09-18 按既有批准整理适用性，不改写历史需求正文或验收结果。
+
+保留 Algorithms 使用的受限生成器、确定性输出、手写领域语义和零运行时抽象开销要求。
+
+- FR-001/FR-002/FR-003/FR-006、NFR-002/NFR-003 涉及 Core/Reflect 的部分由 [SPEC-0007 FR-004、NFR-004](../SPEC-0007-repair-boundary-shape-specialization/spec.md) 与 [ADR-0019](../../decisions/0019-scalar-reflect-and-algorithm-only-simd-generation.md) 接替：删除 Core 模板、接入和无消费者展开。
+- Algorithms 具体公式按当前 [SPEC-0011](../SPEC-0011-bat-batched-simd/spec.md)、[SPEC-0012](../SPEC-0012-cuckoo-batched-simd/spec.md)、[SPEC-0013](../SPEC-0013-pso-simd-refinement/spec.md)、[SPEC-0014](../SPEC-0014-firefly-simd-refinement/spec.md) 读取。
+- FR-004/FR-005、NFR-001/NFR-004 及其他条款对 Algorithms 的生成器边界继续有效，不授权扩展元素类型或生成器职责。
 
 ## 问题与动机
 

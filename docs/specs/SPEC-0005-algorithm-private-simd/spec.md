@@ -4,12 +4,24 @@
 
 - 编号：`SPEC-0005`
 - 状态：`Implemented`
+- 当前适用性：`Partial`
 - 创建日期：2026-08-29
 - 批准人：项目作者
 - 批准日期：2026-08-29
 - 替代：[SPEC-0003](../SPEC-0003-simd-repairs/spec.md) 的 FR-001 中“只有 Core 直接引用 `System.Numerics.Tensors`”的项目引用限制；不替代其 Repair 行为或 Core 对内置 Repair 的实现所有权。
-- 被替代：无
+- 被替代：部分，见下方“当前适用范围”的条款映射。
 - 相关 ADR：[ADR-0009](../../decisions/0009-group-scoped-optimizer-execution.md)、[ADR-0010](../../decisions/0010-scalar-evaluation-baseline.md)、[ADR-0013](../../decisions/0013-tensor-shaped-repair-bounds.md)、[ADR-0014](../../decisions/0014-spec-driven-change-governance.md)、[ADR-0016](../../decisions/0016-algorithm-fixed-width-simd-cascade.md)
+
+## 当前适用范围
+
+2026-09-18 按既有批准整理适用性，不改写历史需求正文或验收结果。
+
+保留算法私有算术、状态所有权、无公共 SIMD 后端和跨平台数值边界。
+
+- FR-001/FR-003、NFR-002 的 PSO 实现及验收由 [SPEC-0013 FR-001/FR-002、NFR-001](../SPEC-0013-pso-simd-refinement/spec.md) 接替。
+- FR-002/FR-003、NFR-002 的 Firefly 实现及验收由 [SPEC-0014 FR-001/FR-002、NFR-001](../SPEC-0014-firefly-simd-refinement/spec.md) 接替。
+- FR-004 中 Bat/Cuckoo 仅诊断、不进入生产的限制由 [SPEC-0011 FR-001 至 FR-003](../SPEC-0011-bat-batched-simd/spec.md) 和 [SPEC-0012 FR-001 至 FR-003](../SPEC-0012-cuckoo-batched-simd/spec.md) 的生产接入接替。
+- NFR-001 中相对旧版本“不新增每轮随机数”的范围，按上述四个算法规格各自批准的批量角色与消费布局读取；不得据此拒绝已批准的抽样迁移，也不得借迁移改变未批准的随机角色。同版本同环境的重复确定性、特殊值、回调和隔离要求仍保留。
 
 ## 问题与动机
 

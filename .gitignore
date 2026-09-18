@@ -6,6 +6,7 @@ obj/
 *.suo
 TestResults/
 BenchmarkDotNet.Artifacts/
+.artifacts/
 .superpowers/
 docs/reference/api/
 docs/reference/_site/

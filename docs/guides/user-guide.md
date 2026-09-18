@@ -14,7 +14,7 @@ uid: user-guide
 
 当前版本适合连续、单目标、同步评价问题。它不承诺找到数学上的全局最优值，也不支持多目标、二进制、排列、远程或 GPU 计算。
 
-## 两条使用路径
+## 使用路径
 
 ### 求解一次
 
@@ -36,7 +36,7 @@ ExperimentCase + ExperimentDefinition + ExperimentExecutionOptions
 
 适合用多个 seed 重复运行、比较多个配置、限制总并发并汇总统计。
 
-## 第一次运行需要掌握的六个概念
+## 第一次运行需要掌握的概念
 
 | 概念 | 你需要决定什么 |
 | --- | --- |
@@ -128,7 +128,7 @@ file sealed class UniformInitializer : ICandidateInitializer
 5. `OptimizationRunner.Execute` 用显式 seed 执行一次完整生命周期，并返回 Summary。
 6. Summary 保存最佳评估、迭代数和停止原因；最佳位置则从 Optimizer 读取。
 
-`summary.BestEvaluation.Objective` 是最佳目标值。最佳位置仍存放在 Optimizer 的可复用工作区，因此示例在 `Execute` 返回后立即调用 `ToArray()` 保存副本；精确生命周期见生成式 API Reference 中的 `IOptimizer.BestPosition`。包含四种算法和 Experiment 组装的项目级示例见 [`Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
+`summary.BestEvaluation.Objective` 是最佳目标值。最佳位置仍存放在 Optimizer 的可复用工作区，因此示例在 `Execute` 返回后立即调用 `ToArray()` 保存副本；精确生命周期见生成式 API Reference 中的 `IOptimizer.BestPosition`。内置算法和 Experiment 组装的项目级示例见 [`Program.cs`](../../examples/Metaheuristics.Examples/Program.cs)。
 
 运行完整示例：
 

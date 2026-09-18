@@ -4,6 +4,8 @@
 
 状态：Accepted
 
+当前适用范围（2026-09-18 整理）：单点评估、布局自由、批量能力重入门槛及本机执行边界继续有效。正文“统一候选验证”中的位置合法性已由 [SPEC-0007 FR-003/FR-004](../specs/SPEC-0007-repair-boundary-shape-specialization/spec.md) 及 ENGINEERING 的候选责任规则接替，Core 只验证自己的协议和评估结果；`Random` 类型已由 [SPEC-0010 FR-001/FR-005](../specs/SPEC-0010-simd-random-sampling/spec.md) 的封闭 RandomSource 接替。当前随机性、RunGroup 与性能约束直接见 [ENGINEERING](../../ENGINEERING.md)，不需从 ADR-0006 继承旧实现细节。以下正文保留历史决策。
+
 替代 [ADR-0006](0006-evaluation-performance-and-reproducibility.md)。
 
 ## 背景

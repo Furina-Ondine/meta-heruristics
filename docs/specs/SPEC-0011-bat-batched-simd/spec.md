@@ -4,6 +4,7 @@
 
 - 编号：`SPEC-0011`
 - 状态：`Implemented`
+- 当前适用性：`Current`
 - 实施日期：2026-09-17
 - 创建日期：2026-09-06
 - 批准人：项目作者
@@ -11,6 +12,14 @@
 - 替代：无；增量调整 SPEC-0002 的 Bat 实现
 - 被替代：无
 - 相关 ADR：ADR-0014、ADR-0019、ADR-0021、ADR-0025
+
+## 当前适用范围
+
+2026-09-18 按既有批准整理适用性，不改写历史需求正文或验收结果。
+
+以本文件最新已批准修订为准，尚无后续替代。问题背景与带日期的批准记录描述各自历史时点；其中未实施、Plan Draft 等表述不覆盖元数据和当前 Plan/Tasks 的执行状态。平台覆盖与历史证据限制见本 package 的 Verification。
+
+本文 FR-001 至 FR-003 接替 [SPEC-0005 FR-004](../SPEC-0005-algorithm-private-simd/spec.md) 和 [SPEC-0009 FR-008](../SPEC-0009-high-performance-random-sampling/spec.md) 对 Bat 的阶段性生产范围限制；不扩大到未列出的算法行为。
 
 ## 问题与动机
 

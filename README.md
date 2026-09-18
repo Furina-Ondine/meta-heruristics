@@ -41,7 +41,7 @@ ExperimentCase + ExperimentDefinition + ExecutionOptions
 dotnet run --project examples/Metaheuristics.Examples/Metaheuristics.Examples.csproj --configuration Release
 ```
 
-完整示例同时演示单次求解和两个实验 Case，源码见 [`Program.cs`](examples/Metaheuristics.Examples/Program.cs)。
+完整示例演示单次求解和实验 Case 的组装，源码见 [`Program.cs`](examples/Metaheuristics.Examples/Program.cs)。
 
 ## 开发与验证
 
@@ -54,7 +54,7 @@ pwsh ./eng/verify-documentation.ps1
 dotnet docfx docfx.json --warningsAsErrors
 ```
 
-扩展策略或算法前阅读[开发者架构手册](docs/architecture/developer-guide.md)；持续工程规则见 [`ENGINEERING.md`](ENGINEERING.md)，当前实现见[架构概览](docs/architecture/overview.md)，决策理由见 [ADR](docs/decisions/README.md)，新功能变更流程见[功能规格](docs/specs/README.md)。
+理解项目定位、设计取向、责任边界、数据流和生命周期，从[当前系统与架构概览](docs/architecture/overview.md)进入；扩展策略或算法前阅读[开发者架构手册](docs/architecture/developer-guide.md)。持续工程规则见 [`ENGINEERING.md`](ENGINEERING.md)，当前决策理由见 [ADR](docs/decisions/README.md)，当前有效规格及变更流程见[功能规格](docs/specs/README.md)。历史 Spec 的 Implemented 表示曾完成验收，还需检查其当前适用性。
 
 ## 项目来源
 
